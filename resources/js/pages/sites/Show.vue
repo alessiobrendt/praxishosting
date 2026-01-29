@@ -470,7 +470,6 @@ const removeDomain = (domain: Domain) => {
                                     >
                                         {{ domain.domain }}
                                     </a>
-                                    <Text v-else class="font-medium">{{ domain.domain }}</Text>
                                     <Badge v-if="domain.type === 'subdomain'" variant="info">
                                         Subdomain
                                     </Badge>
