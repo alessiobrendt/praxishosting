@@ -4,6 +4,9 @@ import type {
     FooterComponentData,
     HeroComponentData,
     MobileNavComponentData,
+    AboutComponentData,
+    HoursComponentData,
+    CtaComponentData,
 } from '@/types/layout-components';
 
 export interface ComponentRegistryEntry {
@@ -11,6 +14,7 @@ export interface ComponentRegistryEntry {
     label: string;
     placement: 'above_main' | 'below_main';
     defaultData: Record<string, unknown>;
+    acceptsChildren?: boolean;
 }
 
 const defaultHeaderData: HeaderComponentData = {
@@ -67,11 +71,61 @@ const defaultMobileNavData: MobileNavComponentData = {
     links: defaultHeaderData.links,
 };
 
+const defaultAboutData: AboutComponentData = {
+    heading: 'Kurzvorstellung',
+    text: 'In unserer Praxis steht der Mensch im Mittelpunkt. Wir verbinden moderne Diagnostik mit individueller Betreuung und nehmen uns Zeit für Ihre Anliegen.',
+    features: [
+        { icon: 'Stethoscope', title: 'Allgemeinmedizin', desc: 'Hausärztliche Versorgung, akute und chronische Erkrankungen.' },
+        { icon: 'Syringe', title: 'Impfungen', desc: 'Beratung und Durchführung aller empfohlenen Impfungen.' },
+        { icon: 'ShieldCheck', title: 'Vorsorge', desc: 'Gesundheits-Check-ups, Krebsfrüherkennung, Hautkrebsscreening.' },
+        { icon: 'HeartPulse', title: 'Diagnostik', desc: 'EKG, Langzeit-Blutdruck, Spirometrie, Laboruntersuchungen.' },
+    ],
+};
+
+const defaultHoursData: HoursComponentData = {
+    heading: 'Öffnungszeiten',
+    icon: 'Clock',
+    infoText: 'Bitte vereinbaren Sie nach Möglichkeit einen Termin. Akutsprechstunde täglich vormittags.',
+    hours: [
+        { day: 'Montag', hours: '08:00–12:00, 15:00–18:00' },
+        { day: 'Dienstag', hours: '08:00–12:00' },
+        { day: 'Mittwoch', hours: '08:00–12:00' },
+        { day: 'Donnerstag', hours: '08:00–12:00, 15:00–18:00' },
+        { day: 'Freitag', hours: '08:00–12:00' },
+        { day: 'Samstag', hours: 'geschlossen' },
+        { day: 'Sonntag', hours: 'geschlossen' },
+    ],
+};
+
+const defaultCtaData: CtaComponentData = {
+    heading: 'Neu bei uns?',
+    text: 'Hier finden Sie Informationen für Ihren ersten Besuch, Anfahrt und was Sie mitbringen sollten.',
+    links: [
+        { text: 'Patienteninformationen', href: '/patienteninformationen', variant: 'primary' },
+        { text: 'Leistungen ansehen', href: '/leistungen', variant: 'secondary' },
+    ],
+    image: { src: '/images/image2.webp', alt: 'Empfangsbereich der Praxis Mustermann' },
+};
+
+const defaultSectionData: Record<string, unknown> = {
+    padding: true,
+    direction: 'column',
+    wrap: true,
+    gap: '1rem',
+    justify: 'start',
+    align: 'stretch',
+    contentWidth: 'full',
+};
+
 export const LAYOUT_COMPONENT_REGISTRY: ComponentRegistryEntry[] = [
     { type: 'header', label: 'Header', placement: 'above_main', defaultData: defaultHeaderData as Record<string, unknown> },
     { type: 'footer', label: 'Footer', placement: 'below_main', defaultData: defaultFooterData as Record<string, unknown> },
     { type: 'hero', label: 'Hero', placement: 'above_main', defaultData: defaultHeroData as Record<string, unknown> },
     { type: 'mobileNav', label: 'Mobile-Nav', placement: 'above_main', defaultData: defaultMobileNavData as Record<string, unknown> },
+    { type: 'section', label: 'Bereich', placement: 'above_main', defaultData: defaultSectionData, acceptsChildren: true },
+    { type: 'about', label: 'Über uns', placement: 'above_main', defaultData: defaultAboutData as Record<string, unknown> },
+    { type: 'hours', label: 'Öffnungszeiten', placement: 'above_main', defaultData: defaultHoursData as Record<string, unknown> },
+    { type: 'cta', label: 'Call-to-Action', placement: 'above_main', defaultData: defaultCtaData as Record<string, unknown> },
     { type: 'json', label: 'JSON / Benutzerdefiniert', placement: 'above_main', defaultData: {} },
 ];
 
@@ -81,6 +135,10 @@ const registryByType = new Map<LayoutComponentType, ComponentRegistryEntry>(
 
 export function getComponentRegistryEntry(type: LayoutComponentType): ComponentRegistryEntry | undefined {
     return registryByType.get(type);
+}
+
+export function acceptsChildren(type: LayoutComponentType): boolean {
+    return registryByType.get(type)?.acceptsChildren === true;
 }
 
 export function getDefaultDataForType(type: LayoutComponentType): Record<string, unknown> {
@@ -94,9 +152,9 @@ export function generateLayoutComponentId(): string {
 }
 
 /**
- * Build layout_components array from legacy page_data (header, footer, hero).
- * Used for backward compatibility when layout_components is missing.
- * Order: above_main (header, hero) then below_main (footer). Main slot is rendered between them in the layout.
+ * Build layout_components array from legacy page_data (header, hero, about, hours, cta, footer).
+ * Used for backward compatibility when layout_components is missing or incomplete.
+ * Order: header, hero, about, hours, cta, footer (single flat list).
  */
 export function buildLayoutComponentsFromLegacy(pageData: Record<string, unknown>): Array<{ id: string; type: LayoutComponentType; data: Record<string, unknown> }> {
     const components: Array<{ id: string; type: LayoutComponentType; data: Record<string, unknown> }> = [];
@@ -109,6 +167,21 @@ export function buildLayoutComponentsFromLegacy(pageData: Record<string, unknown
         components.push({ id: 'hero_legacy', type: 'hero', data: pageData.hero as Record<string, unknown> });
     } else {
         components.push({ id: 'hero_default', type: 'hero', data: defaultHeroData as Record<string, unknown> });
+    }
+    if (pageData.about && typeof pageData.about === 'object') {
+        components.push({ id: 'about_legacy', type: 'about', data: pageData.about as Record<string, unknown> });
+    } else {
+        components.push({ id: 'about_default', type: 'about', data: defaultAboutData as Record<string, unknown> });
+    }
+    if (pageData.hours && typeof pageData.hours === 'object') {
+        components.push({ id: 'hours_legacy', type: 'hours', data: pageData.hours as Record<string, unknown> });
+    } else {
+        components.push({ id: 'hours_default', type: 'hours', data: defaultHoursData as Record<string, unknown> });
+    }
+    if (pageData.cta && typeof pageData.cta === 'object') {
+        components.push({ id: 'cta_legacy', type: 'cta', data: pageData.cta as Record<string, unknown> });
+    } else {
+        components.push({ id: 'cta_default', type: 'cta', data: defaultCtaData as Record<string, unknown> });
     }
     if (pageData.footer && typeof pageData.footer === 'object') {
         components.push({ id: 'footer_legacy', type: 'footer', data: pageData.footer as Record<string, unknown> });

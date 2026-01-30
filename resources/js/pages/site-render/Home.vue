@@ -6,7 +6,6 @@ import AboutSection from '@/components/site/AboutSection.vue';
 import HoursSection from '@/components/site/HoursSection.vue';
 import CTASection from '@/components/site/CTASection.vue';
 import { getTemplateEntry } from '@/templates/template-registry';
-import type { SitePageData } from '@/types/site-page-data';
 
 type Props = {
     site: { id: number; name: string; slug: string };
@@ -14,6 +13,7 @@ type Props = {
     pageData?: Record<string, unknown>;
     colors: Record<string, string>;
     generalInformation: Record<string, unknown>;
+    designMode?: boolean;
 };
 
 const props = defineProps<Props>();
@@ -32,11 +32,6 @@ const layoutComponent = computed(() => {
     return e.Layout;
 });
 
-const pageComponent = computed(() => {
-    const e = templateEntry.value;
-    if (!e) return null;
-    return defineAsyncComponent(e.PageComponent);
-});
 </script>
 
 <template>
@@ -55,16 +50,15 @@ const pageComponent = computed(() => {
     >
         <Head :title="site.name" />
 
-        <template v-if="templateEntry && layoutComponent && pageComponent">
+        <template v-if="templateEntry && layoutComponent">
             <component
                 :is="layoutComponent"
                 :page-data="pageData"
                 :colors="colors"
                 :general-information="generalInformation"
                 :site="site"
-            >
-                <component :is="pageComponent" :page-data="pageData as SitePageData" />
-            </component>
+                :design-mode="designMode"
+            />
         </template>
         <template v-else>
             <header class="border-b border-sidebar-border bg-card">

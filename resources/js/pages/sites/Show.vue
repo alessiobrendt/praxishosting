@@ -22,11 +22,13 @@ import InputError from '@/components/InputError.vue';
 import {
     index as sitesIndex,
     edit as sitesEdit,
+    design as sitesDesign,
 } from '@/routes/sites';
+import { getTemplateEntry } from '@/templates/template-registry';
 import { store as storeCollaborator, destroy as destroyCollaborator } from '@/actions/App/Http/Controllers/SiteCollaboratorController';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { Edit, ExternalLink, UserPlus, X, Mail, Shield, Globe, Plus, RefreshCw, Star, Trash2 } from 'lucide-vue-next';
+import { Edit, ExternalLink, UserPlus, X, Mail, Shield, Globe, Plus, RefreshCw, Star, Trash2, Layout } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
 import DomainConnectionGuide from '@/components/DomainConnectionGuide.vue';
 import SiteVersionTimeline from '@/components/SiteVersionTimeline.vue';
@@ -72,7 +74,8 @@ type Site = {
     id: number;
     name: string;
     slug: string;
-    template: { name: string };
+    has_page_designer?: boolean;
+    template: { name: string; slug: string };
     collaborators: User[];
     invitations: SiteInvitation[];
     domains: Domain[];
@@ -201,6 +204,10 @@ const removeDomain = (domain: Domain) => {
         });
     }
 };
+
+const canShowPageDesigner = computed(() => {
+    return props.site.has_page_designer && getTemplateEntry(props.site.template?.slug)?.getComponentRegistry != null;
+});
 </script>
 
 <template>
@@ -215,11 +222,20 @@ const removeDomain = (domain: Domain) => {
                         Template: {{ site.template?.name ?? '-' }}
                     </Text>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                     <Link :href="sitesEdit({ site: site.id }).url">
                         <Button variant="outline">
                             <Edit class="mr-2 h-4 w-4" />
                             Inhalt bearbeiten
+                        </Button>
+                    </Link>
+                    <Link
+                        v-if="canShowPageDesigner"
+                        :href="sitesDesign({ site: site.id }).url"
+                    >
+                        <Button variant="outline">
+                            <Layout class="mr-2 h-4 w-4" />
+                            Page Designer
                         </Button>
                     </Link>
                 </div>

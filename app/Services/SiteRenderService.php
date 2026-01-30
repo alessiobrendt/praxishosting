@@ -55,7 +55,8 @@ class SiteRenderService
     }
 
     /**
-     * Build layout_components array from legacy page_data (header, footer, hero).
+     * Build layout_components array from legacy page_data (header, hero, about, hours, cta, footer).
+     * Single flat list; used when layout_components is missing or empty.
      *
      * @param  array<string, mixed>  $pageData
      * @return array<int, array{id: string, type: string, data: array}>
@@ -63,10 +64,31 @@ class SiteRenderService
     public function buildLayoutComponentsFromLegacy(array $pageData): array
     {
         $components = [];
+
         $components[] = [
             'id' => 'header_legacy',
             'type' => 'header',
             'data' => isset($pageData['header']) && is_array($pageData['header']) ? $pageData['header'] : [],
+        ];
+        $components[] = [
+            'id' => 'hero_legacy',
+            'type' => 'hero',
+            'data' => isset($pageData['hero']) && is_array($pageData['hero']) ? $pageData['hero'] : [],
+        ];
+        $components[] = [
+            'id' => 'about_legacy',
+            'type' => 'about',
+            'data' => isset($pageData['about']) && is_array($pageData['about']) ? $pageData['about'] : [],
+        ];
+        $components[] = [
+            'id' => 'hours_legacy',
+            'type' => 'hours',
+            'data' => isset($pageData['hours']) && is_array($pageData['hours']) ? $pageData['hours'] : [],
+        ];
+        $components[] = [
+            'id' => 'cta_legacy',
+            'type' => 'cta',
+            'data' => isset($pageData['cta']) && is_array($pageData['cta']) ? $pageData['cta'] : [],
         ];
         $components[] = [
             'id' => 'footer_legacy',

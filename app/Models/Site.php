@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Site extends Model
 {
     use HasFactory;
+
     /**
      * @var list<string>
      */
@@ -24,6 +25,7 @@ class Site extends Model
         'custom_colors',
         'custom_page_data',
         'status',
+        'has_page_designer',
         'published_version_id',
         'draft_version_id',
     ];
@@ -36,6 +38,7 @@ class Site extends Model
         return [
             'custom_colors' => 'array',
             'custom_page_data' => 'array',
+            'has_page_designer' => 'boolean',
         ];
     }
 

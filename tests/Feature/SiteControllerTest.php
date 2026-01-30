@@ -73,3 +73,42 @@ test('user can update site with custom_page_data and custom_colors', function ()
     expect($site->custom_colors)->toBe($customColors);
     expect($site->custom_page_data)->toBe($customPageData);
 });
+
+test('guests cannot access page designer', function () {
+    $site = Site::factory()->create(['has_page_designer' => true]);
+    $response = $this->get(route('sites.design', $site));
+    $response->assertRedirect(route('login'));
+});
+
+test('user cannot access other users page designer', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $site = Site::factory()->create(['user_id' => $otherUser->id, 'has_page_designer' => true]);
+    $this->actingAs($user);
+
+    $response = $this->get(route('sites.design', $site));
+    $response->assertForbidden();
+});
+
+test('user gets 403 when page designer is not enabled for site', function () {
+    $user = User::factory()->create();
+    $site = Site::factory()->create(['user_id' => $user->id, 'has_page_designer' => false]);
+    $this->actingAs($user);
+
+    $response = $this->get(route('sites.design', $site));
+    $response->assertForbidden();
+});
+
+test('user can access page designer when enabled for site', function () {
+    $user = User::factory()->create();
+    $site = Site::factory()->create(['user_id' => $user->id, 'has_page_designer' => true]);
+    $this->actingAs($user);
+
+    $response = $this->get(route('sites.design', $site));
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('sites/PageDesigner')
+        ->where('site.id', $site->id)
+        ->has('baseDomain')
+    );
+});

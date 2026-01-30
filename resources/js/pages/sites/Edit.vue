@@ -14,7 +14,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { index as sitesIndex, show as sitesShow, preview as sitesPreview } from '@/routes/sites';
+import { index as sitesIndex, show as sitesShow, preview as sitesPreview, design as sitesDesign } from '@/routes/sites';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 import type { SitePageData, SitePageDataColors } from '@/types/site-page-data';
@@ -75,6 +75,7 @@ type Site = {
     id: number;
     name: string;
     slug: string;
+    has_page_designer?: boolean;
     custom_page_data: Partial<SitePageData> | null;
     custom_colors: Partial<SitePageDataColors> | null;
     template: Template;
@@ -109,6 +110,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const templateEntry = computed(() => getTemplateEntry(props.site.template?.slug));
+
+const canShowPageDesigner = computed(
+    () => props.site.has_page_designer && templateEntry.value?.getComponentRegistry != null,
+);
 
 function defaultLayoutComponents(): SitePageData['layout_components'] {
     const registry = templateEntry.value?.getComponentRegistry?.();
@@ -292,6 +297,11 @@ function submitForm() {
                                     Vorschau in neuem Tab öffnen
                                 </Button>
                             </a>
+                            <Link v-if="canShowPageDesigner" :href="sitesDesign({ site: site.id }).url">
+                                <Button type="button" variant="outline">
+                                    Page Designer
+                                </Button>
+                            </Link>
                             <Link :href="sitesShow({ site: site.id }).url">
                                 <Button type="button" variant="outline">Abbrechen</Button>
                             </Link>

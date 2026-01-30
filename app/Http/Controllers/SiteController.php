@@ -110,6 +110,25 @@ class SiteController extends Controller
         ]);
     }
 
+    /**
+     * Show the Page Designer (Premium). Only when site has_page_designer and template supports component registry.
+     */
+    public function design(Site $site): Response
+    {
+        $this->authorize('update', $site);
+
+        if (! $site->has_page_designer) {
+            abort(403, 'Page Designer is not enabled for this site.');
+        }
+
+        $site->load('template');
+
+        return Inertia::render('sites/PageDesigner', [
+            'site' => $site,
+            'baseDomain' => config('domains.base_domain', 'praxishosting.abrendt.de'),
+        ]);
+    }
+
     public function update(Request $request, Site $site): RedirectResponse
     {
         $this->authorize('update', $site);

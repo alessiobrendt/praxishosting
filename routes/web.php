@@ -31,8 +31,9 @@ Route::get('gallery/preview/{template}', [GalleryController::class, 'preview'])-
 Route::get('site/{site:slug}', [SiteRenderController::class, 'show'])->name('site-render.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::resource('sites', SiteController::class);
+    Route::get('sites/{site}/design', [SiteController::class, 'design'])->name('sites.design');
     Route::get('sites/{site}/preview', [SiteRenderController::class, 'preview'])->name('sites.preview');
+    Route::resource('sites', SiteController::class);
     Route::post('sites/{site}/preview', [SiteRenderController::class, 'storePreviewDraft'])->name('sites.preview.store');
     Route::post('sites/{site}/images', [SiteController::class, 'uploadImage'])->name('sites.images.store');
     Route::get('sites/{site}/collaborators', [SiteCollaboratorController::class, 'index'])->name('sites.collaborators.index');

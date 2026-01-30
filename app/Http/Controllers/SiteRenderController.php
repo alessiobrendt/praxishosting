@@ -40,6 +40,7 @@ class SiteRenderController extends Controller
     /**
      * Preview a site with optional draft data (for iframe in Edit page).
      * GET: render with draft from session if present, else saved data.
+     * When design_mode=1, designMode is passed so the layout can make sections clickable (postMessage).
      */
     public function preview(Request $request, Site $site): Response
     {
@@ -54,12 +55,15 @@ class SiteRenderController extends Controller
 
         $data = $this->siteRenderService->resolveRenderData($site, $draftPageData, $draftColors);
 
+        $designMode = $request->boolean('design_mode');
+
         return Inertia::render('site-render/Home', [
             'site' => $site->only(['id', 'name', 'slug']),
             'templateSlug' => $site->template->slug,
             'pageData' => $data['pageData'],
             'colors' => $data['colors'],
             'generalInformation' => $data['generalInformation'],
+            'designMode' => $designMode,
         ]);
     }
 
