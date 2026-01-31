@@ -3,9 +3,10 @@ import { computed } from 'vue';
 import Button from '@/templates/praxisemerald/components/ui/Button.vue';
 import type { HeroComponentData } from '@/types/layout-components';
 
-const props = defineProps<{
-    data: Partial<HeroComponentData>;
-}>();
+const props = withDefaults(
+    defineProps<{ data: Partial<HeroComponentData>; designMode?: boolean }>(),
+    { designMode: false },
+);
 
 const heading = computed(() => props.data.heading ?? '');
 const text = computed(() => props.data.text ?? '');
@@ -30,8 +31,9 @@ const image = computed(() => props.data.image ?? { src: '', alt: '' });
                     <div v-for="(btn, idx) in buttons" :key="idx">
                         <Button :variant="(btn.variant as 'default' | 'outline') ?? 'default'">
                             <a
-                                :href="btn.href"
+                                :href="designMode ? '#' : btn.href"
                                 :class="btn.variant === 'default' ? 'text-white' : 'text-black'"
+                                @click="designMode && $event.preventDefault()"
                             >
                                 {{ btn.text }}
                             </a>

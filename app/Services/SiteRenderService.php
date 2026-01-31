@@ -7,25 +7,27 @@ use App\Models\Site;
 class SiteRenderService
 {
     /**
+     * Allowed page slugs for multi-page support. Subpages only when template supports them.
+     *
+     * @var list<string>
+     */
+    public const ALLOWED_PAGE_SLUGS = ['index', 'notfallinformationen', 'patienteninformationen'];
+
+    /**
      * Resolve pageData and colors for a site, optionally merged with draft data.
+     * When $pageSlug is set, resolves that page from custom_page_data.pages[$pageSlug] (or root for index).
+     * When $allowUnknownSlug is true (e.g. preview), the requested slug is used as-is so subpages render correctly.
      *
      * @return array{pageData: array<string, mixed>, colors: array<string, string>, generalInformation: array<string, mixed>}
      */
-    public function resolveRenderData(Site $site, ?array $draftPageData = null, ?array $draftColors = null): array
+    public function resolveRenderData(Site $site, ?array $draftPageData = null, ?array $draftColors = null, ?string $pageSlug = null, bool $allowUnknownSlug = false): array
     {
-        $pages = $site->template->pages ?? collect();
+        $pageSlug = $this->normalizePageSlug($pageSlug, $site, $draftPageData ?? $site->custom_page_data, $allowUnknownSlug);
+        $templatePages = $site->template->pages ?? collect();
         $templatePageData = $site->template->page_data ?? [];
 
-        if ($draftPageData !== null) {
-            $pageData = $draftPageData;
-        } elseif ($site->custom_page_data !== null) {
-            $pageData = $site->custom_page_data;
-        } elseif ($pages->isNotEmpty()) {
-            $indexPage = $pages->first(fn ($p) => $p->slug === 'index') ?? $pages->sortBy('order')->first();
-            $pageData = $indexPage->data ?? [];
-        } else {
-            $pageData = $templatePageData;
-        }
+        $source = $draftPageData ?? $site->custom_page_data;
+        $pageData = $this->resolvePageDataForSlug($source, $templatePageData, $templatePages, $pageSlug);
 
         $colors = $draftColors ?? $site->custom_colors ?? ($templatePageData['colors'] ?? []);
         if (isset($pageData['colors']) && is_array($pageData['colors'])) {
@@ -52,6 +54,139 @@ class SiteRenderService
             'colors' => $colors,
             'generalInformation' => $generalInformation,
         ];
+    }
+
+    /**
+     * Allowed page slugs for this site: template page slugs + custom_pages slugs.
+     *
+     * @param  array<string, mixed>|null  $customPageData
+     * @return list<string>
+     */
+    public function getAllowedPageSlugs(Site $site, ?array $customPageData = null): array
+    {
+        $customPageData = $customPageData ?? $site->custom_page_data;
+        $slugs = ['index'];
+        $templatePages = $site->template?->pages ?? collect();
+        foreach ($templatePages as $p) {
+            $slugs[] = $p->slug;
+        }
+        $customPages = $customPageData['custom_pages'] ?? [];
+        if (is_array($customPages)) {
+            foreach ($customPages as $cp) {
+                if (isset($cp['slug']) && is_string($cp['slug']) && $cp['slug'] !== '') {
+                    $slugs[] = $cp['slug'];
+                }
+            }
+        }
+
+        return array_values(array_unique($slugs));
+    }
+
+    /**
+     * Normalize page slug: null/empty => 'index'; invalid or unknown => 'index'.
+     * When $allowUnknown is true (e.g. preview), pass through any non-empty slug so that page is rendered.
+     *
+     * @param  array<string, mixed>|null  $customPageData
+     */
+    public function normalizePageSlug(?string $pageSlug, ?Site $site = null, ?array $customPageData = null, bool $allowUnknown = false): string
+    {
+        if ($pageSlug === null || $pageSlug === '') {
+            return 'index';
+        }
+
+        if ($allowUnknown) {
+            return $pageSlug;
+        }
+
+        if ($site !== null) {
+            $allowed = $this->getAllowedPageSlugs($site, $customPageData);
+
+            return in_array($pageSlug, $allowed, true) ? $pageSlug : 'index';
+        }
+
+        return in_array($pageSlug, self::ALLOWED_PAGE_SLUGS, true) ? $pageSlug : 'index';
+    }
+
+    /**
+     * Whether a page is active for display/nav. Index is always active.
+     *
+     * @param  array<string, mixed>|null  $customPageData
+     */
+    public function isPageActive(?array $customPageData, string $pageSlug): bool
+    {
+        if ($pageSlug === 'index') {
+            return true;
+        }
+
+        if ($customPageData === null) {
+            return true;
+        }
+
+        $meta = $customPageData['pages_meta'][$pageSlug] ?? null;
+        if (! is_array($meta)) {
+            return true;
+        }
+
+        return ($meta['active'] ?? true) === true;
+    }
+
+    /**
+     * Resolve raw page data array for a given slug from source (draft or custom_page_data) and template.
+     *
+     * @param  array<string, mixed>|null  $source
+     * @param  array<string, mixed>  $templatePageData
+     * @param  \Illuminate\Support\Collection<int, \App\Models\TemplatePage>  $templatePages
+     * @return array<string, mixed>
+     */
+    protected function resolvePageDataForSlug(?array $source, array $templatePageData, $templatePages, string $pageSlug): array
+    {
+        if ($pageSlug === 'index') {
+            return $this->resolveIndexPageData($source, $templatePageData, $templatePages);
+        }
+
+        $templatePage = $templatePages->firstWhere('slug', $pageSlug);
+        $templateDefaults = $templatePage && is_array($templatePage->data) ? $templatePage->data : [];
+        $custom = null;
+        if ($source !== null && isset($source['pages'][$pageSlug]) && is_array($source['pages'][$pageSlug])) {
+            $custom = $source['pages'][$pageSlug];
+        }
+        $merged = array_merge($templateDefaults, $custom ?? []);
+        $layout = $merged['layout_components'] ?? null;
+
+        return [
+            'layout_components' => is_array($layout) && $layout !== [] ? $layout : [],
+        ];
+    }
+
+    /**
+     * Resolve index page: root has precedence over pages.index for backward compatibility.
+     *
+     * @param  array<string, mixed>|null  $source
+     * @param  array<string, mixed>  $templatePageData
+     * @param  \Illuminate\Support\Collection<int, \App\Models\TemplatePage>  $templatePages
+     * @return array<string, mixed>
+     */
+    protected function resolveIndexPageData(?array $source, array $templatePageData, $templatePages): array
+    {
+        if ($source === null) {
+            $indexPage = $templatePages->first(fn ($p) => $p->slug === 'index') ?? $templatePages->sortBy('order')->first();
+
+            return $indexPage && is_array($indexPage->data) ? $indexPage->data : $templatePageData;
+        }
+
+        $hasPages = isset($source['pages']) && is_array($source['pages']);
+        $fromRoot = $source;
+        $fromPagesIndex = $hasPages && isset($source['pages']['index']) && is_array($source['pages']['index'])
+            ? $source['pages']['index']
+            : null;
+
+        if ($fromPagesIndex !== null && (! isset($fromRoot['layout_components']) || ! is_array($fromRoot['layout_components']) || $fromRoot['layout_components'] === [])) {
+            $pageData = array_merge($source, ['layout_components' => $fromPagesIndex['layout_components'] ?? []]);
+        } else {
+            $pageData = $fromRoot;
+        }
+
+        return $pageData;
     }
 
     /**

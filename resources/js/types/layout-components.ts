@@ -10,6 +10,10 @@ export interface LayoutComponentEntry {
     children?: LayoutComponentEntry[];
 }
 
+/**
+ * Known layout component types (static blocks). Extended by string so that
+ * types from page_components/*.vue (e.g. 'text') work without editing this file.
+ */
 export type LayoutComponentType =
     | 'header'
     | 'footer'
@@ -19,9 +23,12 @@ export type LayoutComponentType =
     | 'about'
     | 'hours'
     | 'cta'
-    | 'section';
+    | 'section'
+    | 'grid'
+    | 'flex'
+    | (string & Record<never, never>);
 
-const CONTAINER_TYPES: LayoutComponentType[] = ['section'];
+const CONTAINER_TYPES: LayoutComponentType[] = ['section', 'grid', 'flex'];
 
 export function isContainerType(type: LayoutComponentType): boolean {
     return CONTAINER_TYPES.includes(type);
@@ -127,4 +134,24 @@ export interface SectionComponentData {
     align?: SectionAlign;
     contentWidth?: SectionContentWidth;
     padding?: boolean;
+    /** Innenabstand links (z. B. 1rem, 1.5rem). */
+    paddingLeft?: string;
+    /** Innenabstand rechts (z. B. 1rem, 1.5rem). */
+    paddingRight?: string;
+}
+
+export interface GridComponentData {
+    /** CSS grid-template-columns (z. B. "1fr 1fr", "repeat(3, 1fr)"). */
+    columns?: string;
+    gap?: string;
+    rowGap?: string;
+    columnGap?: string;
+}
+
+export interface FlexContainerComponentData {
+    direction?: SectionFlexDirection;
+    wrap?: boolean;
+    gap?: string;
+    justify?: SectionJustify;
+    align?: SectionAlign;
 }

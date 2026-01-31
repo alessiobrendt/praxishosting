@@ -2,9 +2,10 @@
 import { computed } from 'vue';
 import type { CtaComponentData } from '@/types/layout-components';
 
-const props = defineProps<{
-    data: Partial<CtaComponentData>;
-}>();
+const props = withDefaults(
+    defineProps<{ data: Partial<CtaComponentData>; designMode?: boolean }>(),
+    { designMode: false },
+);
 
 const heading = computed(() => props.data.heading ?? '');
 const text = computed(() => props.data.text ?? '');
@@ -33,8 +34,9 @@ const image = computed(() => props.data.image ?? { src: '', alt: '' });
                 <a
                     v-for="(link, index) in links"
                     :key="index"
-                    :href="link.href"
+                    :href="designMode ? '#' : link.href"
                     class="rounded-md px-4 py-2 transition-colors"
+                    @click="designMode && $event.preventDefault()"
                     :style="
                         link.variant === 'primary'
                             ? { backgroundColor: 'var(--primary)', color: '#ffffff' }

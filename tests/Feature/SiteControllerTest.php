@@ -74,6 +74,29 @@ test('user can update site with custom_page_data and custom_colors', function ()
     expect($site->custom_page_data)->toBe($customPageData);
 });
 
+test('site update enforces index page cannot be deactivated', function () {
+    $user = User::factory()->create();
+    $site = Site::factory()->create(['user_id' => $user->id]);
+    $this->actingAs($user);
+
+    $customPageData = [
+        'pages_meta' => [
+            'index' => ['active' => false],
+            'notfallinformationen' => ['active' => true],
+        ],
+    ];
+
+    $response = $this->put(route('sites.update', $site), [
+        'name' => $site->name,
+        'custom_page_data' => $customPageData,
+    ]);
+    $response->assertRedirect(route('sites.show', $site));
+
+    $site->refresh();
+    expect($site->custom_page_data['pages_meta']['index']['active'])->toBeTrue();
+    expect($site->custom_page_data['pages_meta']['notfallinformationen']['active'])->toBeTrue();
+});
+
 test('guests cannot access page designer', function () {
     $site = Site::factory()->create(['has_page_designer' => true]);
     $response = $this->get(route('sites.design', $site));
@@ -107,8 +130,20 @@ test('user can access page designer when enabled for site', function () {
     $response = $this->get(route('sites.design', $site));
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
-        ->component('sites/PageDesigner')
+        ->component('PageDesigner/PageDesigner')
+        ->where('mode', 'site')
         ->where('site.id', $site->id)
         ->has('baseDomain')
     );
+});
+
+test('user can list site images for media library', function () {
+    $user = User::factory()->create();
+    $site = Site::factory()->create(['user_id' => $user->id]);
+    $this->actingAs($user);
+
+    $response = $this->getJson(route('sites.images.index', $site));
+    $response->assertOk();
+    $response->assertJsonStructure(['urls']);
+    expect($response->json('urls'))->toBeArray();
 });

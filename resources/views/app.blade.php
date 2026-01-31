@@ -44,5 +44,6 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
+        <div id="toast-portal" aria-live="polite"></div>
     </body>
 </html>

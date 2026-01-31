@@ -1,28 +1,42 @@
 <script setup lang="ts">
+import { ref, watch, computed } from 'vue';
 import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
-import { acceptsChildren } from '@/templates/praxisemerald/component-registry';
+import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
+import { getMotionPreset } from '@/templates/praxisemerald/motion-presets';
 import type {
     LayoutComponentEntry,
     SectionJustify,
     SectionAlign,
 } from '@/types/layout-components';
 import type { LayoutComponentType } from '@/types/layout-components';
+import { motion } from 'motion-v';
 import draggable from 'vuedraggable';
 import { GripVertical } from 'lucide-vue-next';
 import ResizeHandle from '@/templates/praxisemerald/components/ResizeHandle.vue';
+
+function isValidContainerChild(e: unknown): e is LayoutComponentEntry {
+    return (
+        e !== null &&
+        typeof e === 'object' &&
+        typeof (e as LayoutComponentEntry).id === 'string' &&
+        typeof (e as LayoutComponentEntry).type === 'string'
+    );
+}
 
 const props = withDefaults(
     defineProps<{
         entry: LayoutComponentEntry;
         designMode?: boolean;
         selectedModuleId?: string | null;
+        insertAtParent?: (parentId: string, index: number, type: string) => void;
     }>(),
-    { designMode: false, selectedModuleId: null },
+    { designMode: false, selectedModuleId: null, insertAtParent: undefined },
 );
 
 const emit = defineEmits<{
     (e: 'select', id: string): void;
     (e: 'reorder'): void;
+    (e: 'dragStart'): void;
 }>();
 
 function childEntries(): LayoutComponentEntry[] {
@@ -35,9 +49,9 @@ function childEntries(): LayoutComponentEntry[] {
     );
 }
 
-/** Section children array for draggable; ensures entry.children is always an array. */
-function getSectionChildren(): LayoutComponentEntry[] {
-    if (props.entry.type !== 'section') return [];
+/** Container children array; ensures entry.children is always an array for any container type. */
+function getContainerChildren(): LayoutComponentEntry[] {
+    if (!acceptsChildren(props.entry.type as LayoutComponentType)) return [];
     let c = props.entry.children;
     if (!Array.isArray(c)) {
         c = [];
@@ -46,10 +60,26 @@ function getSectionChildren(): LayoutComponentEntry[] {
     return c as LayoutComponentEntry[];
 }
 
+/** Only valid container children (for display/reorder); invalid entries are not rendered. */
+const containerChildrenFiltered = ref<LayoutComponentEntry[]>([]);
+
+watch(
+    () => getContainerChildren(),
+    (raw) => {
+        containerChildrenFiltered.value = raw.filter(isValidContainerChild);
+    },
+    { immediate: true, deep: true },
+);
+
+function onContainerDragEnd(): void {
+    (props.entry as Record<string, unknown>).children = [...containerChildrenFiltered.value];
+    emit('reorder');
+}
+
 const isRow = (): boolean => (props.entry.data?.direction as string) === 'row';
 
 function getChildFlexStyle(child: LayoutComponentEntry): Record<string, string> {
-    if (!isRow()) return {};
+    if (props.entry.type !== 'section' || !isRow()) return { minWidth: '0' };
     const basis = child.data?.flexBasis as string | undefined;
     if (basis) {
         return { flex: `0 0 ${basis}`, minWidth: '0', overflow: 'hidden' };
@@ -62,8 +92,7 @@ function onSelect(id: string): void {
 }
 
 function getNextChild(index: number): LayoutComponentEntry | undefined {
-    const list = getSectionChildren();
-    return list[index + 1];
+    return containerChildrenFiltered.value[index + 1];
 }
 
 function mapJustify(v: SectionJustify | string | undefined): string {
@@ -98,6 +127,57 @@ function getSectionFlexStyle(): Record<string, string> {
         alignItems: mapAlign(d.align as SectionAlign),
     };
 }
+
+function getGridStyle(): Record<string, string> {
+    const d = props.entry.data ?? {};
+    const style: Record<string, string> = {
+        display: 'grid',
+        gap: (d.gap as string) ?? '1rem',
+    };
+    if (d.columns) {
+        style.gridTemplateColumns = d.columns as string;
+    }
+    if (d.rowGap) {
+        style.rowGap = d.rowGap as string;
+    }
+    if (d.columnGap) {
+        style.columnGap = d.columnGap as string;
+    }
+    return style;
+}
+
+function getContainerStyle(): Record<string, string> {
+    if (props.entry.type === 'grid') {
+        return getGridStyle();
+    }
+    return getSectionFlexStyle();
+}
+
+const containerDropTargetIndex = ref<number | null>(null);
+
+function onContainerDropZoneDragOver(index: number, e: DragEvent): void {
+    e.preventDefault();
+    e.dataTransfer ??= new DataTransfer();
+    e.dataTransfer.dropEffect = 'copy';
+    containerDropTargetIndex.value = index;
+}
+
+function onContainerDropZoneDragLeave(): void {
+    containerDropTargetIndex.value = null;
+}
+
+function onContainerDropZoneDrop(index: number, e: DragEvent): void {
+    e.preventDefault();
+    containerDropTargetIndex.value = null;
+    const type = e.dataTransfer?.getData('component-type');
+    if (type && props.insertAtParent) {
+        props.insertAtParent(props.entry.id, index, type);
+    }
+}
+
+const motionPreset = computed(() =>
+    getMotionPreset((props.entry.data as Record<string, unknown>)?.motion as string),
+);
 </script>
 
 <template>
@@ -119,62 +199,231 @@ function getSectionFlexStyle(): Record<string, string> {
             <GripVertical class="h-4 w-4" />
         </div>
         <div class="min-w-0 flex-1 pl-6">
-        <!-- Section in design mode: always render SectionBlock with draggable slot (so slot is never empty) -->
-        <template v-if="designMode && entry.type === 'section'">
+        <!-- Container in design mode: draggable slot and drop zones for section, grid, flex -->
+        <template v-if="designMode && acceptsChildren(entry.type as LayoutComponentType)">
+            <template v-if="motionPreset">
+                <motion.div
+                    class="min-w-0 flex-1"
+                    :initial="motionPreset.initial"
+                    :animate="motionPreset.animate"
+                    :transition="motionPreset.transition"
+                >
+                    <component
+                        :is="getLayoutComponent(entry.type)"
+                        v-if="getLayoutComponent(entry.type)"
+                        :data="entry.data ?? {}"
+                        :design-mode="designMode"
+                        class="min-w-0 flex-1 flex flex-col"
+                    >
+                        <div
+                            v-if="insertAtParent"
+                            class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                            :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === 0 }"
+                            @dragover="onContainerDropZoneDragOver(0, $event)"
+                            @dragleave="onContainerDropZoneDragLeave"
+                            @drop="onContainerDropZoneDrop(0, $event)"
+                        >
+                            <span class="sr-only">Komponente hier einfügen</span>
+                        </div>
+                        <draggable
+                            v-model="containerChildrenFiltered"
+                            item-key="id"
+                            handle=".block-drag-handle"
+                            :group="{ name: 'layout-blocks', pull: true, put: true }"
+                            class="section-children-flex min-h-[4rem] min-w-0 flex-1"
+                            :style="getContainerStyle()"
+                            ghost-class="opacity-50"
+                            :revert-on-spill="true"
+                            @start="emit('dragStart')"
+                            @end="onContainerDragEnd"
+                        >
+                            <template #item="{ element: child, index }">
+                                <div
+                                    class="flex min-w-0 flex-col"
+                                    :style="getChildFlexStyle(child)"
+                                >
+                                    <div
+                                        v-if="insertAtParent"
+                                        class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                                        :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === index + 1 }"
+                                        @dragover="onContainerDropZoneDragOver(index + 1, $event)"
+                                        @dragleave="onContainerDropZoneDragLeave"
+                                        @drop="onContainerDropZoneDrop(index + 1, $event)"
+                                    >
+                                        <span class="sr-only">Komponente hier einfügen</span>
+                                    </div>
+                                    <div class="section-child relative flex min-h-[3rem] min-w-0 flex-1 flex-row">
+                                        <div
+                                            class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-6 cursor-grab items-center justify-center bg-muted/50 text-muted-foreground active:cursor-grabbing"
+                                            aria-hidden
+                                            @click.stop
+                                        >
+                                            <GripVertical class="h-4 w-4" />
+                                        </div>
+                                        <div class="min-w-0 pl-6">
+                                            <LayoutBlock
+                                                :entry="child"
+                                                :design-mode="designMode"
+                                                :selected-module-id="selectedModuleId"
+                                                :insert-at-parent="insertAtParent"
+                                                @select="onSelect"
+                                                @reorder="emit('reorder')"
+                                                @drag-start="emit('dragStart')"
+                                            />
+                                        </div>
+                                        <ResizeHandle
+                                            v-if="entry.type === 'section' && isRow() && getNextChild(index)"
+                                            :left-entry="child"
+                                            :right-entry="getNextChild(index)!"
+                                            class="shrink-0"
+                                            @resize="emit('reorder')"
+                                        />
+                                    </div>
+                                </div>
+                            </template>
+                        </draggable>
+                        <div
+                            v-if="insertAtParent"
+                            class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                            :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === containerChildrenFiltered.length }"
+                            @dragover="onContainerDropZoneDragOver(containerChildrenFiltered.length, $event)"
+                            @dragleave="onContainerDropZoneDragLeave"
+                            @drop="onContainerDropZoneDrop(containerChildrenFiltered.length, $event)"
+                        >
+                            <span class="sr-only">Komponente am Ende einfügen</span>
+                        </div>
+                    </component>
+                </motion.div>
+            </template>
             <component
+                v-else
                 :is="getLayoutComponent(entry.type)"
                 v-if="getLayoutComponent(entry.type)"
                 :data="entry.data ?? {}"
-                class="min-w-0 flex-1"
+                :design-mode="designMode"
+                class="min-w-0 flex-1 flex flex-col"
             >
-                <draggable
-                    :list="getSectionChildren()"
-                    item-key="id"
-                    handle=".block-drag-handle"
-                    :group="'layout-blocks'"
-                    class="section-children-flex min-h-[4rem] min-w-0 flex-1"
-                    :style="getSectionFlexStyle()"
-                    ghost-class="opacity-50"
-                    @end="emit('reorder')"
+                <div
+                    v-if="insertAtParent"
+                    class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                    :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === 0 }"
+                    @dragover="onContainerDropZoneDragOver(0, $event)"
+                    @dragleave="onContainerDropZoneDragLeave"
+                    @drop="onContainerDropZoneDrop(0, $event)"
                 >
+                    <span class="sr-only">Komponente hier einfügen</span>
+                </div>
+                        <draggable
+                            v-model="containerChildrenFiltered"
+                            item-key="id"
+                            handle=".block-drag-handle"
+                            :group="{ name: 'layout-blocks', pull: true, put: true }"
+                            class="section-children-flex min-h-[4rem] min-w-0 flex-1"
+                            :style="getContainerStyle()"
+                            ghost-class="opacity-50"
+                            :revert-on-spill="true"
+                            @start="emit('dragStart')"
+                            @end="onContainerDragEnd"
+                        >
                     <template #item="{ element: child, index }">
                         <div
-                            class="section-child relative flex min-h-[3rem] min-w-0 flex-row"
+                            class="flex min-w-0 flex-col"
                             :style="getChildFlexStyle(child)"
                         >
                             <div
-                                class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-6 cursor-grab items-center justify-center bg-muted/50 text-muted-foreground active:cursor-grabbing"
-                                aria-hidden
-                                @click.stop
+                                v-if="insertAtParent"
+                                class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                                :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === index + 1 }"
+                                @dragover="onContainerDropZoneDragOver(index + 1, $event)"
+                                @dragleave="onContainerDropZoneDragLeave"
+                                @drop="onContainerDropZoneDrop(index + 1, $event)"
                             >
-                                <GripVertical class="h-4 w-4" />
+                                <span class="sr-only">Komponente hier einfügen</span>
                             </div>
-                            <div class="min-w-0 pl-6">
+                            <div class="section-child relative flex min-h-[3rem] min-w-0 flex-1 flex-row">
+                                <div
+                                    class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-6 cursor-grab items-center justify-center bg-muted/50 text-muted-foreground active:cursor-grabbing"
+                                    aria-hidden
+                                    @click.stop
+                                >
+                                    <GripVertical class="h-4 w-4" />
+                                </div>
+                                <div class="min-w-0 pl-6">
+                                    <LayoutBlock
+                                        :entry="child"
+                                        :design-mode="designMode"
+                                        :selected-module-id="selectedModuleId"
+                                        :insert-at-parent="insertAtParent"
+                                        @select="onSelect"
+                                        @reorder="emit('reorder')"
+                                        @drag-start="emit('dragStart')"
+                                    />
+                                </div>
+                                <ResizeHandle
+                                    v-if="entry.type === 'section' && isRow() && getNextChild(index)"
+                                    :left-entry="child"
+                                    :right-entry="getNextChild(index)!"
+                                    class="shrink-0"
+                                    @resize="emit('reorder')"
+                                />
+                            </div>
+                        </div>
+                    </template>
+                </draggable>
+                <div
+                    v-if="insertAtParent"
+                    class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                    :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === containerChildrenFiltered.length }"
+                    @dragover="onContainerDropZoneDragOver(containerChildrenFiltered.length, $event)"
+                    @dragleave="onContainerDropZoneDragLeave"
+                    @drop="onContainerDropZoneDrop(containerChildrenFiltered.length, $event)"
+                >
+                    <span class="sr-only">Komponente am Ende einfügen</span>
+                </div>
+            </component>
+        </template>
+        <template v-else>
+            <template v-if="motionPreset">
+                <motion.div
+                    class="min-w-0 flex-1"
+                    :initial="motionPreset.initial"
+                    :animate="motionPreset.animate"
+                    :transition="motionPreset.transition"
+                >
+                    <component
+                        :is="getLayoutComponent(entry.type)"
+                        v-if="getLayoutComponent(entry.type)"
+                        :data="entry.data ?? {}"
+                        :design-mode="designMode"
+                        class="min-w-0 flex-1"
+                    >
+                        <template v-if="childEntries().length > 0">
+                            <div
+                                v-for="child in childEntries()"
+                                :key="child.id"
+                                class="section-child min-w-0"
+                                :style="getChildFlexStyle(child)"
+                            >
                                 <LayoutBlock
                                     :entry="child"
                                     :design-mode="designMode"
                                     :selected-module-id="selectedModuleId"
+                                    :insert-at-parent="insertAtParent"
                                     @select="onSelect"
                                     @reorder="emit('reorder')"
+                                    @drag-start="emit('dragStart')"
                                 />
                             </div>
-                            <ResizeHandle
-                                v-if="isRow() && getNextChild(index)"
-                                :left-entry="child"
-                                :right-entry="getNextChild(index)!"
-                                class="shrink-0"
-                                @resize="emit('reorder')"
-                            />
-                        </div>
-                    </template>
-                </draggable>
-            </component>
-        </template>
-        <template v-else>
+                        </template>
+                    </component>
+                </motion.div>
+            </template>
             <component
+                v-else
                 :is="getLayoutComponent(entry.type)"
                 v-if="getLayoutComponent(entry.type)"
                 :data="entry.data ?? {}"
+                :design-mode="designMode"
                 class="min-w-0 flex-1"
             >
                 <template v-if="childEntries().length > 0">
@@ -188,8 +437,10 @@ function getSectionFlexStyle(): Record<string, string> {
                             :entry="child"
                             :design-mode="designMode"
                             :selected-module-id="selectedModuleId"
+                            :insert-at-parent="insertAtParent"
                             @select="onSelect"
                             @reorder="emit('reorder')"
+                            @drag-start="emit('dragStart')"
                         />
                     </div>
                 </template>
@@ -197,21 +448,50 @@ function getSectionFlexStyle(): Record<string, string> {
         </template>
         </div>
     </div>
-    <component
-        v-else
-        :is="getLayoutComponent(entry.type)"
-        v-if="getLayoutComponent(entry.type)"
-        :data="entry.data ?? {}"
-    >
-        <template v-if="childEntries().length > 0">
-            <div
-                v-for="child in childEntries()"
-                :key="child.id"
-                class="section-child min-w-0"
-                :style="getChildFlexStyle(child)"
+    <template v-else>
+        <template v-if="motionPreset">
+            <motion.div
+                class="min-w-0"
+                :initial="motionPreset.initial"
+                :animate="motionPreset.animate"
+                :transition="motionPreset.transition"
             >
-                <LayoutBlock :entry="child" />
-            </div>
+                <component
+                    :is="getLayoutComponent(entry.type)"
+                    v-if="getLayoutComponent(entry.type)"
+                    :data="entry.data ?? {}"
+                    :design-mode="designMode"
+                >
+                    <template v-if="childEntries().length > 0">
+                        <div
+                            v-for="child in childEntries()"
+                            :key="child.id"
+                            class="section-child min-w-0"
+                            :style="getChildFlexStyle(child)"
+                        >
+                            <LayoutBlock :entry="child" />
+                        </div>
+                    </template>
+                </component>
+            </motion.div>
         </template>
-    </component>
+        <component
+            v-else
+            :is="getLayoutComponent(entry.type)"
+            v-if="getLayoutComponent(entry.type)"
+            :data="entry.data ?? {}"
+            :design-mode="designMode"
+        >
+            <template v-if="childEntries().length > 0">
+                <div
+                    v-for="child in childEntries()"
+                    :key="child.id"
+                    class="section-child min-w-0"
+                    :style="getChildFlexStyle(child)"
+                >
+                    <LayoutBlock :entry="child" />
+                </div>
+            </template>
+        </component>
+    </template>
 </template>

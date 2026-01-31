@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
-import { acceptsChildren } from '@/templates/praxisemerald/component-registry';
+import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
+import { getMotionPreset } from '@/templates/praxisemerald/motion-presets';
 import type { LayoutComponentEntry } from '@/types/layout-components';
 import type { LayoutComponentType } from '@/types/layout-components';
+import { motion } from 'motion-v';
 import draggable from 'vuedraggable';
 import { GripVertical } from 'lucide-vue-next';
 
@@ -58,9 +60,10 @@ function onSelect(id: string): void {
         v-model="localList"
         item-key="id"
         handle=".block-drag-handle"
-        :group="'layout-blocks'"
+        :group="{ name: 'layout-blocks', pull: true, put: true }"
         class="flex min-h-0 flex-col"
         ghost-class="opacity-50"
+        :revert-on-spill="true"
         @end="onListUpdate"
     >
         <template #item="{ element: entry }">
@@ -82,10 +85,27 @@ function onSelect(id: string): void {
                         <GripVertical class="h-4 w-4" />
                     </div>
                     <div class="min-w-0 flex-1 pl-6">
+                        <template v-if="getMotionPreset((entry.data as Record<string, unknown>)?.motion as string)">
+                            <motion.div
+                                class="min-w-0"
+                                :initial="getMotionPreset((entry.data as Record<string, unknown>)?.motion as string)?.initial"
+                                :animate="getMotionPreset((entry.data as Record<string, unknown>)?.motion as string)?.animate"
+                                :transition="getMotionPreset((entry.data as Record<string, unknown>)?.motion as string)?.transition"
+                            >
+                                <component
+                                    :is="getLayoutComponent(entry.type)"
+                                    v-if="getLayoutComponent(entry.type)"
+                                    :data="entry.data ?? {}"
+                                    :design-mode="true"
+                                />
+                            </motion.div>
+                        </template>
                         <component
+                            v-else
                             :is="getLayoutComponent(entry.type)"
                             v-if="getLayoutComponent(entry.type)"
                             :data="entry.data ?? {}"
+                            :design-mode="true"
                         />
                     </div>
                 </div>

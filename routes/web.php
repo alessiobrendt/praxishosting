@@ -28,13 +28,18 @@ Route::get('components', function () {
 Route::get('gallery', [GalleryController::class, 'index'])->name('gallery.index');
 Route::get('gallery/preview/{template}', [GalleryController::class, 'preview'])->name('gallery.preview');
 
-Route::get('site/{site:slug}', [SiteRenderController::class, 'show'])->name('site-render.show');
+Route::get('site/{site:slug}/{pageSlug?}', [SiteRenderController::class, 'show'])
+    ->where('pageSlug', '[a-z0-9\-]+')
+    ->name('site-render.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('sites/{site}/design', [SiteController::class, 'design'])->name('sites.design');
-    Route::get('sites/{site}/preview', [SiteRenderController::class, 'preview'])->name('sites.preview');
+    Route::get('sites/{site}/preview/{pageSlug?}', [SiteRenderController::class, 'preview'])
+        ->name('sites.preview')
+        ->where('pageSlug', '[a-z0-9\-]+');
     Route::resource('sites', SiteController::class);
     Route::post('sites/{site}/preview', [SiteRenderController::class, 'storePreviewDraft'])->name('sites.preview.store');
+    Route::get('sites/{site}/images', [SiteController::class, 'indexImages'])->name('sites.images.index');
     Route::post('sites/{site}/images', [SiteController::class, 'uploadImage'])->name('sites.images.store');
     Route::get('sites/{site}/collaborators', [SiteCollaboratorController::class, 'index'])->name('sites.collaborators.index');
     Route::post('sites/{site}/collaborators', [SiteCollaboratorController::class, 'store'])->name('sites.collaborators.store');
@@ -52,6 +57,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('templates', TemplateController::class);
+    Route::get('templates/{template}/design', [\App\Http\Controllers\Admin\TemplateDesignController::class, 'design'])->name('templates.design');
+    Route::put('templates/{template}/design', [\App\Http\Controllers\Admin\TemplateDesignController::class, 'update'])->name('templates.design.update');
     Route::resource('templates.pages', TemplatePageController::class)->except(['index']);
     Route::get('templates/{template}/pages', [TemplatePageController::class, 'index'])->name('templates.pages.index');
     Route::get('templates/{template}/pages/{page}/data', [\App\Http\Controllers\Admin\TemplatePageDataController::class, 'edit'])->name('templates.pages.data.edit');

@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Site;
 use App\Models\Template;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -121,9 +123,10 @@ class SiteController extends Controller
             abort(403, 'Page Designer is not enabled for this site.');
         }
 
-        $site->load('template');
+        $site->load(['template.pages']);
 
-        return Inertia::render('sites/PageDesigner', [
+        return Inertia::render('PageDesigner/PageDesigner', [
+            'mode' => 'site',
             'site' => $site,
             'baseDomain' => config('domains.base_domain', 'praxishosting.abrendt.de'),
         ]);
@@ -133,11 +136,32 @@ class SiteController extends Controller
     {
         $this->authorize('update', $site);
 
+        // Page Designer sends custom_page_data/custom_colors as JSON strings via FormData
+        $merge = [];
+        if (is_string($request->custom_page_data)) {
+            $decoded = json_decode($request->custom_page_data, true);
+            $merge['custom_page_data'] = is_array($decoded) ? $decoded : null;
+        }
+        if (is_string($request->custom_colors)) {
+            $decoded = json_decode($request->custom_colors, true);
+            $merge['custom_colors'] = is_array($decoded) ? $decoded : null;
+        }
+        if ($merge !== []) {
+            $request->merge($merge);
+        }
+
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'custom_colors' => ['nullable', 'array'],
             'custom_page_data' => ['nullable', 'array'],
         ]);
+
+        if (isset($validated['custom_page_data']['pages_meta'])) {
+            $validated['custom_page_data']['pages_meta']['index'] = array_merge(
+                $validated['custom_page_data']['pages_meta']['index'] ?? [],
+                ['active' => true],
+            );
+        }
 
         $site->update(array_filter($validated));
 
@@ -153,7 +177,25 @@ class SiteController extends Controller
         return to_route('sites.index');
     }
 
-    public function uploadImage(Request $request, Site $site): \Illuminate\Http\JsonResponse
+    public function indexImages(Site $site): JsonResponse
+    {
+        $this->authorize('update', $site);
+
+        $directory = "sites/{$site->id}/images";
+        if (! Storage::disk('public')->exists($directory)) {
+            return response()->json(['urls' => []]);
+        }
+
+        $files = Storage::disk('public')->files($directory);
+        $urls = array_map(
+            fn (string $path) => asset('storage/'.$path),
+            $files
+        );
+
+        return response()->json(['urls' => array_values($urls)]);
+    }
+
+    public function uploadImage(Request $request, Site $site): JsonResponse
     {
         $this->authorize('update', $site);
 

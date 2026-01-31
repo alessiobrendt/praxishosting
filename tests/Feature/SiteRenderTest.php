@@ -198,6 +198,84 @@ test('authenticated user can view site preview with draft data', function () {
     );
 });
 
+test('public can view subpage by slug', function () {
+    $template = Template::factory()->create([
+        'slug' => 'praxisemerald',
+        'page_data' => ['hero' => ['heading' => 'Index', 'text' => 'Text']],
+    ]);
+    $site = Site::factory()->create([
+        'template_id' => $template->id,
+        'slug' => 'my-practice',
+        'status' => 'active',
+        'custom_page_data' => [
+            'pages' => [
+                'notfallinformationen' => [
+                    'layout_components' => [
+                        ['id' => 'h1', 'type' => 'heading', 'data' => ['level' => 1, 'text' => 'Notfall']],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $response = $this->get(route('site-render.show', ['site' => $site->slug, 'pageSlug' => 'notfallinformationen']));
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('site-render/Home')
+        ->where('pageSlug', 'notfallinformationen')
+        ->where('pageData.layout_components.0.data.text', 'Notfall')
+    );
+});
+
+test('deactivated page redirects to site index', function () {
+    $template = Template::factory()->create();
+    $template->pages()->create([
+        'name' => 'Notfallinformationen',
+        'slug' => 'notfallinformationen',
+        'order' => 1,
+        'data' => [],
+    ]);
+    $site = Site::factory()->create([
+        'template_id' => $template->id,
+        'status' => 'active',
+        'custom_page_data' => [
+            'pages_meta' => [
+                'notfallinformationen' => ['active' => false],
+            ],
+        ],
+    ]);
+
+    $response = $this->get(route('site-render.show', ['site' => $site->slug, 'pageSlug' => 'notfallinformationen']));
+    $response->assertRedirect(route('site-render.show', $site->slug));
+});
+
+test('preview with page query uses that page slug', function () {
+    $user = User::factory()->create();
+    $template = Template::factory()->create(['page_data' => ['hero' => ['heading' => 'Default', 'text' => 'Text']]]);
+    $site = Site::factory()->create([
+        'user_id' => $user->id,
+        'template_id' => $template->id,
+        'status' => 'active',
+        'custom_page_data' => [
+            'pages' => [
+                'patienteninformationen' => [
+                    'layout_components' => [
+                        ['id' => 'p1', 'type' => 'text', 'data' => ['text' => 'Patienteninfos']],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+    $this->actingAs($user);
+
+    $response = $this->get(route('sites.preview', $site).'?page=patienteninformationen');
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('pageSlug', 'patienteninformationen')
+        ->where('pageData.layout_components.0.data.text', 'Patienteninfos')
+    );
+});
+
 test('authenticated user can store preview draft and preview uses it', function () {
     $user = User::factory()->create();
     $template = Template::factory()->create(['page_data' => ['hero' => ['heading' => 'Default', 'text' => 'Text']]]);

@@ -1,16 +1,25 @@
 <script setup lang="ts">
-import { uploadImage } from '@/actions/App/Http/Controllers/SiteController';
+import images from '@/routes/sites/images';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import type { LayoutComponentEntry } from '@/types/layout-components';
-import { ref } from 'vue';
-import { Plus, Trash2, Upload } from 'lucide-vue-next';
+import { getEditorForType, getMetaForType } from '@/templates/praxisemerald/page_components/loader';
+import type { PageComponentField } from '@/templates/praxisemerald/page_components/loader';
+import { inject, ref, computed } from 'vue';
+import { ImagePlus, Plus, Trash2, Upload } from 'lucide-vue-next';
+import AnimationPicker from '@/templates/praxisemerald/components/AnimationPicker.vue';
+import IconPicker from '@/templates/praxisemerald/components/IconPicker.vue';
+
+const openMediaLibrary = inject<((callback: (url: string) => void) => void) | null>('openMediaLibrary', null);
+
+const pageComponentEditor = computed(() => getEditorForType(props.entry.type));
+const pageComponentMeta = computed(() => getMetaForType(props.entry.type));
 
 const props = defineProps<{
     entry: LayoutComponentEntry;
-    site: { id: number; name: string; slug: string };
+    site?: { id: number; name: string; slug: string };
 }>();
 
 function getCsrfToken(): string {
@@ -28,12 +37,12 @@ function triggerUpload(field: 'logoUrl' | 'imageSrc') {
 
 async function onImageSelected(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file || !pendingUpload.value) return;
+    if (!file || !pendingUpload.value || !props.site) return;
     const field = pendingUpload.value;
     pendingUpload.value = null;
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(uploadImage({ site: props.site.id }).url, {
+    const r = await fetch(images.store.url({ site: props.site.id }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',
@@ -189,15 +198,91 @@ function removeCtaLink(i: number) {
                 </p>
             </div>
         </template>
+        <!-- Animation (für alle Einträge) -->
+        <div class="space-y-2">
+            <Label>Animation beim Einblenden</Label>
+            <AnimationPicker
+                :model-value="String((entry.data as Record<string, unknown>).motion ?? '')"
+                @update:model-value="(v) => ((entry.data as Record<string, unknown>).motion = v || undefined)"
+            />
+        </div>
+        <!-- Page components: Editor or generic form from meta.fields -->
+        <template v-if="pageComponentEditor">
+            <component :is="pageComponentEditor" :entry="entry" :site="site" />
+        </template>
+        <template v-else-if="pageComponentMeta?.fields?.length">
+            <div class="space-y-3">
+                <div
+                    v-for="field in pageComponentMeta!.fields"
+                    :key="field.key"
+                    class="space-y-2"
+                >
+                    <Label :for="`field-${entry.id}-${field.key}`">{{ field.label }}</Label>
+                    <Input
+                        v-if="field.type === 'text' || field.type === 'number'"
+                        :id="`field-${entry.id}-${field.key}`"
+                        v-model="(entry.data as Record<string, unknown>)[field.key]"
+                        :type="field.type"
+                        class="w-full"
+                    />
+                    <textarea
+                        v-else-if="field.type === 'textarea'"
+                        :id="`field-${entry.id}-${field.key}`"
+                        :value="(entry.data as Record<string, unknown>)[field.key]"
+                        class="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        @input="(e) => ((entry.data as Record<string, unknown>)[field.key] = (e.target as HTMLTextAreaElement).value)"
+                    />
+                    <Select
+                        v-else-if="field.type === 'select' && field.options?.length"
+                        :id="`field-${entry.id}-${field.key}`"
+                        :model-value="String((entry.data as Record<string, unknown>)[field.key] ?? '')"
+                        @update:model-value="(v) => ((entry.data as Record<string, unknown>)[field.key] = v)"
+                    >
+                        <option
+                            v-for="opt in field.options"
+                            :key="typeof opt === 'string' ? opt : opt.value"
+                            :value="typeof opt === 'string' ? opt : opt.value"
+                        >
+                            {{ typeof opt === 'string' ? opt : opt.label }}
+                        </option>
+                    </Select>
+                    <div v-else-if="field.type === 'image'" class="flex flex-wrap gap-2">
+                        <Input
+                            :id="`field-${entry.id}-${field.key}`"
+                            :model-value="String((entry.data as Record<string, unknown>)[field.key] ?? '')"
+                            placeholder="URL oder Bild hochladen"
+                            class="min-w-0 flex-1"
+                            @update:model-value="(v) => ((entry.data as Record<string, unknown>)[field.key] = v)"
+                        />
+                        <Button
+                            v-if="openMediaLibrary"
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            title="Aus Media Library wählen"
+                            @click="openMediaLibrary((url) => ((entry.data as Record<string, unknown>)[field.key] = url))"
+                        >
+                            <ImagePlus class="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <IconPicker
+                        v-else-if="field.type === 'icon'"
+                        :id="`field-${entry.id}-${field.key}`"
+                        :model-value="String((entry.data as Record<string, unknown>)[field.key] ?? '')"
+                        @update:model-value="(v) => ((entry.data as Record<string, unknown>)[field.key] = v)"
+                    />
+                </div>
+            </div>
+        </template>
         <!-- Header -->
-        <template v-if="entry.type === 'header'">
+        <template v-else-if="entry.type === 'header'">
             <div class="space-y-2">
                 <Label>Praxisname</Label>
                 <Input v-model="(entry.data as Record<string, unknown>).siteName" />
             </div>
             <div class="space-y-2">
                 <Label>Logo URL</Label>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                     <Input
                         v-model="(entry.data as Record<string, unknown>).logoUrl"
                         placeholder="URL oder Bild hochladen"
@@ -205,6 +290,16 @@ function removeCtaLink(i: number) {
                     />
                     <Button type="button" variant="outline" size="sm" @click="triggerUpload('logoUrl')">
                         <Upload class="h-4 w-4" />
+                    </Button>
+                    <Button
+                        v-if="openMediaLibrary"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        title="Aus Media Library wählen"
+                        @click="openMediaLibrary((url) => ((entry.data as Record<string, unknown>).logoUrl = url))"
+                    >
+                        <ImagePlus class="h-4 w-4" />
                     </Button>
                 </div>
             </div>
@@ -337,7 +432,7 @@ function removeCtaLink(i: number) {
             </div>
             <div class="space-y-2">
                 <Label>Bild URL</Label>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                     <Input
                         :model-value="((entry.data as Record<string, unknown>).image as Record<string, string>)?.src ?? ''"
                         placeholder="URL oder Bild hochladen"
@@ -349,8 +444,23 @@ function removeCtaLink(i: number) {
                             }
                         "
                     />
-                    <Button type="button" variant="outline" size="sm" @click="triggerUpload('imageSrc')">
+                    <Button v-if="site" type="button" variant="outline" size="sm" @click="triggerUpload('imageSrc')">
                         <Upload class="h-4 w-4" />
+                    </Button>
+                    <Button
+                        v-if="site && openMediaLibrary"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        title="Aus Media Library wählen"
+                        @click="
+                            openMediaLibrary((url) => {
+                                if (!(entry.data as Record<string, unknown>).image) (entry.data as Record<string, unknown>).image = { src: '', alt: '' };
+                                ((entry.data as Record<string, unknown>).image as Record<string, string>).src = url;
+                            })
+                        "
+                    >
+                        <ImagePlus class="h-4 w-4" />
                     </Button>
                 </div>
             </div>
@@ -516,7 +626,7 @@ function removeCtaLink(i: number) {
             </div>
             <div class="space-y-2">
                 <Label>Bild URL</Label>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                     <Input
                         :model-value="((entry.data as Record<string, unknown>).image as Record<string, string>)?.src ?? ''"
                         placeholder="URL oder Bild hochladen"
@@ -528,8 +638,23 @@ function removeCtaLink(i: number) {
                             }
                         "
                     />
-                    <Button type="button" variant="outline" size="sm" @click="triggerUpload('imageSrc')">
+                    <Button v-if="site" type="button" variant="outline" size="sm" @click="triggerUpload('imageSrc')">
                         <Upload class="h-4 w-4" />
+                    </Button>
+                    <Button
+                        v-if="site && openMediaLibrary"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        title="Aus Media Library wählen"
+                        @click="
+                            openMediaLibrary((url) => {
+                                if (!(entry.data as Record<string, unknown>).image) (entry.data as Record<string, unknown>).image = { src: '', alt: '' };
+                                ((entry.data as Record<string, unknown>).image as Record<string, string>).src = url;
+                            })
+                        "
+                    >
+                        <ImagePlus class="h-4 w-4" />
                     </Button>
                 </div>
             </div>
@@ -566,6 +691,108 @@ function removeCtaLink(i: number) {
                             <Trash2 class="h-3.5 w-3.5 text-destructive" />
                         </Button>
                     </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Grid -->
+        <template v-else-if="entry.type === 'grid'">
+            <p class="text-muted-foreground text-sm">
+                Inhalt über Blöcke hinzufügen: Ziehen Sie Komponenten in dieses Grid.
+            </p>
+            <div class="space-y-3">
+                <div class="space-y-2">
+                    <Label>Spalten (grid-template-columns)</Label>
+                    <Select
+                        :model-value="(entry.data as Record<string, unknown>).columns ?? 'repeat(2, 1fr)'"
+                        @update:model-value="(v) => ((entry.data as Record<string, unknown>).columns = v)"
+                    >
+                        <option value="1fr">1 Spalte</option>
+                        <option value="repeat(2, 1fr)">2 Spalten</option>
+                        <option value="repeat(3, 1fr)">3 Spalten</option>
+                        <option value="repeat(4, 1fr)">4 Spalten</option>
+                        <option value="1fr 1fr 2fr">2+1 breiter</option>
+                        <option value="2fr 1fr 1fr">1 breiter +2</option>
+                    </Select>
+                </div>
+                <div class="space-y-2">
+                    <Label>Abstand (Gap)</Label>
+                    <Select
+                        :model-value="(entry.data as Record<string, unknown>).gap ?? '1rem'"
+                        @update:model-value="(v) => ((entry.data as Record<string, unknown>).gap = v)"
+                    >
+                        <option value="0">0</option>
+                        <option value="0.5rem">0.5rem</option>
+                        <option value="1rem">1rem</option>
+                        <option value="1.5rem">1.5rem</option>
+                        <option value="2rem">2rem</option>
+                    </Select>
+                </div>
+            </div>
+        </template>
+
+        <!-- Flex-Container -->
+        <template v-else-if="entry.type === 'flex'">
+            <p class="text-muted-foreground text-sm">
+                Inhalt über Blöcke hinzufügen: Ziehen Sie Komponenten in diesen Flex-Container.
+            </p>
+            <div class="space-y-3">
+                <div class="space-y-2">
+                    <Label>Richtung</Label>
+                    <Select
+                        :model-value="(entry.data as Record<string, unknown>).direction ?? 'row'"
+                        @update:model-value="(v) => ((entry.data as Record<string, unknown>).direction = v)"
+                    >
+                        <option value="column">Spalte (untereinander)</option>
+                        <option value="row">Zeile (nebeneinander)</option>
+                    </Select>
+                </div>
+                <div class="space-y-2">
+                    <Label>Abstand (Gap)</Label>
+                    <Select
+                        :model-value="(entry.data as Record<string, unknown>).gap ?? '1rem'"
+                        @update:model-value="(v) => ((entry.data as Record<string, unknown>).gap = v)"
+                    >
+                        <option value="0">0</option>
+                        <option value="0.5rem">0.5rem</option>
+                        <option value="1rem">1rem</option>
+                        <option value="1.5rem">1.5rem</option>
+                        <option value="2rem">2rem</option>
+                    </Select>
+                </div>
+                <div class="space-y-2">
+                    <Label>Justify</Label>
+                    <Select
+                        :model-value="(entry.data as Record<string, unknown>).justify ?? 'start'"
+                        @update:model-value="(v) => ((entry.data as Record<string, unknown>).justify = v)"
+                    >
+                        <option value="start">Start</option>
+                        <option value="center">Mitte</option>
+                        <option value="end">Ende</option>
+                        <option value="space-between">Space-Between</option>
+                        <option value="space-around">Space-Around</option>
+                    </Select>
+                </div>
+                <div class="space-y-2">
+                    <Label>Align</Label>
+                    <Select
+                        :model-value="(entry.data as Record<string, unknown>).align ?? 'stretch'"
+                        @update:model-value="(v) => ((entry.data as Record<string, unknown>).align = v)"
+                    >
+                        <option value="start">Start</option>
+                        <option value="center">Mitte</option>
+                        <option value="end">Ende</option>
+                        <option value="stretch">Stretch</option>
+                    </Select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input
+                        :id="`flex-wrap-${entry.id}`"
+                        v-model="(entry.data as Record<string, unknown>).wrap"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-input"
+                    />
+                    <Label :for="`flex-wrap-${entry.id}`">Umbrechen (Wrap)</Label>
                 </div>
             </div>
         </template>
@@ -651,6 +878,40 @@ function removeCtaLink(i: number) {
                         class="h-4 w-4 rounded border-input"
                     />
                     <Label :for="`section-padding-${entry.id}`">Innenabstand (Padding)</Label>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-2">
+                        <Label :for="`section-padding-left-${entry.id}`">Padding links</Label>
+                        <Select
+                            :id="`section-padding-left-${entry.id}`"
+                            :model-value="(entry.data as Record<string, unknown>).paddingLeft ?? ''"
+                            @update:model-value="(v) => ((entry.data as Record<string, unknown>).paddingLeft = v || undefined)"
+                        >
+                            <option value="">Standard</option>
+                            <option value="0">0</option>
+                            <option value="0.5rem">0.5rem</option>
+                            <option value="1rem">1rem</option>
+                            <option value="1.5rem">1.5rem</option>
+                            <option value="2rem">2rem</option>
+                            <option value="3rem">3rem</option>
+                        </Select>
+                    </div>
+                    <div class="space-y-2">
+                        <Label :for="`section-padding-right-${entry.id}`">Padding rechts</Label>
+                        <Select
+                            :id="`section-padding-right-${entry.id}`"
+                            :model-value="(entry.data as Record<string, unknown>).paddingRight ?? ''"
+                            @update:model-value="(v) => ((entry.data as Record<string, unknown>).paddingRight = v || undefined)"
+                        >
+                            <option value="">Standard</option>
+                            <option value="0">0</option>
+                            <option value="0.5rem">0.5rem</option>
+                            <option value="1rem">1rem</option>
+                            <option value="1.5rem">1.5rem</option>
+                            <option value="2rem">2rem</option>
+                            <option value="3rem">3rem</option>
+                        </Select>
+                    </div>
                 </div>
             </div>
         </template>

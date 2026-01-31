@@ -3,7 +3,7 @@ import {
     LAYOUT_COMPONENT_REGISTRY as PRAXISEMERALD_REGISTRY,
     getDefaultDataForType as praxisemeraldGetDefaultDataForType,
     generateLayoutComponentId as praxisemeraldGenerateLayoutComponentId,
-} from '@/templates/praxisemerald/component-registry';
+} from '@/templates/praxisemerald/combined-registry';
 
 export interface ComponentRegistryAdapter {
     LAYOUT_COMPONENT_REGISTRY: Array<{ type: string; label: string; placement: string; defaultData: Record<string, unknown> }>;
@@ -103,6 +103,7 @@ function registerPraxisemerald(): void {
             generateLayoutComponentId: praxisemeraldGenerateLayoutComponentId,
         }),
         getDefaultPageData: () => ({ ...praxisemeraldDefaultPageData }),
+        pageSlugs: ['index', 'notfallinformationen', 'patienteninformationen'],
     });
 }
 

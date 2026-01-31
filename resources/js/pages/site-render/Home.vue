@@ -14,6 +14,8 @@ type Props = {
     colors: Record<string, string>;
     generalInformation: Record<string, unknown>;
     designMode?: boolean;
+    /** Resolved page slug (e.g. index, notfallinformationen) when using multi-page support. */
+    pageSlug?: string;
 };
 
 const props = defineProps<Props>();
@@ -31,7 +33,6 @@ const layoutComponent = computed(() => {
     }
     return e.Layout;
 });
-
 </script>
 
 <template>

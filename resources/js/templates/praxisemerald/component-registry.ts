@@ -15,6 +15,8 @@ export interface ComponentRegistryEntry {
     placement: 'above_main' | 'below_main';
     defaultData: Record<string, unknown>;
     acceptsChildren?: boolean;
+    /** Kategorie für die Galerie (z. B. "Navigation", "Inhalt"). */
+    category?: string;
 }
 
 const defaultHeaderData: HeaderComponentData = {
@@ -117,16 +119,31 @@ const defaultSectionData: Record<string, unknown> = {
     contentWidth: 'full',
 };
 
+const defaultGridData: Record<string, unknown> = {
+    columns: 'repeat(2, 1fr)',
+    gap: '1rem',
+};
+
+const defaultFlexData: Record<string, unknown> = {
+    direction: 'row',
+    wrap: true,
+    gap: '1rem',
+    justify: 'start',
+    align: 'stretch',
+};
+
 export const LAYOUT_COMPONENT_REGISTRY: ComponentRegistryEntry[] = [
-    { type: 'header', label: 'Header', placement: 'above_main', defaultData: defaultHeaderData as Record<string, unknown> },
-    { type: 'footer', label: 'Footer', placement: 'below_main', defaultData: defaultFooterData as Record<string, unknown> },
-    { type: 'hero', label: 'Hero', placement: 'above_main', defaultData: defaultHeroData as Record<string, unknown> },
-    { type: 'mobileNav', label: 'Mobile-Nav', placement: 'above_main', defaultData: defaultMobileNavData as Record<string, unknown> },
-    { type: 'section', label: 'Bereich', placement: 'above_main', defaultData: defaultSectionData, acceptsChildren: true },
-    { type: 'about', label: 'Über uns', placement: 'above_main', defaultData: defaultAboutData as Record<string, unknown> },
-    { type: 'hours', label: 'Öffnungszeiten', placement: 'above_main', defaultData: defaultHoursData as Record<string, unknown> },
-    { type: 'cta', label: 'Call-to-Action', placement: 'above_main', defaultData: defaultCtaData as Record<string, unknown> },
-    { type: 'json', label: 'JSON / Benutzerdefiniert', placement: 'above_main', defaultData: {} },
+    { type: 'header', label: 'Header', placement: 'above_main', defaultData: defaultHeaderData as Record<string, unknown>, category: 'Navigation & Layout' },
+    { type: 'footer', label: 'Footer', placement: 'below_main', defaultData: defaultFooterData as Record<string, unknown>, category: 'Navigation & Layout' },
+    { type: 'mobileNav', label: 'Mobile-Nav', placement: 'above_main', defaultData: defaultMobileNavData as Record<string, unknown>, category: 'Navigation & Layout' },
+    { type: 'section', label: 'Bereich', placement: 'above_main', defaultData: defaultSectionData, acceptsChildren: true, category: 'Container' },
+    { type: 'grid', label: 'Grid', placement: 'above_main', defaultData: defaultGridData, acceptsChildren: true, category: 'Container' },
+    { type: 'flex', label: 'Flex-Container', placement: 'above_main', defaultData: defaultFlexData, acceptsChildren: true, category: 'Container' },
+    { type: 'hero', label: 'Hero', placement: 'above_main', defaultData: defaultHeroData as Record<string, unknown>, category: 'Bereiche' },
+    { type: 'about', label: 'Über uns', placement: 'above_main', defaultData: defaultAboutData as Record<string, unknown>, category: 'Bereiche' },
+    { type: 'hours', label: 'Öffnungszeiten', placement: 'above_main', defaultData: defaultHoursData as Record<string, unknown>, category: 'Bereiche' },
+    { type: 'cta', label: 'Call-to-Action', placement: 'above_main', defaultData: defaultCtaData as Record<string, unknown>, category: 'Bereiche' },
+    { type: 'json', label: 'JSON / Benutzerdefiniert', placement: 'above_main', defaultData: {}, category: 'Sonstiges' },
 ];
 
 const registryByType = new Map<LayoutComponentType, ComponentRegistryEntry>(

@@ -3,9 +3,10 @@ import { computed } from 'vue';
 import { Clock, Mail, Phone, MapPin } from 'lucide-vue-next';
 import type { FooterComponentData } from '@/types/layout-components';
 
-const props = defineProps<{
-    data: Partial<FooterComponentData>;
-}>();
+const props = withDefaults(
+    defineProps<{ data: Partial<FooterComponentData>; designMode?: boolean }>(),
+    { designMode: false },
+);
 
 const siteName = computed(() => props.data.siteName ?? '');
 const description = computed(() => props.data.description ?? '');
@@ -36,11 +37,19 @@ const currentYear = new Date().getFullYear();
                     </p>
                     <p v-if="phone" class="flex items-center gap-2">
                         <Phone class="h-4 w-4 text-emerald-700" aria-hidden="true" />
-                        <a :href="`tel:${phone}`" class="hover:underline">{{ phone }}</a>
+                        <a
+                            :href="designMode ? '#' : `tel:${phone}`"
+                            class="hover:underline"
+                            @click="designMode && $event.preventDefault()"
+                        >{{ phone }}</a>
                     </p>
                     <p v-if="email" class="flex items-center gap-2">
                         <Mail class="h-4 w-4 text-emerald-700" aria-hidden="true" />
-                        <a :href="`mailto:${email}`" class="hover:underline">{{ email }}</a>
+                        <a
+                            :href="designMode ? '#' : `mailto:${email}`"
+                            class="hover:underline"
+                            @click="designMode && $event.preventDefault()"
+                        >{{ email }}</a>
                     </p>
                     <p v-if="openingLine" class="flex items-center gap-2">
                         <Clock class="h-4 w-4 text-emerald-700" aria-hidden="true" />
@@ -51,16 +60,24 @@ const currentYear = new Date().getFullYear();
             <div v-if="linksSeiten.length">
                 <h3 class="text-sm font-semibold text-slate-900">Seiten</h3>
                 <ul class="mt-2 space-y-2 text-sm">
-                    <li v-for="link in linksSeiten" :key="link.href">
-                        <a :href="link.href" class="hover:underline">{{ link.label }}</a>
+                        <li v-for="link in linksSeiten" :key="link.href">
+                        <a
+                            :href="designMode ? '#' : link.href"
+                            class="hover:underline"
+                            @click="designMode && $event.preventDefault()"
+                        >{{ link.label }}</a>
                     </li>
                 </ul>
             </div>
             <div v-if="linksRechtliches.length">
                 <h3 class="text-sm font-semibold text-slate-900">Rechtliches</h3>
                 <ul class="mt-2 space-y-2 text-sm">
-                    <li v-for="link in linksRechtliches" :key="link.href">
-                        <a :href="link.href" class="hover:underline">{{ link.label }}</a>
+                        <li v-for="link in linksRechtliches" :key="link.href">
+                        <a
+                            :href="designMode ? '#' : link.href"
+                            class="hover:underline"
+                            @click="designMode && $event.preventDefault()"
+                        >{{ link.label }}</a>
                     </li>
                 </ul>
             </div>

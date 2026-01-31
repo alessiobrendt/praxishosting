@@ -18,15 +18,21 @@ class SiteRenderController extends Controller
         protected SiteRenderService $siteRenderService
     ) {}
 
-    public function show(Request $request, string $slug): Response
+    /**
+     * @param  string|null  $pageSlug  Optional segment for subpages (e.g. notfallinformationen).
+     */
+    public function show(Request $request, Site $site, ?string $pageSlug = null): Response|RedirectResponse
     {
-        $site = Site::query()
-            ->where('slug', $slug)
-            ->where('status', 'active')
-            ->with(['template.pages'])
-            ->firstOrFail();
+        if ($site->status !== 'active') {
+            abort(404);
+        }
 
-        $data = $this->siteRenderService->resolveRenderData($site);
+        $site->load(['template.pages']);
+        $normalizedSlug = $this->siteRenderService->normalizePageSlug($pageSlug, $site);
+        if ($normalizedSlug !== 'index' && ! $this->siteRenderService->isPageActive($site->custom_page_data, $normalizedSlug)) {
+            return redirect()->route('site-render.show', ['site' => $site->slug]);
+        }
+        $data = $this->siteRenderService->resolveRenderData($site, null, null, $normalizedSlug);
 
         return Inertia::render('site-render/Home', [
             'site' => $site->only(['id', 'name', 'slug']),
@@ -34,15 +40,17 @@ class SiteRenderController extends Controller
             'pageData' => $data['pageData'],
             'colors' => $data['colors'],
             'generalInformation' => $data['generalInformation'],
+            'pageSlug' => $normalizedSlug,
         ]);
     }
 
     /**
      * Preview a site with optional draft data (for iframe in Edit page).
      * GET: render with draft from session if present, else saved data.
+     * Page slug: from path segment (e.g. /sites/1/preview/testas) or query ?page=testas.
      * When design_mode=1, designMode is passed so the layout can make sections clickable (postMessage).
      */
-    public function preview(Request $request, Site $site): Response
+    public function preview(Request $request, Site $site, ?string $pageSlug = null): Response
     {
         $this->authorize('update', $site);
 
@@ -53,7 +61,10 @@ class SiteRenderController extends Controller
         $draftPageData = isset($draft['custom_page_data']) ? $draft['custom_page_data'] : null;
         $draftColors = isset($draft['custom_colors']) ? $draft['custom_colors'] : null;
 
-        $data = $this->siteRenderService->resolveRenderData($site, $draftPageData, $draftColors);
+        $pageSlug = $pageSlug ?? $request->query('page');
+        $requestedSlug = is_string($pageSlug) ? $pageSlug : null;
+        $data = $this->siteRenderService->resolveRenderData($site, $draftPageData, $draftColors, $requestedSlug, true);
+        $normalizedSlug = $requestedSlug ?? 'index';
 
         $designMode = $request->boolean('design_mode');
 
@@ -64,6 +75,7 @@ class SiteRenderController extends Controller
             'colors' => $data['colors'],
             'generalInformation' => $data['generalInformation'],
             'designMode' => $designMode,
+            'pageSlug' => $normalizedSlug,
         ]);
     }
 

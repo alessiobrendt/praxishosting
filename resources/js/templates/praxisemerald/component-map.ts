@@ -9,9 +9,12 @@ import AboutBlock from '@/templates/praxisemerald/components/AboutBlock.vue';
 import HoursBlock from '@/templates/praxisemerald/components/HoursBlock.vue';
 import CtaBlock from '@/templates/praxisemerald/components/CtaBlock.vue';
 import SectionBlock from '@/templates/praxisemerald/components/SectionBlock.vue';
-import { getComponentRegistryEntry } from '@/templates/praxisemerald/component-registry';
+import GridBlock from '@/templates/praxisemerald/components/GridBlock.vue';
+import FlexContainerBlock from '@/templates/praxisemerald/components/FlexContainerBlock.vue';
+import { getLayoutComponentFromPageComponents } from '@/templates/praxisemerald/page_components/loader';
+import { getComponentRegistryEntry } from '@/templates/praxisemerald/combined-registry';
 
-/** Erweiterbar: neue Komponenten hier eintragen (Typ in Registry + diese Map). */
+/** Statische Map (bestehende Komponenten). Page-Components aus Ordner werden vom Loader bereitgestellt. */
 export const LAYOUT_COMPONENT_MAP: Record<string, Component> = {
     header: Header,
     footer: Footer,
@@ -19,12 +22,16 @@ export const LAYOUT_COMPONENT_MAP: Record<string, Component> = {
     mobileNav: MobileNav,
     json: JsonBlock,
     section: SectionBlock,
+    grid: GridBlock,
+    flex: FlexContainerBlock,
     about: AboutBlock,
     hours: HoursBlock,
     cta: CtaBlock,
 };
 
 export function getLayoutComponent(type: string): Component | undefined {
+    const fromPage = getLayoutComponentFromPageComponents(type);
+    if (fromPage) return fromPage;
     return LAYOUT_COMPONENT_MAP[type as LayoutComponentType];
 }
 

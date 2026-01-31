@@ -16,12 +16,22 @@ class ResolveSiteByDomain
     ) {}
 
     /**
-     * Handle an incoming request. If the host is a registered site domain and path is /,
-     * resolve the site and return the site-render response. Otherwise pass through.
+     * Handle an incoming request. If the host is a registered site domain and path is /
+     * or an allowed subpage, resolve the site and return the site-render response.
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->isMethod('GET') || ! $request->is('/')) {
+        if (! $request->isMethod('GET')) {
+            return $next($request);
+        }
+
+        $path = trim($request->path(), '/');
+        $pageSlug = null;
+        if ($path === '') {
+            $pageSlug = null;
+        } elseif (in_array($path, ['notfallinformationen', 'patienteninformationen'], true)) {
+            $pageSlug = $path;
+        } else {
             return $next($request);
         }
 
@@ -55,7 +65,11 @@ class ResolveSiteByDomain
             abort(404);
         }
 
-        $data = $this->siteRenderService->resolveRenderData($site);
+        $normalizedSlug = $this->siteRenderService->normalizePageSlug($pageSlug, $site);
+        if ($normalizedSlug !== 'index' && ! $this->siteRenderService->isPageActive($site->custom_page_data, $normalizedSlug)) {
+            return redirect('/');
+        }
+        $data = $this->siteRenderService->resolveRenderData($site, null, null, $normalizedSlug);
 
         $inertiaResponse = Inertia::render('site-render/Home', [
             'site' => $site->only(['id', 'name', 'slug']),
@@ -63,6 +77,7 @@ class ResolveSiteByDomain
             'pageData' => $data['pageData'],
             'colors' => $data['colors'],
             'generalInformation' => $data['generalInformation'],
+            'pageSlug' => $normalizedSlug,
         ]);
 
         return $inertiaResponse->toResponse($request);

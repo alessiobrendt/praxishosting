@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { uploadImage } from '@/actions/App/Http/Controllers/SiteController';
+import images from '@/routes/sites/images';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,7 +24,7 @@ import {
     LAYOUT_COMPONENT_REGISTRY,
     getDefaultDataForType,
     generateLayoutComponentId,
-} from '@/templates/praxisemerald/component-registry';
+} from '@/templates/praxisemerald/combined-registry';
 import type { LayoutComponentType } from '@/types/layout-components';
 
 const props = defineProps<{
@@ -76,7 +76,7 @@ function removeCtaLink(i: number) {
 async function uploadHeroImage(file: File) {
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(uploadImage({ site: props.site.id }).url, {
+    const r = await fetch(images.store.url({ site: props.site.id }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',
@@ -92,7 +92,7 @@ async function uploadHeroImage(file: File) {
 async function uploadCtaImage(file: File) {
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(uploadImage({ site: props.site.id }).url, {
+    const r = await fetch(images.store.url({ site: props.site.id }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',
@@ -116,7 +116,7 @@ async function uploadLayoutComponentImage(file: File) {
     if (!pending) return;
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(uploadImage({ site: props.site.id }).url, {
+    const r = await fetch(images.store.url({ site: props.site.id }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',

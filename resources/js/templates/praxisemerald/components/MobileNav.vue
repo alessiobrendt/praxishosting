@@ -3,14 +3,18 @@ import { ref } from 'vue';
 import Button from '@/templates/praxisemerald/components/ui/Button.vue';
 import type { NavLink } from '@/types/layout-components';
 
-defineProps<{
-    links: NavLink[];
-    siteName?: string;
-    logoUrl?: string;
-    logoAlt?: string;
-    ctaButtonText?: string;
-    ctaButtonHref?: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        links: NavLink[];
+        siteName?: string;
+        logoUrl?: string;
+        logoAlt?: string;
+        ctaButtonText?: string;
+        ctaButtonHref?: string;
+        designMode?: boolean;
+    }>(),
+    { designMode: false },
+);
 
 const open = ref(false);
 </script>
@@ -82,16 +86,19 @@ const open = ref(false);
                     <ul class="flex flex-1 flex-col gap-2 p-6">
                         <li v-for="link in links" :key="link.href">
                             <a
-                                :href="link.href"
+                                :href="designMode ? '#' : link.href"
                                 class="block rounded px-3 py-2 text-base font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700"
-                                @click="open = false"
+                                @click="designMode ? $event.preventDefault() : (open = false)"
                             >
                                 {{ link.label }}
                             </a>
                         </li>
                         <li v-if="ctaButtonText" class="mt-4">
                             <Button variant="default" size="sm" class="w-full">
-                                <a :href="ctaButtonHref ?? '#'">{{ ctaButtonText }}</a>
+                                <a
+                                    :href="designMode ? '#' : (ctaButtonHref ?? '#')"
+                                    @click="designMode ? $event.preventDefault() : (open = false)"
+                                >{{ ctaButtonText }}</a>
                             </Button>
                         </li>
                     </ul>
