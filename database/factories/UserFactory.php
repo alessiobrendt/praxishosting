@@ -57,4 +57,25 @@ class UserFactory extends Factory
             'two_factor_confirmed_at' => now(),
         ]);
     }
+
+    /**
+     * Indicate that the model has a PIN set.
+     */
+    public function withPin(string $pin = '1234'): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'pin_hash' => Hash::make($pin),
+            'pin_length' => strlen($pin),
+        ]);
+    }
+
+    /**
+     * Indicate that the model is in PIN lockout.
+     */
+    public function withPinLockout(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'pin_lockout_until' => now()->addMinutes(config('security.pin.lockout_minutes', 15)),
+        ]);
+    }
 }

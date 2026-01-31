@@ -260,3 +260,19 @@
         @apply bg-background text-foreground;
     }
 }
+
+/*
+ * Page blocks inside Grid/Flex/Section: fill the cell (full width), no max-w-6xl centering.
+ */
+.grid-block .max-w-6xl,
+.grid-block-inner .max-w-6xl,
+.flex-container-block .max-w-6xl,
+.flex-container-inner .max-w-6xl,
+.section-flex .max-w-6xl {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    min-width: 0;
+    box-sizing: border-box;
+}

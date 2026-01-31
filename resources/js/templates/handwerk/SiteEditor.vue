@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { uploadImage } from '@/actions/App/Http/Controllers/SiteController';
+import images from '@/routes/sites/images';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -122,7 +122,7 @@ const heroImageInputRef = ref<HTMLInputElement | null>(null);
 async function uploadHeroImage(file: File): Promise<void> {
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(uploadImage({ site: props.site.id }).url, {
+    const r = await fetch(images.store.url({ site: props.site.id }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',

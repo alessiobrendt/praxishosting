@@ -123,6 +123,7 @@ class SiteController extends Controller
             abort(403, 'Page Designer is not enabled for this site.');
         }
 
+        $site->unsetRelation('template');
         $site->load(['template.pages']);
 
         return Inertia::render('PageDesigner/PageDesigner', [

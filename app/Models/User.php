@@ -4,10 +4,10 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 class User extends Authenticatable
@@ -25,6 +25,9 @@ class User extends Authenticatable
         'email',
         'password',
         'is_admin',
+        'pin_hash',
+        'pin_length',
+        'inactivity_lock_minutes',
     ];
 
     /**
@@ -34,6 +37,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'pin_hash',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'remember_token',
@@ -51,7 +55,28 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'is_admin' => 'boolean',
+            'pin_lockout_until' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the attributes that should be appended to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['has_pin'];
+
+    /**
+     * Whether the user has a PIN set (for frontend without exposing pin_hash).
+     */
+    public function getHasPinAttribute(): bool
+    {
+        return $this->pin_hash !== null;
+    }
+
+    public function hasPin(): bool
+    {
+        return $this->pin_hash !== null;
     }
 
     public function sites(): HasMany

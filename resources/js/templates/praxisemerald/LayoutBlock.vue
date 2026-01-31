@@ -95,6 +95,10 @@ function getNextChild(index: number): LayoutComponentEntry | undefined {
     return containerChildrenFiltered.value[index + 1];
 }
 
+/** Grid/Flex containers: child wrappers use w-full so content fills the cell; Section uses flex-1. */
+const isGridOrFlexContainer = (): boolean =>
+    props.entry.type === 'grid' || props.entry.type === 'flex';
+
 function mapJustify(v: SectionJustify | string | undefined): string {
     const map: Record<string, string> = {
         start: 'flex-start',
@@ -240,6 +244,7 @@ const motionPreset = computed(() =>
                             <template #item="{ element: child, index }">
                                 <div
                                     class="flex min-w-0 flex-col"
+                                    :class="{ 'w-full': isGridOrFlexContainer() }"
                                     :style="getChildFlexStyle(child)"
                                 >
                                     <div
@@ -252,7 +257,10 @@ const motionPreset = computed(() =>
                                     >
                                         <span class="sr-only">Komponente hier einfügen</span>
                                     </div>
-                                    <div class="section-child relative flex min-h-[3rem] min-w-0 flex-1 flex-row">
+                                    <div
+                                        class="section-child relative flex min-h-[3rem] min-w-0 flex-1 flex-row"
+                                        :class="{ 'w-full': isGridOrFlexContainer() }"
+                                    >
                                         <div
                                             class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-6 cursor-grab items-center justify-center bg-muted/50 text-muted-foreground active:cursor-grabbing"
                                             aria-hidden
@@ -328,6 +336,7 @@ const motionPreset = computed(() =>
                     <template #item="{ element: child, index }">
                         <div
                             class="flex min-w-0 flex-col"
+                            :class="{ 'w-full': isGridOrFlexContainer() }"
                             :style="getChildFlexStyle(child)"
                         >
                             <div
@@ -340,7 +349,10 @@ const motionPreset = computed(() =>
                             >
                                 <span class="sr-only">Komponente hier einfügen</span>
                             </div>
-                            <div class="section-child relative flex min-h-[3rem] min-w-0 flex-1 flex-row">
+                            <div
+                                class="section-child relative flex min-h-[3rem] min-w-0 flex-1 flex-row"
+                                :class="{ 'w-full': isGridOrFlexContainer() }"
+                            >
                                 <div
                                     class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-6 cursor-grab items-center justify-center bg-muted/50 text-muted-foreground active:cursor-grabbing"
                                     aria-hidden

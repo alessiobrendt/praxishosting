@@ -34,7 +34,7 @@ test('admin users can create template', function () {
         'price' => 0,
     ]);
     $response->assertRedirect();
-    $this->assertDatabaseHas('templates', ['slug' => 'test-template']);
+    $this->assertDatabaseHas('templates', ['slug' => 'test-template', 'is_active' => false]);
 });
 
 test('admin users can view template', function () {

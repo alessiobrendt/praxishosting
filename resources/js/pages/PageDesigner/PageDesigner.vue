@@ -175,7 +175,17 @@ function mergePageDataForSlug(
 
     if (slug === 'index') {
         const merged = deepMergePreferNonEmpty(base, custom) as Record<string, unknown>;
-        const templateLayout = Array.isArray(templateData.layout_components) ? templateData.layout_components : [];
+        const indexTemplatePage = templatePages.find((p) => p.slug === 'index');
+        const fromTemplatePage = indexTemplatePage?.data as Record<string, unknown> | undefined;
+        const templateLayoutFromPage = Array.isArray(fromTemplatePage?.layout_components)
+            ? (fromTemplatePage.layout_components as LayoutComponentEntry[])
+            : [];
+        const templateLayout =
+            templateLayoutFromPage.length > 0
+                ? templateLayoutFromPage
+                : Array.isArray(templateData.layout_components)
+                  ? (templateData.layout_components as LayoutComponentEntry[])
+                  : [];
         const customLayout = Array.isArray(custom.layout_components) ? custom.layout_components : [];
         const layout_components =
             customLayout.length > 0
@@ -195,9 +205,9 @@ function mergePageDataForSlug(
     const customPage = customPagesMap[slug];
     let templateLayout: LayoutComponentEntry[] = [];
     if (hasTemplatePage) {
-        const templateDataPages = (templateData.pages ?? {}) as Record<string, { layout_components?: LayoutComponentEntry[] }>;
-        const templatePage = templateDataPages[slug];
-        templateLayout = Array.isArray(templatePage?.layout_components) ? templatePage.layout_components : [];
+        const templatePage = templatePages.find((p) => p.slug === slug);
+        const pageData = templatePage?.data as Record<string, { layout_components?: LayoutComponentEntry[] }> | undefined;
+        templateLayout = Array.isArray(pageData?.layout_components) ? pageData.layout_components : [];
     }
     const customLayout = Array.isArray(customPage?.layout_components) ? customPage.layout_components : [];
     const layout_components =

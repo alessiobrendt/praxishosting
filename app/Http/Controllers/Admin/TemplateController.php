@@ -36,7 +36,7 @@ class TemplateController extends Controller
 
     public function store(StoreTemplateRequest $request): RedirectResponse
     {
-        Template::query()->create($request->validated());
+        Template::query()->create(array_merge($request->validated(), ['is_active' => false]));
 
         return to_route('admin.templates.index');
     }

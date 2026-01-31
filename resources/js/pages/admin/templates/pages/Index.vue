@@ -9,7 +9,9 @@ import JsonViewer from '@/components/JsonViewer.vue';
 import templates from '@/routes/admin/templates';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { Plus, ArrowLeft, FileText, ChevronDown } from 'lucide-vue-next';
+import { getTemplateEntry } from '@/templates/template-registry';
+import { Plus, ArrowLeft, FileText, ChevronDown, Layout } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 type TemplatePage = {
     id: number;
@@ -32,6 +34,10 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const hasPageDesigner = computed(
+    () => getTemplateEntry(props.template.slug)?.getComponentRegistry != null,
+);
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
     { title: 'Templates', href: templates.index().url },
@@ -49,7 +55,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <div>
                     <Heading level="h1">Seiten</Heading>
                     <p class="mt-2 text-muted-foreground">
-                        Seiten für Template: {{ template.name }}
+                        Seiten dieses Templates: {{ template.name }}
                     </p>
                 </div>
                 <div class="flex gap-2">
@@ -57,6 +63,12 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <Button variant="outline">
                             <ArrowLeft class="mr-2 h-4 w-4" />
                             Zurück
+                        </Button>
+                    </Link>
+                    <Link v-if="hasPageDesigner" :href="templates.design({ template: template.id }).url">
+                        <Button>
+                            <Layout class="mr-2 h-4 w-4" />
+                            Standard-Seiten designen
                         </Button>
                     </Link>
                     <Link :href="templates.pages.create({ template: template.id }).url">
@@ -69,7 +81,13 @@ const breadcrumbs: BreadcrumbItem[] = [
             </div>
 
             <Card>
-                <CardContent class="p-0">
+                <CardHeader>
+                    <CardTitle>Seiten dieses Templates</CardTitle>
+                    <CardDescription>
+                        Standardseiten dieser Vorlage. Kunden erhalten diese beim Kauf; hier legen Sie Inhalt und Reihenfolge fest.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent class="p-0 pt-0">
                     <div v-if="pages.length === 0" class="text-center py-12 text-muted-foreground">
                         <FileText class="mx-auto h-12 w-12 mb-4 opacity-50" />
                         <p class="mb-4">Noch keine Seiten vorhanden</p>

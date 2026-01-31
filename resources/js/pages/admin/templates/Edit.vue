@@ -499,7 +499,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     />
                                 </div>
                             </div>
-                            
+
                             <CardFooter class="px-0 pb-0 pt-4">
                                 <div class="flex flex-col gap-2 w-full">
                                     <Button type="submit" :disabled="processing" class="w-full">

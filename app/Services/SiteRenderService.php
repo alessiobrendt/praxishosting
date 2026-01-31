@@ -27,7 +27,8 @@ class SiteRenderService
         $templatePageData = $site->template->page_data ?? [];
 
         $source = $draftPageData ?? $site->custom_page_data;
-        $pageData = $this->resolvePageDataForSlug($source, $templatePageData, $templatePages, $pageSlug);
+        $contentFromTemplateOnly = $draftPageData === null;
+        $pageData = $this->resolvePageDataForSlug($source, $templatePageData, $templatePages, $pageSlug, $contentFromTemplateOnly);
 
         $colors = $draftColors ?? $site->custom_colors ?? ($templatePageData['colors'] ?? []);
         if (isset($pageData['colors']) && is_array($pageData['colors'])) {
@@ -109,6 +110,7 @@ class SiteRenderService
 
     /**
      * Whether a page is active for display/nav. Index is always active.
+     * New template pages (no pages_meta entry) are inactive until explicitly activated.
      *
      * @param  array<string, mixed>|null  $customPageData
      */
@@ -119,33 +121,42 @@ class SiteRenderService
         }
 
         if ($customPageData === null) {
-            return true;
+            return false;
         }
 
         $meta = $customPageData['pages_meta'][$pageSlug] ?? null;
         if (! is_array($meta)) {
-            return true;
+            return false;
         }
 
-        return ($meta['active'] ?? true) === true;
+        return ($meta['active'] ?? false) === true;
     }
 
     /**
-     * Resolve raw page data array for a given slug from source (draft or custom_page_data) and template.
+     * Resolve raw page data array for a given slug. When contentFromTemplateOnly is true (public view),
+     * use template only; when false (preview with draft), merge template with source.
      *
-     * @param  array<string, mixed>|null  $source
+     * @param  array<string, mixed>|null  $source  Site custom_page_data or draft; used for content only when contentFromTemplateOnly is false.
      * @param  array<string, mixed>  $templatePageData
      * @param  \Illuminate\Support\Collection<int, \App\Models\TemplatePage>  $templatePages
      * @return array<string, mixed>
      */
-    protected function resolvePageDataForSlug(?array $source, array $templatePageData, $templatePages, string $pageSlug): array
+    protected function resolvePageDataForSlug(?array $source, array $templatePageData, $templatePages, string $pageSlug, bool $contentFromTemplateOnly = true): array
     {
         if ($pageSlug === 'index') {
-            return $this->resolveIndexPageData($source, $templatePageData, $templatePages);
+            return $this->resolveIndexPageData($source, $templatePageData, $templatePages, $contentFromTemplateOnly);
         }
 
         $templatePage = $templatePages->firstWhere('slug', $pageSlug);
         $templateDefaults = $templatePage && is_array($templatePage->data) ? $templatePage->data : [];
+        if ($contentFromTemplateOnly) {
+            $layout = $templateDefaults['layout_components'] ?? null;
+
+            return [
+                'layout_components' => is_array($layout) && $layout !== [] ? $layout : [],
+            ];
+        }
+
         $custom = null;
         if ($source !== null && isset($source['pages'][$pageSlug]) && is_array($source['pages'][$pageSlug])) {
             $custom = $source['pages'][$pageSlug];
@@ -159,19 +170,25 @@ class SiteRenderService
     }
 
     /**
-     * Resolve index page: root has precedence over pages.index for backward compatibility.
+     * Resolve index page. When contentFromTemplateOnly is true (public view), use template only;
+     * when false (preview with draft), merge template with source.
      *
-     * @param  array<string, mixed>|null  $source
+     * @param  array<string, mixed>|null  $source  Site custom_page_data or draft; used for content only when contentFromTemplateOnly is false.
      * @param  array<string, mixed>  $templatePageData
      * @param  \Illuminate\Support\Collection<int, \App\Models\TemplatePage>  $templatePages
      * @return array<string, mixed>
      */
-    protected function resolveIndexPageData(?array $source, array $templatePageData, $templatePages): array
+    protected function resolveIndexPageData(?array $source, array $templatePageData, $templatePages, bool $contentFromTemplateOnly = true): array
     {
-        if ($source === null) {
-            $indexPage = $templatePages->first(fn ($p) => $p->slug === 'index') ?? $templatePages->sortBy('order')->first();
+        $indexPage = $templatePages->first(fn ($p) => $p->slug === 'index') ?? $templatePages->sortBy('order')->first();
+        $fromTemplate = $indexPage && is_array($indexPage->data) ? $indexPage->data : [];
 
-            return $indexPage && is_array($indexPage->data) ? $indexPage->data : $templatePageData;
+        if ($contentFromTemplateOnly) {
+            return array_merge($templatePageData, $fromTemplate);
+        }
+
+        if ($source === null) {
+            return $fromTemplate;
         }
 
         $hasPages = isset($source['pages']) && is_array($source['pages']);
@@ -181,12 +198,10 @@ class SiteRenderService
             : null;
 
         if ($fromPagesIndex !== null && (! isset($fromRoot['layout_components']) || ! is_array($fromRoot['layout_components']) || $fromRoot['layout_components'] === [])) {
-            $pageData = array_merge($source, ['layout_components' => $fromPagesIndex['layout_components'] ?? []]);
-        } else {
-            $pageData = $fromRoot;
+            return array_merge($source, ['layout_components' => $fromPagesIndex['layout_components'] ?? []]);
         }
 
-        return $pageData;
+        return $fromRoot;
     }
 
     /**

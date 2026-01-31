@@ -7,22 +7,35 @@ export const meta = {
     label: 'Team-Karten',
     placement: 'above_main' as const,
     category: 'Inhalt',
+    fieldsperRow: 3,
     defaultData: {
         items: [{ name: '', role: '', bio: '', image: '' }],
     },
 };
+
 export const Editor = TeamCardBlockEditor as Component;
 </script>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 const props = defineProps<{ data: Record<string, unknown> }>();
+
+const cols = computed(() => {
+    const v = props.data.fieldsperRow;
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) && n > 0 ? n : 3;
+});
 
 const items = () => (Array.isArray(props.data.items) ? props.data.items : []) as { name: string; role: string; bio: string; image: string }[];
 </script>
 
 <template>
     <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
-        <ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ul
+            class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:repeat(var(--cols),minmax(0,1fr))]"
+            :style="{ '--cols': cols }"
+        >
             <li
                 v-for="(m, i) in items()"
                 :key="i"

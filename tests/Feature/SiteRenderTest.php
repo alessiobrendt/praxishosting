@@ -203,17 +203,24 @@ test('public can view subpage by slug', function () {
         'slug' => 'praxisemerald',
         'page_data' => ['hero' => ['heading' => 'Index', 'text' => 'Text']],
     ]);
+    TemplatePage::factory()->create([
+        'template_id' => $template->id,
+        'name' => 'Notfallinformationen',
+        'slug' => 'notfallinformationen',
+        'order' => 1,
+        'data' => [
+            'layout_components' => [
+                ['id' => 'h1', 'type' => 'heading', 'data' => ['level' => 1, 'text' => 'Notfall']],
+            ],
+        ],
+    ]);
     $site = Site::factory()->create([
         'template_id' => $template->id,
         'slug' => 'my-practice',
         'status' => 'active',
         'custom_page_data' => [
-            'pages' => [
-                'notfallinformationen' => [
-                    'layout_components' => [
-                        ['id' => 'h1', 'type' => 'heading', 'data' => ['level' => 1, 'text' => 'Notfall']],
-                    ],
-                ],
+            'pages_meta' => [
+                'notfallinformationen' => ['active' => true],
             ],
         ],
     ]);
@@ -249,6 +256,60 @@ test('deactivated page redirects to site index', function () {
     $response->assertRedirect(route('site-render.show', $site->slug));
 });
 
+test('new template page without pages_meta entry redirects to site index', function () {
+    $template = Template::factory()->create();
+    $template->pages()->create([
+        'name' => 'Neue Seite',
+        'slug' => 'neue-seite',
+        'order' => 1,
+        'data' => ['layout_components' => [['id' => 'c1', 'type' => 'text', 'data' => ['text' => 'Content']]]],
+    ]);
+    $site = Site::factory()->create([
+        'template_id' => $template->id,
+        'status' => 'active',
+    ]);
+
+    $response = $this->get(route('site-render.show', ['site' => $site->slug, 'pageSlug' => 'neue-seite']));
+    $response->assertRedirect(route('site-render.show', $site->slug));
+});
+
+test('public site uses template content not site custom_page_data', function () {
+    $template = Template::factory()->create([
+        'slug' => 'praxisemerald',
+        'page_data' => ['hero' => ['heading' => 'Index', 'text' => 'Text']],
+    ]);
+    TemplatePage::factory()->create([
+        'template_id' => $template->id,
+        'slug' => 'index',
+        'order' => 0,
+        'data' => [
+            'layout_components' => [
+                ['id' => 't1', 'type' => 'heading', 'data' => ['level' => 1, 'text' => 'From Template']],
+            ],
+        ],
+    ]);
+    $site = Site::factory()->create([
+        'template_id' => $template->id,
+        'slug' => 'my-practice',
+        'status' => 'active',
+        'custom_page_data' => [
+            'pages' => [
+                'index' => [
+                    'layout_components' => [
+                        ['id' => 'c1', 'type' => 'heading', 'data' => ['level' => 1, 'text' => 'From Site Override']],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $response = $this->get(route('site-render.show', $site->slug));
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('pageData.layout_components.0.data.text', 'From Template')
+    );
+});
+
 test('preview with page query uses that page slug', function () {
     $user = User::factory()->create();
     $template = Template::factory()->create(['page_data' => ['hero' => ['heading' => 'Default', 'text' => 'Text']]]);
@@ -256,6 +317,10 @@ test('preview with page query uses that page slug', function () {
         'user_id' => $user->id,
         'template_id' => $template->id,
         'status' => 'active',
+    ]);
+    $this->actingAs($user);
+
+    $draft = [
         'custom_page_data' => [
             'pages' => [
                 'patienteninformationen' => [
@@ -265,8 +330,9 @@ test('preview with page query uses that page slug', function () {
                 ],
             ],
         ],
-    ]);
-    $this->actingAs($user);
+        'custom_colors' => [],
+    ];
+    $this->postJson(route('sites.preview.store', $site), $draft)->assertOk();
 
     $response = $this->get(route('sites.preview', $site).'?page=patienteninformationen');
     $response->assertOk();

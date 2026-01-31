@@ -25,7 +25,7 @@ import {
     design as sitesDesign,
 } from '@/routes/sites';
 import { getTemplateEntry } from '@/templates/template-registry';
-import { store as storeCollaborator, destroy as destroyCollaborator } from '@/actions/App/Http/Controllers/SiteCollaboratorController';
+import { store as storeCollaborator, destroy as destroyCollaborator } from '@/routes/sites/collaborators';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 import { Edit, ExternalLink, UserPlus, X, Mail, Shield, Globe, Plus, RefreshCw, Star, Trash2, Layout } from 'lucide-vue-next';

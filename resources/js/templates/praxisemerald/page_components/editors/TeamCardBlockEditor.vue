@@ -29,6 +29,9 @@ function removeItem(i: number) {
 
 <template>
     <div class="space-y-3">
+
+        <Label>Anzahl der Spalten</Label>
+        <Input placeholder="3" class="w-full" @update:model-value="(v) => (entry.data.fieldsperRow = v)" type="number" min="1" max="5" />
         <div class="flex items-center justify-between">
             <Label>Team-Mitglieder</Label>
             <Button type="button" variant="ghost" size="sm" class="h-7 text-xs" @click="addItem">

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
-import { User, Lock, Shield, Palette } from 'lucide-vue-next';
+import { User, Lock, Shield, ShieldCheck, Palette } from 'lucide-vue-next';
 import type { NavItem } from '@/types';
 
 const page = usePage();
@@ -21,6 +21,11 @@ const sidebarNavItems: NavItem[] = [
         title: 'Passwort',
         href: '/settings/password',
         icon: Lock,
+    },
+    {
+        title: 'Sicherheit',
+        href: '/settings/security',
+        icon: ShieldCheck,
     },
     {
         title: 'Zwei-Faktor-Authentifizierung',

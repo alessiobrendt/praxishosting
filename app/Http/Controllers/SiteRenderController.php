@@ -27,6 +27,7 @@ class SiteRenderController extends Controller
             abort(404);
         }
 
+        $site->unsetRelation('template');
         $site->load(['template.pages']);
         $normalizedSlug = $this->siteRenderService->normalizePageSlug($pageSlug, $site);
         if ($normalizedSlug !== 'index' && ! $this->siteRenderService->isPageActive($site->custom_page_data, $normalizedSlug)) {

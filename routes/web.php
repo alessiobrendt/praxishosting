@@ -7,6 +7,7 @@ use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\SiteCollaboratorController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SiteRenderController;
+use App\Http\Middleware\DisableCacheForSiteRender;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -30,6 +31,7 @@ Route::get('gallery/preview/{template}', [GalleryController::class, 'preview'])-
 
 Route::get('site/{site:slug}/{pageSlug?}', [SiteRenderController::class, 'show'])
     ->where('pageSlug', '[a-z0-9\-]+')
+    ->middleware(DisableCacheForSiteRender::class)
     ->name('site-render.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {

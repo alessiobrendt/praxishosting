@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import PinUnlockOverlay from '@/components/PinUnlockOverlay.vue';
 import { MainLayout } from '@/components/layout';
+import { useInactivityLock } from '@/composables/useInactivityLock';
 import { dashboard } from '@/routes';
 import { index as sitesIndex } from '@/routes/sites';
 import { index as adminTemplatesIndex } from '@/routes/admin/templates';
@@ -21,6 +23,7 @@ const props = withDefaults(defineProps<Props>(), {
 const page = usePage();
 const isAdmin = computed(() => (page.props.auth?.user as { is_admin?: boolean })?.is_admin ?? false);
 const { isCurrentUrl } = useCurrentUrl();
+const { isLocked, unlock } = useInactivityLock();
 
 const sidebarItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -40,5 +43,9 @@ const sidebarItems = computed<NavItem[]>(() => {
 <template>
     <MainLayout :sidebar-items="sidebarItems" :breadcrumbs="breadcrumbs">
         <slot />
+        <PinUnlockOverlay
+            v-if="isLocked"
+            @unlocked="unlock"
+        />
     </MainLayout>
 </template>

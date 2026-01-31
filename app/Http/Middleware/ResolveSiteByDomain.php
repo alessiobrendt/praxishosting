@@ -44,14 +44,14 @@ class ResolveSiteByDomain
 
         $domain = Domain::query()
             ->where('domain', $host)
-            ->with(['site.template.pages'])
+            ->with(['site'])
             ->first();
 
         if (! $domain && str_ends_with($host, '.test')) {
             $hostWithoutTest = substr($host, 0, -5);
             $domain = Domain::query()
                 ->where('domain', $hostWithoutTest)
-                ->with(['site.template.pages'])
+                ->with(['site'])
                 ->first();
         }
 
@@ -64,6 +64,9 @@ class ResolveSiteByDomain
         if ($site->status !== 'active') {
             abort(404);
         }
+
+        $site->unsetRelation('template');
+        $site->load(['template.pages']);
 
         $normalizedSlug = $this->siteRenderService->normalizePageSlug($pageSlug, $site);
         if ($normalizedSlug !== 'index' && ! $this->siteRenderService->isPageActive($site->custom_page_data, $normalizedSlug)) {
@@ -80,6 +83,10 @@ class ResolveSiteByDomain
             'pageSlug' => $normalizedSlug,
         ]);
 
-        return $inertiaResponse->toResponse($request);
+        $response = $inertiaResponse->toResponse($request);
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $response->headers->set('Pragma', 'no-cache');
+
+        return $response;
     }
 }
