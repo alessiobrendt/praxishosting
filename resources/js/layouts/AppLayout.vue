@@ -18,9 +18,11 @@ import {
     Repeat,
     Archive,
     Mail,
+    MessageCircle,
     Settings,
     Shield,
 } from 'lucide-vue-next';
+import { index as supportIndex } from '@/routes/support';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
 interface Props {
@@ -40,6 +42,7 @@ const sidebarItems = computed<NavItem[]>(() => {
         { title: 'Dashboard', href: dashboard().url, icon: LayoutGrid },
         { title: 'Meine Sites', href: sitesIndex().url, icon: Globe },
         { title: 'Meine Rechnungen', href: billingIndex().url, icon: FileText },
+        { title: 'Support', href: supportIndex().url, icon: MessageCircle },
     ];
     if (isAdmin.value) {
         items.push({
@@ -81,6 +84,15 @@ const sidebarItems = computed<NavItem[]>(() => {
                         { title: 'Rabattcodes', href: '/admin/discount-codes', icon: Package },
                         { title: 'Gutscheine', href: '/admin/vouchers', icon: Package },
                         { title: 'E-Mails', href: '/admin/emails', icon: Mail },
+                    ],
+                },
+                {
+                    title: 'Support',
+                    icon: MessageCircle,
+                    children: [
+                        { title: 'Tickets', href: '/admin/tickets', icon: MessageCircle },
+                        { title: 'Ticket-Kategorien', href: '/admin/ticket-categories', icon: LayoutGrid },
+                        { title: 'Ticket-Prioritäten', href: '/admin/ticket-priorities', icon: LayoutGrid },
                     ],
                 },
                 {

@@ -37,6 +37,8 @@ type Props = {
         dunning_fee_level_3: string;
         domains_base_domain: string;
         main_app_hosts: string;
+        support_enabled: boolean;
+        support_max_open_tickets_per_user: string;
     };
 };
 
@@ -62,6 +64,10 @@ const form = useForm({
     dunning_fee_level_1: props.settings.dunning_fee_level_1,
     dunning_fee_level_2: props.settings.dunning_fee_level_2,
     dunning_fee_level_3: props.settings.dunning_fee_level_3,
+    domains_base_domain: props.settings.domains_base_domain ?? '',
+    main_app_hosts: props.settings.main_app_hosts ?? '',
+    support_enabled: props.settings.support_enabled ?? true,
+    support_max_open_tickets_per_user: props.settings.support_max_open_tickets_per_user ?? '0',
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -92,6 +98,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <TabsTrigger value="mahnung">Mahnung</TabsTrigger>
                         <TabsTrigger value="domains">Domains</TabsTrigger>
                         <TabsTrigger value="mail">Mail</TabsTrigger>
+                        <TabsTrigger value="support">Support</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="allgemein">
@@ -369,6 +376,41 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     />
                                     <InputError :message="form.errors.main_app_hosts" />
                                     <Text class="text-xs muted">Hosts, unter denen die Haupt-App (Dashboard, Login) läuft. Alle anderen Hosts = Site-Render. Leer = Wert aus Konfiguration.</Text>
+                                </div>
+                            </CardContent>
+                            <CardFooter>
+                                <Button type="submit" :disabled="form.processing">Speichern</Button>
+                            </CardFooter>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="support">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Support / Tickets</CardTitle>
+                                <CardDescription>Support-Ticket-System aktivieren und Limits</CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-6">
+                                <div class="flex items-center gap-2">
+                                    <Switch
+                                        id="support_enabled"
+                                        :checked="form.support_enabled"
+                                        @update:checked="(v: boolean) => (form.support_enabled = v)"
+                                    />
+                                    <Label for="support_enabled">Support-Tickets aktiviert</Label>
+                                </div>
+                                <Text class="text-xs muted">Wenn deaktiviert, können Kunden keine neuen Tickets erstellen.</Text>
+                                <div class="space-y-2">
+                                    <Label for="support_max_open_tickets_per_user">Max. offene Tickets pro Kunde (0 = unbegrenzt)</Label>
+                                    <Input
+                                        id="support_max_open_tickets_per_user"
+                                        v-model="form.support_max_open_tickets_per_user"
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        :aria-invalid="!!form.errors.support_max_open_tickets_per_user"
+                                    />
+                                    <InputError :message="form.errors.support_max_open_tickets_per_user" />
                                 </div>
                             </CardContent>
                             <CardFooter>

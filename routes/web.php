@@ -17,6 +17,9 @@ use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TemplateController;
 use App\Http\Controllers\Admin\TemplatePageController;
+use App\Http\Controllers\Admin\TicketCategoryController;
+use App\Http\Controllers\Admin\TicketController;
+use App\Http\Controllers\Admin\TicketPriorityController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingPortalController;
@@ -27,6 +30,7 @@ use App\Http\Controllers\SiteCollaboratorController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SiteRenderController;
 use App\Http\Controllers\SiteSubscriptionController;
+use App\Http\Controllers\SupportController;
 use App\Http\Middleware\DisableCacheForSiteRender;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -85,6 +89,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sites/{site}/domains/{domain}/verify', [\App\Http\Controllers\SiteDomainController::class, 'verify'])->name('sites.domains.verify');
     Route::post('sites/{site}/domains/{domain}/set-primary', [\App\Http\Controllers\SiteDomainController::class, 'setPrimary'])->name('sites.domains.set-primary');
     Route::delete('sites/{site}/domains/{domain}', [\App\Http\Controllers\SiteDomainController::class, 'destroy'])->name('sites.domains.destroy');
+
+    Route::get('support', [SupportController::class, 'index'])->name('support.index');
+    Route::get('support/create', [SupportController::class, 'create'])->name('support.create');
+    Route::post('support', [SupportController::class, 'store'])->name('support.store');
+    Route::get('support/{ticket}', [SupportController::class, 'show'])->name('support.show');
+    Route::post('support/{ticket}/messages', [SupportController::class, 'storeMessage'])->name('support.messages.store');
 });
 
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -151,6 +161,13 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
     Route::post('customers/{customer}/notes', [CustomerController::class, 'storeNote'])->name('customers.notes.store');
     Route::post('customers/{customer}/balance', [CustomerController::class, 'storeBalance'])->name('customers.balance.store');
+
+    Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
+    Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
+    Route::put('tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
+    Route::post('tickets/{ticket}/messages', [TicketController::class, 'storeMessage'])->name('tickets.messages.store');
+    Route::resource('ticket-categories', TicketCategoryController::class)->except(['show']);
+    Route::resource('ticket-priorities', TicketPriorityController::class)->except(['show']);
 });
 
 require __DIR__.'/settings.php';

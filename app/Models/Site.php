@@ -121,4 +121,14 @@ class Site extends Model
     {
         return $this->belongsTo(SiteVersion::class, 'draft_version_id');
     }
+
+    /**
+     * Support tickets related to this site.
+     *
+     * @return HasMany<Ticket>
+     */
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class);
+    }
 }

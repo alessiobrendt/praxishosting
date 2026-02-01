@@ -169,6 +169,26 @@ class User extends Authenticatable
     }
 
     /**
+     * Support tickets created by this user (as customer).
+     *
+     * @return HasMany<Ticket>
+     */
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class);
+    }
+
+    /**
+     * Support tickets assigned to this user (as admin).
+     *
+     * @return HasMany<Ticket>
+     */
+    public function assignedTickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class, 'assigned_to');
+    }
+
+    /**
      * Whether the user has a complete billing profile (required for checkout).
      */
     public function hasCompleteBillingProfile(): bool

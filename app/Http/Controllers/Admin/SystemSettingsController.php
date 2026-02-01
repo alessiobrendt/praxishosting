@@ -35,6 +35,8 @@ class SystemSettingsController extends Controller
             'dunning_fee_level_1' => (string) Setting::getDunningFee(1),
             'dunning_fee_level_2' => (string) Setting::getDunningFee(2),
             'dunning_fee_level_3' => (string) Setting::getDunningFee(3),
+            'support_enabled' => (bool) filter_var(Setting::get('support_enabled', '1'), FILTER_VALIDATE_BOOLEAN),
+            'support_max_open_tickets_per_user' => (string) (Setting::get('support_max_open_tickets_per_user') ?: '0'),
         ];
 
         return Inertia::render('admin/settings/Index', [
@@ -66,6 +68,8 @@ class SystemSettingsController extends Controller
             'dunning_fee_level_3' => ['nullable', 'numeric', 'min:0'],
             'domains_base_domain' => ['nullable', 'string', 'max:255'],
             'main_app_hosts' => ['nullable', 'string', 'max:500'],
+            'support_enabled' => ['boolean'],
+            'support_max_open_tickets_per_user' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
 
         foreach ($validated as $key => $value) {
