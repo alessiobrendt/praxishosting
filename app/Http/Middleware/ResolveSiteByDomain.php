@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Domain;
+use App\Models\Setting;
 use App\Services\SiteRenderService;
 use Closure;
 use Illuminate\Http\Request;
