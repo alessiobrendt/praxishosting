@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminActivityLog;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -72,9 +73,16 @@ class SystemSettingsController extends Controller
             'support_max_open_tickets_per_user' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
 
+        $oldKeys = array_keys($validated);
+        $old = [];
+        foreach ($oldKeys as $key) {
+            $old[$key] = Setting::get($key);
+        }
         foreach ($validated as $key => $value) {
             Setting::set($key, $value ?? '');
         }
+
+        AdminActivityLog::log($request->user()->id, 'system_settings_updated', 'system', 0, $old, $validated);
 
         return redirect()->route('admin.settings.index')->with('success', 'Einstellungen gespeichert.');
     }

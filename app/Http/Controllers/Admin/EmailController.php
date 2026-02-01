@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SendTestEmailTemplateRequest;
 use App\Http\Requests\Admin\UpdateEmailTemplateRequest;
 use App\Mail\EmailTemplateTestMail;
+use App\Models\AdminActivityLog;
 use App\Models\EmailTemplate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -37,7 +38,10 @@ class EmailController extends Controller
 
     public function update(UpdateEmailTemplateRequest $request, EmailTemplate $emailTemplate): RedirectResponse
     {
+        $old = $emailTemplate->only(['subject', 'greeting', 'body', 'action_text', 'action_url']);
         $emailTemplate->update($request->validated());
+
+        AdminActivityLog::log($request->user()->id, 'email_template_updated', EmailTemplate::class, 0, array_merge($old, ['key' => $emailTemplate->key]), array_merge($request->validated(), ['key' => $emailTemplate->key]));
 
         return redirect()->route('admin.emails.index')->with('success', 'E-Mail-Vorlage aktualisiert.');
     }

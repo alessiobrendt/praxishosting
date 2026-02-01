@@ -233,6 +233,7 @@ class SiteController extends Controller
             ? Carbon::createFromTimestamp($stripeSubscription->ended_at)
             : null;
 
+        $old = $subscription->only(['stripe_status', 'current_period_ends_at', 'cancel_at_period_end']);
         $subscription->update([
             'stripe_status' => $stripeSubscription->status ?? $subscription->stripe_status,
             'stripe_price_id' => $firstItem->price->id ?? $subscription->stripe_price_id,
@@ -240,6 +241,8 @@ class SiteController extends Controller
             'cancel_at_period_end' => (bool) ($stripeSubscription->cancel_at_period_end ?? false),
             'ends_at' => $endsAt ?? $subscription->ends_at,
         ]);
+
+        AdminActivityLog::log(request()->user()->id, 'site_subscription_synced', Site::class, $site->id, $old, null);
 
         return redirect()
             ->route('admin.sites.show', $site)

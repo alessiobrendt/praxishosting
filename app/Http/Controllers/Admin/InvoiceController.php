@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreManualInvoiceRequest;
 use App\Http\Requests\Admin\UpdateManualInvoiceRequest;
+use App\Models\AdminActivityLog;
 use App\Models\Invoice;
 use App\Models\InvoiceDunningLetter;
 use App\Models\InvoiceLineItem;
@@ -93,6 +94,8 @@ class InvoiceController extends Controller
             $invoice->update(['pdf_path' => $pdfPath]);
         }
 
+        AdminActivityLog::log($request->user()->id, 'invoice_created', Invoice::class, $invoice->id, null, ['number' => $invoice->number, 'amount' => $invoice->amount]);
+
         return redirect()->route('admin.invoices.index')->with('success', 'Rechnung erstellt.');
     }
 
@@ -141,6 +144,7 @@ class InvoiceController extends Controller
             $amount += (float) $row['amount'];
         }
 
+        $old = $invoice->only(['invoice_date', 'due_date', 'status', 'amount']);
         $invoice->update([
             'invoice_date' => Carbon::parse($data['invoice_date']),
             'due_date' => isset($data['due_date']) ? Carbon::parse($data['due_date']) : null,
@@ -165,6 +169,8 @@ class InvoiceController extends Controller
         if ($pdfPath) {
             $invoice->update(['pdf_path' => $pdfPath]);
         }
+
+        AdminActivityLog::log($request->user()->id, 'invoice_updated', Invoice::class, $invoice->id, $old, $data);
 
         return redirect()->route('admin.invoices.index')->with('success', 'Rechnung aktualisiert.');
     }
@@ -196,6 +202,8 @@ class InvoiceController extends Controller
         if ($pdfPath) {
             $dunningLetter->update(['pdf_path' => $pdfPath]);
         }
+
+        AdminActivityLog::log(request()->user()->id, 'invoice_dunning_letter_added', Invoice::class, $invoice->id, null, ['level' => $nextLevel]);
 
         return redirect()->route('admin.invoices.show', $invoice)->with('success', "{$nextLevel}. Mahnung erstellt.");
     }

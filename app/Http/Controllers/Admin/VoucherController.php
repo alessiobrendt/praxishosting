@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreVoucherRequest;
 use App\Http\Requests\Admin\UpdateVoucherRequest;
+use App\Models\AdminActivityLog;
 use App\Models\Voucher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,7 +40,9 @@ class VoucherController extends Controller
             $validated['code'] = Voucher::generateCode();
         }
 
-        Voucher::create($validated);
+        $voucher = Voucher::create($validated);
+
+        AdminActivityLog::log($request->user()->id, 'voucher_created', Voucher::class, $voucher->id, null, ['code' => $voucher->code]);
 
         return redirect()->route('admin.vouchers.index')->with('success', 'Gutschein angelegt.');
     }
@@ -58,7 +61,10 @@ class VoucherController extends Controller
         $validated = $request->validated();
         $validated['is_active'] = $request->boolean('is_active', true);
 
+        $old = $voucher->only(array_keys($validated));
         $voucher->update($validated);
+
+        AdminActivityLog::log($request->user()->id, 'voucher_updated', Voucher::class, $voucher->id, $old, $validated);
 
         return redirect()->route('admin.vouchers.index')->with('success', 'Gutschein aktualisiert.');
     }

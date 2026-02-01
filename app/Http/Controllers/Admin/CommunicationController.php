@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreReminderRequest;
+use App\Models\AdminActivityLog;
 use App\Models\Invoice;
 use App\Models\InvoiceDunningLetter;
 use App\Models\Reminder;
@@ -168,7 +169,7 @@ class CommunicationController extends Controller
     public function store(StoreReminderRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        Reminder::create([
+        $reminder = Reminder::create([
             'type' => $data['type'],
             'subject_type' => 'App\\Models\\'.$data['subject_type'],
             'subject_id' => $data['subject_id'],
@@ -176,6 +177,8 @@ class CommunicationController extends Controller
             'created_by' => $request->user()->id,
             'note' => $data['note'] ?? null,
         ]);
+
+        AdminActivityLog::log($request->user()->id, 'communication_created', Reminder::class, $reminder->id, null, ['type' => $reminder->type]);
 
         return redirect()->route('admin.communications.index')->with('success', 'Erinnerung erfasst.');
     }

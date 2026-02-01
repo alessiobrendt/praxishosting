@@ -52,4 +52,14 @@ class AdminActivityLog extends Model
             'new_values' => $newValues,
         ]);
     }
+
+    /**
+     * Log a system-level admin action (no specific model).
+     *
+     * @param  array<string, mixed>|null  $context
+     */
+    public static function logSystem(int $userId, string $action, ?array $context = null): self
+    {
+        return self::log($userId, $action, 'system', 0, null, $context);
+    }
 }

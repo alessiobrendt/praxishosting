@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreQuoteRequest;
+use App\Models\AdminActivityLog;
 use App\Models\Quote;
 use App\Models\QuoteLineItem;
 use App\Models\User;
@@ -88,6 +89,8 @@ class QuoteController extends Controller
         if ($pdfPath) {
             $quote->update(['pdf_path' => $pdfPath]);
         }
+
+        AdminActivityLog::log($request->user()->id, 'quote_created', Quote::class, $quote->id, null, ['number' => $quote->number, 'amount' => $quote->amount]);
 
         return redirect()->route('admin.quotes.index')->with('success', 'Angebot erstellt.');
     }

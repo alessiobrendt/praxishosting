@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTicketCategoryRequest;
 use App\Http\Requests\Admin\UpdateTicketCategoryRequest;
+use App\Models\AdminActivityLog;
 use App\Models\TicketCategory;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -36,7 +37,9 @@ class TicketCategoryController extends Controller
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['sort_order'] = (int) ($validated['sort_order'] ?? 0);
 
-        TicketCategory::create($validated);
+        $ticketCategory = TicketCategory::create($validated);
+
+        AdminActivityLog::log($request->user()->id, 'ticket_category_created', TicketCategory::class, $ticketCategory->id, null, $validated);
 
         return redirect()->route('admin.ticket-categories.index')->with('success', 'Kategorie angelegt.');
     }
@@ -54,14 +57,20 @@ class TicketCategoryController extends Controller
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['sort_order'] = (int) ($validated['sort_order'] ?? 0);
 
+        $old = $ticketCategory->only(array_keys($validated));
         $ticketCategory->update($validated);
+
+        AdminActivityLog::log($request->user()->id, 'ticket_category_updated', TicketCategory::class, $ticketCategory->id, $old, $validated);
 
         return redirect()->route('admin.ticket-categories.index')->with('success', 'Kategorie aktualisiert.');
     }
 
     public function destroy(TicketCategory $ticketCategory): RedirectResponse
     {
+        $old = $ticketCategory->only(['name', 'slug', 'is_active', 'sort_order']);
         $ticketCategory->delete();
+
+        AdminActivityLog::log(request()->user()->id, 'ticket_category_deleted', TicketCategory::class, $ticketCategory->id, $old, null);
 
         return redirect()->route('admin.ticket-categories.index')->with('success', 'Kategorie gelöscht.');
     }

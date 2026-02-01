@@ -52,6 +52,8 @@ class CustomerController extends Controller
             'body' => $request->validated('body'),
         ]);
 
+        AdminActivityLog::log($request->user()->id, 'customer_note_added', User::class, $customer->id, null, []);
+
         return redirect()->route('admin.customers.show', $customer)->with('success', 'Notiz gespeichert.');
     }
 
@@ -129,6 +131,8 @@ class CustomerController extends Controller
             ['balance' => 0]
         );
         $balance->increment('balance', $amount);
+
+        AdminActivityLog::log($request->user()->id, 'customer_balance_added', User::class, $customer->id, null, ['amount' => $amount, 'description' => $description]);
 
         return redirect()->route('admin.customers.show', $customer)->with('success', 'Guthaben aufgeladen.');
     }

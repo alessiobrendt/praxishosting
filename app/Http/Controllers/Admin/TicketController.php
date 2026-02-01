@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\StoreTicketTimeLogRequest;
 use App\Http\Requests\Admin\StoreTicketTodoRequest;
 use App\Http\Requests\Admin\UpdateTicketRequest;
 use App\Http\Requests\Admin\UpdateTicketTodoRequest;
+use App\Models\AdminActivityLog;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\TicketTimeLog;
@@ -106,10 +107,14 @@ class TicketController extends Controller
         if (array_key_exists('due_at', $update) && $update['due_at'] === '') {
             $update['due_at'] = null;
         }
+        $old = array_intersect_key($ticket->getOriginal(), array_flip($allowed));
         $ticket->update($update);
         if (array_key_exists('tag_ids', $validated)) {
             $ticket->tags()->sync($validated['tag_ids']);
         }
+        $new = array_merge($update, array_key_exists('tag_ids', $validated) ? ['tag_ids' => $validated['tag_ids']] : []);
+
+        AdminActivityLog::log($request->user()->id, 'ticket_updated', Ticket::class, $ticket->id, $old, $new);
 
         return redirect()->route('admin.tickets.show', $ticket)->with('success', 'Ticket aktualisiert.');
     }
@@ -134,6 +139,8 @@ class TicketController extends Controller
             $ticket->update(['status' => 'waiting_customer']);
         }
 
+        AdminActivityLog::log($request->user()->id, 'ticket_message_stored', Ticket::class, $ticket->id, null, ['is_internal' => $isInternal]);
+
         return redirect()->route('admin.tickets.show', $ticket)->with('success', 'Antwort gespeichert.');
     }
 
@@ -148,18 +155,22 @@ class TicketController extends Controller
             'logged_at' => isset($validated['logged_at']) ? $validated['logged_at'] : now(),
         ]);
 
+        AdminActivityLog::log($request->user()->id, 'ticket_time_log_added', Ticket::class, $ticket->id, null, ['minutes' => $validated['minutes']]);
+
         return redirect()->route('admin.tickets.show', $ticket)->with('success', 'Zeiteintrag hinzugefügt.');
     }
 
     public function storeTodo(StoreTicketTodoRequest $request, Ticket $ticket): RedirectResponse
     {
         $maxSort = $ticket->todos()->max('sort_order') ?? 0;
-        TicketTodo::create([
+        $todo = TicketTodo::create([
             'ticket_id' => $ticket->id,
             'created_by' => $request->user()->id,
             'title' => $request->validated('title'),
             'sort_order' => $maxSort + 1,
         ]);
+
+        AdminActivityLog::log($request->user()->id, 'ticket_todo_added', TicketTodo::class, $todo->id, null, ['title' => $todo->title]);
 
         return redirect()->route('admin.tickets.show', $ticket)->with('success', 'To-do hinzugefügt.');
     }
@@ -170,7 +181,10 @@ class TicketController extends Controller
             abort(404);
         }
         $validated = $request->validated();
+        $old = $todo->only(['title', 'is_done']);
         $todo->update(array_intersect_key($validated, array_flip(['title', 'is_done'])));
+
+        AdminActivityLog::log($request->user()->id, 'ticket_todo_updated', TicketTodo::class, $todo->id, $old, $validated);
 
         return redirect()->route('admin.tickets.show', $ticket)->with('success', 'To-do aktualisiert.');
     }
@@ -180,7 +194,10 @@ class TicketController extends Controller
         if ($todo->ticket_id !== $ticket->id) {
             abort(404);
         }
+        $old = $todo->only(['title', 'is_done']);
         $todo->delete();
+
+        AdminActivityLog::log($request->user()->id, 'ticket_todo_deleted', TicketTodo::class, $todo->id, $old, null);
 
         return redirect()->route('admin.tickets.show', $ticket)->with('success', 'To-do gelöscht.');
     }
@@ -199,6 +216,8 @@ class TicketController extends Controller
             'status' => 'closed',
             'subject' => $ticket->subject.' [Zusammengeführt in #'.$targetId.']',
         ]);
+
+        AdminActivityLog::log($request->user()->id, 'ticket_merged', Ticket::class, $target->id, ['source_ticket_id' => $ticket->id], null);
 
         return redirect()->route('admin.tickets.show', $target)->with('success', 'Ticket wurde zusammengeführt.');
     }

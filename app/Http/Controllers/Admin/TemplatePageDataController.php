@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminActivityLog;
 use App\Models\Template;
 use App\Models\TemplatePage;
 use Illuminate\Http\RedirectResponse;
@@ -36,7 +37,10 @@ class TemplatePageDataController extends Controller
             'data' => ['required'],
         ]);
 
+        $old = $page->data ?? [];
         $page->update(['data' => $data]);
+
+        AdminActivityLog::log($request->user()->id, 'template_page_data_updated', TemplatePage::class, $page->id, ['data' => $old], ['data' => $data]);
 
         return to_route('admin.templates.pages.show', [$template, $page]);
     }

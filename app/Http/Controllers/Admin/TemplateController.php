@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTemplateRequest;
 use App\Http\Requests\Admin\UpdateTemplateRequest;
+use App\Models\AdminActivityLog;
 use App\Models\Template;
 use App\Services\SyncTemplateStripePriceService;
 use Illuminate\Http\RedirectResponse;
@@ -39,6 +40,8 @@ class TemplateController extends Controller
     {
         $template = Template::query()->create(array_merge($request->validated(), ['is_active' => false]));
         $syncStripePrice->sync($template);
+
+        AdminActivityLog::log($request->user()->id, 'template_created', Template::class, $template->id, null, ['name' => $template->name]);
 
         return to_route('admin.templates.index');
     }
@@ -76,8 +79,11 @@ class TemplateController extends Controller
 
     public function update(UpdateTemplateRequest $request, Template $template, SyncTemplateStripePriceService $syncStripePrice): RedirectResponse
     {
+        $old = $template->only(array_keys($request->validated()));
         $template->update($request->validated());
         $syncStripePrice->sync($template);
+
+        AdminActivityLog::log($request->user()->id, 'template_updated', Template::class, $template->id, $old, $request->validated());
 
         return to_route('admin.templates.show', $template);
     }
@@ -86,7 +92,10 @@ class TemplateController extends Controller
     {
         $this->authorize('delete', $template);
 
+        $old = $template->only(['name', 'slug', 'is_active']);
         $template->delete();
+
+        AdminActivityLog::log(request()->user()->id, 'template_deleted', Template::class, $template->id, $old, null);
 
         return to_route('admin.templates.index');
     }

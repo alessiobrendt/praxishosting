@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminActivityLog;
 use App\Models\Template;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -60,7 +61,10 @@ class TemplateDesignController extends Controller
         if (isset($validated['data']['colors'])) {
             $data['colors'] = $validated['data']['colors'];
         }
+        $oldData = $page->data ?? [];
         $page->update(['data' => $data]);
+
+        AdminActivityLog::log($request->user()->id, 'template_design_updated', Template::class, $template->id, ['page_slug' => $validated['page_slug'], 'data' => $oldData], ['page_slug' => $validated['page_slug'], 'data' => $data]);
 
         return $request->expectsJson()
             ? response()->json(['ok' => true])

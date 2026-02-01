@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreDiscountCodeRequest;
 use App\Http\Requests\Admin\UpdateDiscountCodeRequest;
+use App\Models\AdminActivityLog;
 use App\Models\DiscountCode;
 use App\Services\SyncDiscountCodeToStripeService;
 use Illuminate\Http\RedirectResponse;
@@ -43,6 +44,8 @@ class DiscountCodeController extends Controller
 
         app(SyncDiscountCodeToStripeService::class)->sync($discountCode);
 
+        AdminActivityLog::log($request->user()->id, 'discount_code_created', DiscountCode::class, $discountCode->id, null, ['code' => $discountCode->code]);
+
         return redirect()->route('admin.discount-codes.index')->with('success', 'Rabattcode angelegt.');
     }
 
@@ -61,18 +64,24 @@ class DiscountCodeController extends Controller
         $validated['valid_from'] = $request->filled('valid_from') ? $request->valid_from : null;
         $validated['valid_until'] = $request->filled('valid_until') ? $request->valid_until : null;
 
+        $old = $discountCode->only(array_keys($validated));
         $discountCode->update($validated);
 
         app(SyncDiscountCodeToStripeService::class)->sync($discountCode);
+
+        AdminActivityLog::log($request->user()->id, 'discount_code_updated', DiscountCode::class, $discountCode->id, $old, $validated);
 
         return redirect()->route('admin.discount-codes.index')->with('success', 'Rabattcode aktualisiert.');
     }
 
     public function destroy(DiscountCode $discountCode): RedirectResponse
     {
+        $old = $discountCode->only(['code', 'is_active']);
         app(SyncDiscountCodeToStripeService::class)->onDiscountCodeDeleted($discountCode);
 
         $discountCode->delete();
+
+        AdminActivityLog::log(request()->user()->id, 'discount_code_deleted', DiscountCode::class, $discountCode->id, $old, null);
 
         return redirect()->route('admin.discount-codes.index')->with('success', 'Rabattcode gelöscht.');
     }

@@ -84,6 +84,30 @@ function detailUrl(entry: ActivityLogEntry): string {
     if (entry.model_type.includes('User')) {
         return `/admin/customers/${entry.model_id}`;
     }
+    if (entry.model_type.includes('Ticket') && !entry.model_type.includes('Todo') && !entry.model_type.includes('Category') && !entry.model_type.includes('Priority')) {
+        return `/admin/tickets/${entry.model_id}`;
+    }
+    if (entry.model_type.includes('Invoice')) {
+        return `/admin/invoices/${entry.model_id}`;
+    }
+    if (entry.model_type.includes('Quote')) {
+        return `/admin/quotes/${entry.model_id}`;
+    }
+    if (entry.model_type.includes('OrderConfirmation')) {
+        return `/admin/order-confirmations/${entry.model_id}`;
+    }
+    if (entry.model_type.includes('DiscountCode')) {
+        return `/admin/discount-codes/${entry.model_id}/edit`;
+    }
+    if (entry.model_type.includes('Voucher')) {
+        return `/admin/vouchers/${entry.model_id}/edit`;
+    }
+    if (entry.model_type.includes('Template') && !entry.model_type.includes('Page')) {
+        return `/admin/templates/${entry.model_id}`;
+    }
+    if (entry.model_type === 'system') {
+        return '/admin/settings';
+    }
     return '#';
 }
 
@@ -104,7 +128,7 @@ function modelTypeLabel(modelType: string): string {
             <div>
                 <Heading level="h1">Aktivitätslog</Heading>
                 <Text class="mt-2" muted>
-                    Letzte Änderungen: Site gesperrt, Laufzeit geändert, Abo gekündigt, Kunden-Stammdaten geändert
+                    Alle Admin-Aktionen: Tickets, Rechnungen, Kunden, Einstellungen und mehr
                 </Text>
             </div>
 

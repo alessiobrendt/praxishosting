@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTemplatePageRequest;
 use App\Http\Requests\Admin\UpdateTemplatePageRequest;
+use App\Models\AdminActivityLog;
 use App\Models\Template;
 use App\Models\TemplatePage;
 use Illuminate\Http\RedirectResponse;
@@ -37,7 +38,9 @@ class TemplatePageController extends Controller
 
     public function store(StoreTemplatePageRequest $request, Template $template): RedirectResponse
     {
-        $template->pages()->create($request->validated());
+        $page = $template->pages()->create($request->validated());
+
+        AdminActivityLog::log($request->user()->id, 'template_page_created', TemplatePage::class, $page->id, null, ['name' => $page->name]);
 
         return to_route('admin.templates.pages.index', $template);
     }
@@ -68,13 +71,11 @@ class TemplatePageController extends Controller
         TemplatePage $page
     ): RedirectResponse {
         $validated = $request->validated();
-        
-        \Log::info('Updating TemplatePage', [
-            'page_id' => $page->id,
-            'validated_data' => $validated,
-        ]);
-        
+
+        $old = $page->only(array_keys($validated));
         $page->update($validated);
+
+        AdminActivityLog::log($request->user()->id, 'template_page_updated', TemplatePage::class, $page->id, $old, $validated);
 
         return to_route('admin.templates.pages.show', [$template, $page]);
     }
@@ -83,7 +84,10 @@ class TemplatePageController extends Controller
     {
         $this->authorize('update', $template);
 
+        $old = $page->only(['name', 'slug', 'order']);
         $page->delete();
+
+        AdminActivityLog::log(request()->user()->id, 'template_page_deleted', TemplatePage::class, $page->id, $old, null);
 
         return to_route('admin.templates.pages.index', $template);
     }

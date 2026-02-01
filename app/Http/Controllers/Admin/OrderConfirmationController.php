@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreOrderConfirmationRequest;
+use App\Models\AdminActivityLog;
 use App\Models\OrderConfirmation;
 use App\Models\OrderConfirmationLineItem;
 use App\Models\Quote;
@@ -107,6 +108,8 @@ class OrderConfirmationController extends Controller
         if ($pdfPath) {
             $orderConfirmation->update(['pdf_path' => $pdfPath]);
         }
+
+        AdminActivityLog::log($request->user()->id, 'order_confirmation_created', OrderConfirmation::class, $orderConfirmation->id, null, ['number' => $orderConfirmation->number, 'amount' => $orderConfirmation->amount]);
 
         return redirect()->route('admin.order-confirmations.index')->with('success', 'Auftragsbestätigung erstellt.');
     }
