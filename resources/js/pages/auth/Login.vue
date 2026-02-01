@@ -6,13 +6,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Link as TypographyLink } from '@/components/ui/typography';
+import { Link as TypographyLink, Text } from '@/components/ui/typography';
 import AuthBase from '@/layouts/AuthLayout.vue';
-import { register } from '@/routes';
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
+import AuthenticatedSessionController from '@/actions/Laravel/Fortify/Http/Controllers/AuthenticatedSessionController';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2 } from 'lucide-vue-next';
 
 defineProps<{
     status?: string;
@@ -29,12 +26,12 @@ defineProps<{
         <Head title="Anmelden" />
 
         <Alert v-if="status" variant="success" class="mb-6">
-            <CheckCircle2 class="h-4 w-4" />
             <AlertDescription>{{ status }}</AlertDescription>
         </Alert>
 
         <Form
-            v-bind="store.form()"
+            :action="AuthenticatedSessionController.store.url()"
+            method="post"
             :reset-on-success="['password']"
             v-slot="{ errors, processing }"
             class="space-y-6"
@@ -61,7 +58,7 @@ defineProps<{
                         <Label for="password">Passwort</Label>
                         <TypographyLink
                             v-if="canResetPassword"
-                            :href="request()"
+                            href="/forgot-password"
                             variant="small"
                             :tabindex="5"
                         >
@@ -106,7 +103,7 @@ defineProps<{
             >
                 <Text variant="small" muted>
                     Noch kein Konto?
-                    <TypographyLink :href="register()" :tabindex="5">Registrieren</TypographyLink>
+                    <TypographyLink href="/register" :tabindex="5">Registrieren</TypographyLink>
                 </Text>
             </div>
         </Form>

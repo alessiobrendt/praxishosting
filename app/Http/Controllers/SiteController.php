@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Site;
 use App\Models\Template;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,14 +16,14 @@ class SiteController extends Controller
 {
     public function index(Request $request): Response
     {
-        $sites = $request->user()
-            ->sites()
-            ->with('template')
+        $user = $request->user();
+
+        $sites = $user->sites()
+            ->with('template', 'siteSubscription')
             ->latest()
             ->get();
 
-        $collaboratingSites = $request->user()
-            ->collaboratingSites()
+        $collaboratingSites = $user->collaboratingSites()
             ->with('template', 'user')
             ->latest()
             ->get();
@@ -45,6 +45,9 @@ class SiteController extends Controller
         ]);
     }
 
+    /**
+     * Validate and redirect to Stripe Checkout (site is created after payment in CheckoutController::success).
+     */
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -52,36 +55,27 @@ class SiteController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $template = Template::findOrFail($validated['template_id']);
-        $slug = Str::slug($validated['name']).'-'.Str::random(6);
-        $baseDomain = config('domains.base_domain', 'praxishosting.abrendt.de');
-        $subdomain = $slug.'.'.$baseDomain;
+        if (! $request->user()->hasCompleteBillingProfile()) {
+            return redirect()
+                ->route('profile.edit')
+                ->with('error', 'Bitte vervollständigen Sie Ihre Rechnungsadresse unter Einstellungen, um fortzufahren.');
+        }
 
-        $site = $request->user()->sites()->create([
-            'template_id' => $template->id,
+        $request->session()->put('checkout_meine_seiten', [
+            'template_id' => $validated['template_id'],
             'name' => $validated['name'],
-            'slug' => $slug,
-            'domain_type' => 'subdomain',
-            'status' => 'active',
         ]);
 
-        // Automatisch Subdomain als Domain-Eintrag erstellen
-        $site->domains()->create([
-            'domain' => $subdomain,
-            'type' => 'subdomain',
-            'is_primary' => true, // Subdomain ist standardmäßig primär, bis eine Custom-Domain hinzugefügt wird
-            'is_verified' => true, // Subdomains sind automatisch verifiziert
-        ]);
-
-        return to_route('sites.show', $site);
+        return redirect()->route('checkout.redirect');
     }
 
-    public function show(Site $site): Response
+    public function show(Request $request, Site $site): Response
     {
         $this->authorize('view', $site);
 
         $site->load([
             'template',
+            'siteSubscription',
             'collaborators',
             'user',
             'invitations' => function ($query) {
@@ -95,9 +89,25 @@ class SiteController extends Controller
             'draftVersion',
         ]);
 
+        $siteArray = $site->toArray();
+        if (! empty($siteArray['site_subscription']['current_period_ends_at'] ?? null)) {
+            $siteArray['site_subscription']['current_period_ends_at'] = Carbon::parse($siteArray['site_subscription']['current_period_ends_at'])->format('d.m.Y');
+        }
+
+        $user = $request->user();
+        $paymentMethodSummary = null;
+        if ($user->hasDefaultPaymentMethod()) {
+            $paymentMethodSummary = [
+                'brand' => $user->pm_type,
+                'last4' => $user->pm_last_four,
+            ];
+        }
+
         return Inertia::render('sites/Show', [
-            'site' => $site,
-            'baseDomain' => config('domains.base_domain', 'praxishosting.abrendt.de'),
+            'site' => $siteArray,
+            'baseDomain' => \App\Models\Setting::getBaseDomain(),
+            'billingPortalUrl' => route('billing.portal'),
+            'paymentMethodSummary' => $paymentMethodSummary,
         ]);
     }
 
@@ -129,7 +139,7 @@ class SiteController extends Controller
         return Inertia::render('PageDesigner/PageDesigner', [
             'mode' => 'site',
             'site' => $site,
-            'baseDomain' => config('domains.base_domain', 'praxishosting.abrendt.de'),
+            'baseDomain' => \App\Models\Setting::getBaseDomain(),
         ]);
     }
 

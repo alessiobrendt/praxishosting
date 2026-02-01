@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTemplateRequest;
 use App\Http\Requests\Admin\UpdateTemplateRequest;
 use App\Models\Template;
+use App\Services\SyncTemplateStripePriceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -34,9 +35,10 @@ class TemplateController extends Controller
         return Inertia::render('admin/templates/Create');
     }
 
-    public function store(StoreTemplateRequest $request): RedirectResponse
+    public function store(StoreTemplateRequest $request, SyncTemplateStripePriceService $syncStripePrice): RedirectResponse
     {
-        Template::query()->create(array_merge($request->validated(), ['is_active' => false]));
+        $template = Template::query()->create(array_merge($request->validated(), ['is_active' => false]));
+        $syncStripePrice->sync($template);
 
         return to_route('admin.templates.index');
     }
@@ -72,9 +74,10 @@ class TemplateController extends Controller
         ]);
     }
 
-    public function update(UpdateTemplateRequest $request, Template $template): RedirectResponse
+    public function update(UpdateTemplateRequest $request, Template $template, SyncTemplateStripePriceService $syncStripePrice): RedirectResponse
     {
         $template->update($request->validated());
+        $syncStripePrice->sync($template);
 
         return to_route('admin.templates.show', $template);
     }

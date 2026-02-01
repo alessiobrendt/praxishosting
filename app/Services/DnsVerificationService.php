@@ -14,7 +14,7 @@ class DnsVerificationService
 
     public function __construct()
     {
-        $this->baseDomain = config('domains.base_domain', 'praxishosting.abrendt.de');
+        $this->baseDomain = \App\Models\Setting::getBaseDomain();
     }
 
     /**

@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Link as TypographyLink, Text } from '@/components/ui/typography';
 import AuthBase from '@/layouts/AuthLayout.vue';
-import { login } from '@/routes';
 import { store } from '@/routes/register';
 </script>
 
@@ -102,7 +101,7 @@ import { store } from '@/routes/register';
                 <Text variant="small" muted>
                     Bereits ein Konto?
                     <TypographyLink
-                        :href="login()"
+                        href="/login"
                         :tabindex="6"
                     >
                         Anmelden

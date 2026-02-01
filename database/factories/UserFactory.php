@@ -78,4 +78,18 @@ class UserFactory extends Factory
             'pin_lockout_until' => now()->addMinutes(config('security.pin.lockout_minutes', 15)),
         ]);
     }
+
+    /**
+     * Indicate that the model has a complete billing profile (for checkout).
+     */
+    public function withBillingProfile(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'street' => fake()->streetAddress(),
+            'postal_code' => fake()->postcode(),
+            'city' => fake()->city(),
+            'country' => 'DE',
+            'company' => fake()->optional(0.3)->company(),
+        ]);
+    }
 }

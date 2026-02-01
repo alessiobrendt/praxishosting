@@ -31,14 +31,14 @@ withDefaults(
                     PraxisHosting
                 </div>
                 <nav class="flex items-center gap-4">
-                    <Link v-if="$page.props.auth.user" :href="dashboard()">
+                    <Link v-if="$page.props.auth.user" :href="dashboard.url()">
                         <Button variant="ghost" size="sm">Dashboard</Button>
                     </Link>
                     <template v-else>
-                        <Link :href="login()">
+                        <Link :href="login.url()">
                             <Button variant="ghost" size="sm">Anmelden</Button>
                         </Link>
-                        <Link v-if="canRegister" :href="register()">
+                        <Link v-if="canRegister" :href="register.url()">
                             <Button size="sm">Registrieren</Button>
                         </Link>
                     </template>
@@ -67,13 +67,13 @@ withDefaults(
                 </Text>
 
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <Link v-if="canRegister" :href="register()">
+                    <Link v-if="canRegister" :href="register.url()">
                         <Button size="lg" class="w-full sm:w-auto">
                             Jetzt starten
                             <ArrowRight class="ml-2 h-4 w-4" />
                         </Button>
                     </Link>
-                    <Link :href="login()">
+                    <Link :href="login.url()">
                         <Button variant="outline" size="lg" class="w-full sm:w-auto">
                             Anmelden
                         </Button>

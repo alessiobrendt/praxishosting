@@ -16,8 +16,7 @@ class SiteDomainController extends Controller
     public function __construct(
         protected DnsVerificationService $dnsVerificationService,
         protected SslCheckService $sslCheckService
-    ) {
-    }
+    ) {}
 
     public function index(Site $site): Response
     {
@@ -27,7 +26,7 @@ class SiteDomainController extends Controller
 
         return Inertia::render('sites/domains/Index', [
             'site' => $site,
-            'baseDomain' => config('domains.base_domain', 'praxishosting.abrendt.de'),
+            'baseDomain' => \App\Models\Setting::getBaseDomain(),
         ]);
     }
 
@@ -53,7 +52,7 @@ class SiteDomainController extends Controller
 
         // Wenn eine Custom-Domain hinzugefügt wird, sollte sie primär werden
         // und die Subdomain sollte nicht mehr primär sein
-        $isPrimary = !$site->domains()->where('is_primary', true)->where('type', '!=', 'subdomain')->exists();
+        $isPrimary = ! $site->domains()->where('is_primary', true)->where('type', '!=', 'subdomain')->exists();
 
         // Setze alle anderen Domains (außer Subdomain) auf nicht-primär
         if ($isPrimary) {

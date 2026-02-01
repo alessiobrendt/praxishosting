@@ -3,18 +3,7 @@ import { ref, computed, provide } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Sidebar from './Sidebar.vue';
 import Header from './Header.vue';
-
-interface NavItem {
-    title: string;
-    href: string;
-    icon: any;
-    active?: boolean;
-}
-
-interface BreadcrumbItem {
-    label: string;
-    href?: string;
-}
+import type { BreadcrumbItem, NavItem } from '@/types';
 
 interface Props {
     sidebarItems: NavItem[];

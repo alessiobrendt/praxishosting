@@ -96,7 +96,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         </div>
                         <CardFooter class="px-0 pb-0">
                             <div class="flex gap-2">
-                                <Button type="submit">Site erstellen</Button>
+                                <Button type="submit">Zur Kasse</Button>
                                 <Link :href="sitesIndex().url">
                                     <Button type="button" variant="outline">Abbrechen</Button>
                                 </Link>

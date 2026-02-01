@@ -34,6 +34,8 @@ const value = computed({
     set: (val) => emit('update:modelValue', val),
 });
 
+const ariaInvalid = computed(() => props['aria-invalid']);
+
 const inputClasses = computed(() =>
     cn(
         'flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm',
@@ -61,7 +63,7 @@ const inputClasses = computed(() =>
         :autocomplete="autocomplete"
         :autofocus="autofocus"
         :tabindex="tabindex"
-        :aria-invalid="aria-invalid"
+        :aria-invalid="ariaInvalid"
         :class="inputClasses"
     />
 </template>

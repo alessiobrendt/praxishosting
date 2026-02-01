@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Site extends Model
 {
@@ -25,6 +26,7 @@ class Site extends Model
         'custom_colors',
         'custom_page_data',
         'status',
+        'is_legacy',
         'has_page_designer',
         'published_version_id',
         'draft_version_id',
@@ -38,6 +40,7 @@ class Site extends Model
         return [
             'custom_colors' => 'array',
             'custom_page_data' => 'array',
+            'is_legacy' => 'boolean',
             'has_page_designer' => 'boolean',
         ];
     }
@@ -50,6 +53,16 @@ class Site extends Model
     public function template(): BelongsTo
     {
         return $this->belongsTo(Template::class);
+    }
+
+    /**
+     * Subscription for this site (1 Site = 1 Subscription for "Meine Seiten").
+     *
+     * @return HasOne<SiteSubscription>
+     */
+    public function siteSubscription(): HasOne
+    {
+        return $this->hasOne(SiteSubscription::class);
     }
 
     public function domains(): HasMany

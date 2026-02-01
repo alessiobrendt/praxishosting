@@ -17,8 +17,8 @@ test('authenticated users can view sites index', function () {
     $response->assertOk();
 });
 
-test('authenticated users can create site', function () {
-    $user = User::factory()->create();
+test('authenticated users posting to sites store are redirected to checkout when profile complete', function () {
+    $user = User::factory()->withBillingProfile()->create();
     $template = Template::factory()->create();
     $this->actingAs($user);
 
@@ -26,11 +26,23 @@ test('authenticated users can create site', function () {
         'template_id' => $template->id,
         'name' => 'My Site',
     ]);
-    $response->assertRedirect();
-    $this->assertDatabaseHas('sites', [
+    $response->assertRedirect(route('checkout.redirect'));
+    $this->assertDatabaseMissing('sites', [
         'user_id' => $user->id,
         'name' => 'My Site',
     ]);
+});
+
+test('authenticated users without billing profile are redirected to profile when creating site', function () {
+    $user = User::factory()->create(); // no billing profile
+    $template = Template::factory()->create();
+    $this->actingAs($user);
+
+    $response = $this->post(route('sites.store'), [
+        'template_id' => $template->id,
+        'name' => 'My Site',
+    ]);
+    $response->assertRedirect(route('profile.edit'));
 });
 
 test('user can view own site', function () {

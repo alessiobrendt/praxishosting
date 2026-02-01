@@ -27,6 +27,8 @@ const value = computed({
     set: (val) => emit('update:modelValue', val),
 });
 
+const ariaInvalid = computed(() => props['aria-invalid']);
+
 const selectClasses = computed(() =>
     cn(
         'flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm',
@@ -50,7 +52,7 @@ const selectClasses = computed(() =>
         v-model="value"
         :disabled="disabled"
         :required="required"
-        :aria-invalid="aria-invalid"
+        :aria-invalid="ariaInvalid"
         :class="selectClasses"
     >
         <slot />

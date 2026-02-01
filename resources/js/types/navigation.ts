@@ -8,7 +8,9 @@ export type BreadcrumbItem = {
 
 export type NavItem = {
     title: string;
-    href: NonNullable<InertiaLinkProps['href']>;
+    href?: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon;
     isActive?: boolean;
+    /** Nested items; when set, this is a group (label only, no direct href). */
+    children?: NavItem[];
 };

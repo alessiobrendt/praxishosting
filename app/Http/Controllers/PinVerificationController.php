@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\VerifyPinRequest;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
@@ -28,8 +29,8 @@ class PinVerificationController extends Controller
         }
 
         if (! Hash::check($request->pin, $user->pin_hash)) {
-            $maxAttempts = config('security.pin.max_attempts', 5);
-            $lockoutMinutes = config('security.pin.lockout_minutes', 15);
+            $maxAttempts = (int) (Setting::get('pin_max_attempts') ?: config('security.pin.max_attempts', 5));
+            $lockoutMinutes = (int) (Setting::get('pin_lockout_minutes') ?: config('security.pin.lockout_minutes', 15));
 
             $user->increment('pin_failed_attempts');
 

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Template extends Model
 {
     use HasFactory;
+
     /**
      * @var list<string>
      */
@@ -19,6 +20,7 @@ class Template extends Model
         'preview_image',
         'is_active',
         'price',
+        'stripe_price_id',
     ];
 
     /**

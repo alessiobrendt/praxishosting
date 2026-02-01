@@ -1,21 +1,24 @@
 <script setup lang="ts">
-import { Form, Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/DeleteUser.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { countriesSortedByName } from '@/lib/countries';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Heading, Text, Link as TypographyLink } from '@/components/ui/typography';
+import { Heading, Text } from '@/components/ui/typography';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2, Mail } from 'lucide-vue-next';
+import { Mail } from 'lucide-vue-next';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from 'vue';
+import { computed } from 'vue';
 
 type Props = {
     mustVerifyEmail: boolean;
@@ -32,7 +35,21 @@ const breadcrumbItems: BreadcrumbItem[] = [
 ];
 
 const page = usePage();
-const user = page.props.auth.user;
+const user = computed(() => page.props.auth?.user as Record<string, unknown> | undefined);
+
+const form = useForm({
+    name: (user.value?.name as string) ?? '',
+    email: (user.value?.email as string) ?? '',
+    company: (user.value?.company as string) ?? '',
+    street: (user.value?.street as string) ?? '',
+    postal_code: (user.value?.postal_code as string) ?? '',
+    city: (user.value?.city as string) ?? '',
+    country: (user.value?.country as string) ?? '',
+});
+
+function submit() {
+    form.patch(ProfileController.update.url());
+}
 </script>
 
 <template>
@@ -44,7 +61,7 @@ const user = page.props.auth.user;
                 <div>
                     <Heading level="h1">Profilinformationen</Heading>
                     <Text class="mt-2" muted>
-                        Aktualisieren Sie Ihren Namen und Ihre E-Mail-Adresse
+                        Aktualisieren Sie Ihren Namen, Ihre E-Mail-Adresse und Ihre Rechnungsadresse
                     </Text>
                 </div>
 
@@ -54,49 +71,129 @@ const user = page.props.auth.user;
                         <CardDescription>Ihre Kontoinformationen</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Form
-                            v-bind="ProfileController.update.form()"
+                        <form
                             class="space-y-6"
-                            v-slot="{ errors, processing, recentlySuccessful }"
+                            @submit.prevent="submit"
                         >
                             <div class="space-y-2">
                                 <Label for="name">Name</Label>
                                 <Input
                                     id="name"
+                                    v-model="form.name"
                                     name="name"
-                                    :default-value="user.name"
                                     required
                                     autocomplete="name"
                                     placeholder="Vollständiger Name"
-                                    :aria-invalid="!!errors.name"
+                                    :aria-invalid="!!form.errors.name"
                                 />
-                                <InputError :message="errors.name" />
+                                <InputError :message="form.errors.name" />
                             </div>
 
                             <div class="space-y-2">
                                 <Label for="email">E-Mail-Adresse</Label>
                                 <Input
                                     id="email"
+                                    v-model="form.email"
                                     type="email"
                                     name="email"
-                                    :default-value="user.email"
                                     required
                                     autocomplete="username"
                                     placeholder="E-Mail-Adresse"
-                                    :aria-invalid="!!errors.email"
+                                    :aria-invalid="!!form.errors.email"
                                 />
-                                <InputError :message="errors.email" />
+                                <InputError :message="form.errors.email" />
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label for="company">Unternehmen (optional)</Label>
+                                <Input
+                                    id="company"
+                                    v-model="form.company"
+                                    name="company"
+                                    autocomplete="organization"
+                                    placeholder="Firma / Unternehmen"
+                                    :aria-invalid="!!form.errors.company"
+                                />
+                                <InputError :message="form.errors.company" />
                             </div>
 
                             <Alert
-                                v-if="mustVerifyEmail && !user.email_verified_at"
+                                variant="info"
+                                class="text-sm"
+                            >
+                                <AlertDescription>
+                                    Für Rechnungen und den Abschluss von Bestellungen benötigen wir Ihre vollständige Rechnungsadresse (Straße, PLZ, Ort, Land).
+                                </AlertDescription>
+                            </Alert>
+
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <div class="space-y-2 sm:col-span-2">
+                                    <Label for="street">Straße und Hausnummer</Label>
+                                    <Input
+                                        id="street"
+                                        v-model="form.street"
+                                        name="street"
+                                        autocomplete="street-address"
+                                        placeholder="Musterstraße 1"
+                                        :aria-invalid="!!form.errors.street"
+                                    />
+                                    <InputError :message="form.errors.street" />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="postal_code">PLZ</Label>
+                                    <Input
+                                        id="postal_code"
+                                        v-model="form.postal_code"
+                                        name="postal_code"
+                                        autocomplete="postal-code"
+                                        placeholder="12345"
+                                        :aria-invalid="!!form.errors.postal_code"
+                                    />
+                                    <InputError :message="form.errors.postal_code" />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="city">Ort</Label>
+                                    <Input
+                                        id="city"
+                                        v-model="form.city"
+                                        name="city"
+                                        autocomplete="address-level2"
+                                        placeholder="Stadt"
+                                        :aria-invalid="!!form.errors.city"
+                                    />
+                                    <InputError :message="form.errors.city" />
+                                </div>
+                                <div class="space-y-2 sm:col-span-2">
+                                    <Label for="country">Land</Label>
+                                    <Select
+                                        id="country"
+                                        v-model="form.country"
+                                        name="country"
+                                        autocomplete="country-code"
+                                        :aria-invalid="!!form.errors.country"
+                                    >
+                                        <option value="">Bitte wählen</option>
+                                        <option
+                                            v-for="c in countriesSortedByName"
+                                            :key="c.code"
+                                            :value="c.code"
+                                        >
+                                            {{ c.name }}
+                                        </option>
+                                    </Select>
+                                    <InputError :message="form.errors.country" />
+                                </div>
+                            </div>
+
+                            <Alert
+                                v-if="mustVerifyEmail && !user?.email_verified_at"
                                 variant="warning"
                             >
                                 <Mail class="h-4 w-4" />
                                 <AlertDescription>
                                     Ihre E-Mail-Adresse ist nicht verifiziert.
                                     <Link
-                                        :href="send()"
+                                        :href="send.url()"
                                         as="button"
                                         class="ml-1 font-medium underline"
                                     >
@@ -109,7 +206,6 @@ const user = page.props.auth.user;
                                 v-if="status === 'verification-link-sent'"
                                 variant="success"
                             >
-                                <CheckCircle2 class="h-4 w-4" />
                                 <AlertDescription>
                                     Ein neuer Verifizierungslink wurde an Ihre E-Mail-Adresse gesendet.
                                 </AlertDescription>
@@ -118,7 +214,8 @@ const user = page.props.auth.user;
                             <CardFooter class="px-0 pb-0">
                                 <div class="flex items-center gap-4">
                                     <Button
-                                        :disabled="processing"
+                                        type="submit"
+                                        :disabled="form.processing"
                                         data-test="update-profile-button"
                                     >
                                         Speichern
@@ -131,7 +228,7 @@ const user = page.props.auth.user;
                                         leave-to-class="opacity-0"
                                     >
                                         <Text
-                                            v-show="recentlySuccessful"
+                                            v-show="form.recentlySuccessful"
                                             variant="small"
                                             class="text-emerald-700 dark:text-emerald-400"
                                         >
@@ -140,7 +237,7 @@ const user = page.props.auth.user;
                                     </Transition>
                                 </div>
                             </CardFooter>
-                        </Form>
+                        </form>
                     </CardContent>
                 </Card>
 

@@ -32,7 +32,7 @@ class TemplateDesignController extends Controller
                     'data' => $p->data ?? [],
                 ])->values()->all(),
             ],
-            'baseDomain' => config('domains.base_domain', 'praxishosting.abrendt.de'),
+            'baseDomain' => \App\Models\Setting::getBaseDomain(),
         ]);
     }
 

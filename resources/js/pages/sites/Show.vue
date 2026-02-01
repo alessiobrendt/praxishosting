@@ -70,12 +70,21 @@ type SiteVersion = {
     creator?: User;
 };
 
+type SiteSubscription = {
+    id: number;
+    stripe_status: string;
+    current_period_ends_at: string | null;
+    cancel_at_period_end: boolean;
+};
+
 type Site = {
     id: number;
     name: string;
     slug: string;
     has_page_designer?: boolean;
+    is_legacy?: boolean;
     template: { name: string; slug: string };
+    site_subscription?: SiteSubscription | null;
     collaborators: User[];
     invitations: SiteInvitation[];
     domains: Domain[];
@@ -85,9 +94,16 @@ type Site = {
     user: User;
 };
 
+type PaymentMethodSummary = {
+    brand: string;
+    last4: string;
+};
+
 type Props = {
     site: Site;
     baseDomain: string;
+    billingPortalUrl: string;
+    paymentMethodSummary: PaymentMethodSummary | null;
 };
 
 const props = defineProps<Props>();
@@ -100,6 +116,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const inviteDialogOpen = ref(false);
 const addDomainDialogOpen = ref(false);
+const cancelSubscriptionDialogOpen = ref(false);
+const cancelSubscriptionProcessing = ref(false);
 
 const inviteForm = useForm({
     email: '',
@@ -119,6 +137,23 @@ const inviteCollaborator = () => {
         },
     });
 };
+
+function confirmCancelSubscription() {
+    cancelSubscriptionProcessing.value = true;
+    router.post(`/sites/${props.site.id}/subscription/cancel`, {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cancelSubscriptionDialogOpen.value = false;
+            cancelSubscriptionProcessing.value = false;
+        },
+        onError: () => {
+            cancelSubscriptionProcessing.value = false;
+        },
+        onFinish: () => {
+            cancelSubscriptionProcessing.value = false;
+        },
+    });
+}
 
 const removeCollaborator = (user: User) => {
     if (confirm(`Möchten Sie ${user.name} wirklich als Mitbearbeiter entfernen?`)) {
@@ -245,26 +280,24 @@ const canShowPageDesigner = computed(() => {
                 <Card>
                     <CardHeader>
                         <CardTitle>Site-Informationen</CardTitle>
-                        <CardDescription>Details zu dieser Site</CardDescription>
+                        <CardDescription>Slug, Besitzer, Domain</CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-4">
                         <div>
-                            <Text variant="small" muted>Slug:</Text>
-                            <code class="ml-2 rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">
-                                {{ site.slug }}
-                            </code>
+                            <Text variant="small" muted>Slug</Text>
+                            <code class="ml-2 block rounded bg-muted px-2 py-1 text-sm">{{ site.slug }}</code>
                         </div>
                         <div>
-                            <Text variant="small" muted>Besitzer:</Text>
-                            <div class="mt-2 flex items-center gap-2">
+                            <Text variant="small" muted>Besitzer</Text>
+                            <div class="mt-1 flex items-center gap-2">
                                 <Avatar :name="site.user?.name" size="sm" />
                                 <Text>{{ site.user?.name }}</Text>
                             </div>
                         </div>
                         <div v-if="primaryDomain">
-                            <Text variant="small" muted>Domain:</Text>
-                            <div class="mt-2 flex items-center gap-2">
-                                <Globe class="h-4 w-4 text-gray-500 shrink-0" />
+                            <Text variant="small" muted>Domain</Text>
+                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                                <Globe class="h-4 w-4 shrink-0 text-muted-foreground" />
                                 <a
                                     v-if="sitePublicUrl"
                                     :href="sitePublicUrl"
@@ -281,14 +314,14 @@ const canShowPageDesigner = computed(() => {
                             </div>
                         </div>
                         <div v-if="primaryDomain?.ssl_status">
-                            <Text variant="small" muted>SSL-Status:</Text>
-                            <div class="mt-2 flex items-center gap-2">
-                                <Shield class="h-4 w-4 text-gray-500" />
+                            <Text variant="small" muted>SSL</Text>
+                            <div class="mt-1 flex items-center gap-2">
+                                <Shield class="h-4 w-4 shrink-0 text-muted-foreground" />
                                 <Badge :variant="getSslStatusBadge(primaryDomain.ssl_status).variant">
                                     {{ getSslStatusBadge(primaryDomain.ssl_status).label }}
                                 </Badge>
                                 <Text v-if="primaryDomain.ssl_expires_at" variant="small" muted>
-                                    (läuft ab: {{ new Date(primaryDomain.ssl_expires_at).toLocaleDateString('de-DE') }})
+                                    bis {{ new Date(primaryDomain.ssl_expires_at).toLocaleDateString('de-DE') }}
                                 </Text>
                             </div>
                         </div>
@@ -297,124 +330,205 @@ const canShowPageDesigner = computed(() => {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Mitbearbeiter</CardTitle>
-                        <CardDescription>Nutzer, die diese Site bearbeiten dürfen</CardDescription>
+                        <CardTitle>Abo & Zahlungsart</CardTitle>
+                        <CardDescription>Status und Zahlungsmethode; Rechnungen unter Abrechnung</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div v-if="!site.collaborators?.length && !site.invitations?.length" class="text-center py-8">
-                            <Text variant="small" muted>
-                                Noch keine Mitbearbeiter eingeladen.
+                    <CardContent class="space-y-4">
+                        <div v-if="site.site_subscription">
+                            <Text variant="small" muted>Abo-Status</Text>
+                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                                <Badge
+                                    v-if="site.site_subscription.stripe_status === 'active' && !site.site_subscription.cancel_at_period_end"
+                                    variant="success"
+                                >
+                                    Aktiv
+                                </Badge>
+                                <Badge
+                                    v-else-if="site.site_subscription.cancel_at_period_end"
+                                    variant="warning"
+                                >
+                                    Läuft aus
+                                </Badge>
+                                <Badge v-else variant="secondary">
+                                    {{ site.site_subscription.stripe_status }}
+                                </Badge>
+                                <Text v-if="site.site_subscription.current_period_ends_at" class="text-sm text-muted-foreground">
+                                    bis {{ site.site_subscription.current_period_ends_at }}
+                                </Text>
+                            </div>
+                            <div
+                                v-if="
+                                    site.site_subscription.stripe_status === 'active' &&
+                                    !site.site_subscription.cancel_at_period_end
+                                "
+                                class="mt-2"
+                            >
+                                <Dialog v-model:open="cancelSubscriptionDialogOpen">
+                                    <DialogTrigger as-child>
+                                        <Button variant="outline" size="sm" class="text-amber-600 hover:text-amber-700">
+                                            Abo kündigen
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Abo kündigen</DialogTitle>
+                                            <DialogDescription>
+                                                Möchten Sie das Abo für diese Site wirklich zum Periodenende kündigen?
+                                                Die Site bleibt bis zum Ende der aktuellen Laufzeit nutzbar.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <DialogFooter>
+                                            <Button
+                                                variant="outline"
+                                                :disabled="cancelSubscriptionProcessing"
+                                                @click="cancelSubscriptionDialogOpen = false"
+                                            >
+                                                Abbrechen
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                :disabled="cancelSubscriptionProcessing"
+                                                @click="confirmCancelSubscription"
+                                            >
+                                                {{ cancelSubscriptionProcessing ? 'Wird gekündigt…' : 'Abo kündigen' }}
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        </div>
+                        <div v-else>
+                            <Text class="text-sm text-muted-foreground">
+                                Kein Abo verknüpft{{ site.is_legacy ? ' (Legacy-Site).' : '.' }}
                             </Text>
                         </div>
-                        <div v-else class="space-y-3">
-                            <div
-                                v-for="collab in site.collaborators"
-                                :key="collab.id"
-                                class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                            >
-                                <div class="flex items-center gap-2">
-                                    <Avatar :name="collab.name" size="sm" />
-                                    <div>
-                                        <Text class="font-medium">{{ collab.name }}</Text>
-                                        <Text variant="small" muted>{{ collab.email }}</Text>
-                                    </div>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    @click="removeCollaborator(collab)"
-                                >
-                                    <X class="h-4 w-4" />
-                                </Button>
-                            </div>
-                            <div
-                                v-for="invitation in site.invitations"
-                                :key="invitation.id"
-                                class="flex items-center justify-between p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
-                            >
-                                <div class="flex items-center gap-2">
-                                    <Mail class="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                                    <div>
-                                        <Text class="font-medium">{{ invitation.email }}</Text>
-                                        <Text variant="small" muted>
-                                            Einladung ausstehend
-                                        </Text>
-                                    </div>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    @click="removeInvitation(invitation)"
-                                >
-                                    <X class="h-4 w-4" />
-                                </Button>
-                            </div>
+                        <div>
+                            <Text variant="small" muted>Zahlungsart</Text>
+                            <p v-if="paymentMethodSummary" class="mt-1 text-sm">{{ paymentMethodSummary.brand }} ****{{ paymentMethodSummary.last4 }}</p>
+                            <p v-else class="mt-1 text-sm text-muted-foreground">Keine Zahlungsmethode hinterlegt.</p>
+                            <Link :href="billingPortalUrl" class="mt-2 inline-block">
+                                <Button variant="outline" size="sm">Zahlungsart & Rechnungen <ExternalLink class="ml-1 h-3 w-3" /></Button>
+                            </Link>
                         </div>
-                        <Dialog v-model:open="inviteDialogOpen">
-                            <DialogTrigger as-child>
-                                <Button class="mt-4 w-full" variant="outline">
-                                    <UserPlus class="mr-2 h-4 w-4" />
-                                    Mitbearbeiter einladen
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Mitbearbeiter einladen</DialogTitle>
-                                    <DialogDescription>
-                                        Laden Sie einen Nutzer per E-Mail-Adresse ein, an dieser Site mitzuarbeiten.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <form @submit.prevent="inviteCollaborator" class="space-y-4">
-                                    <div class="space-y-2">
-                                        <Label for="email">E-Mail-Adresse</Label>
-                                        <Input
-                                            id="email"
-                                            v-model="inviteForm.email"
-                                            type="email"
-                                            placeholder="nutzer@example.com"
-                                            required
-                                            :aria-invalid="!!inviteForm.errors.email"
-                                        />
-                                        <InputError :message="inviteForm.errors.email" />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <Label for="role">Rolle</Label>
-                                        <Select id="role" v-model="inviteForm.role" name="role">
-                                            <option value="viewer">Viewer (nur ansehen)</option>
-                                            <option value="editor">Editor (bearbeiten)</option>
-                                            <option value="admin">Admin (vollständiger Zugriff)</option>
-                                        </Select>
-                                        <InputError :message="inviteForm.errors.role" />
-                                    </div>
-                                    <DialogFooter>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            @click="inviteDialogOpen = false"
-                                        >
-                                            Abbrechen
-                                        </Button>
-                                        <Button type="submit" :disabled="inviteForm.processing">
-                                            Einladung senden
-                                        </Button>
-                                    </DialogFooter>
-                                </form>
-                            </DialogContent>
-                        </Dialog>
                     </CardContent>
                 </Card>
             </div>
 
             <Card>
                 <CardHeader>
-                    <div class="flex items-center justify-between">
+                    <CardTitle>Mitbearbeiter</CardTitle>
+                    <CardDescription>Nutzer, die diese Site bearbeiten dürfen</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                    <div v-if="!site.collaborators?.length && !site.invitations?.length" class="py-6 text-center">
+                        <Text variant="small" muted>Noch keine Mitbearbeiter eingeladen.</Text>
+                    </div>
+                    <div v-else class="space-y-2">
+                        <div
+                            v-for="collab in site.collaborators"
+                            :key="collab.id"
+                            class="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50"
+                        >
+                            <div class="flex items-center gap-2">
+                                <Avatar :name="collab.name" size="sm" />
+                                <div>
+                                    <Text class="font-medium">{{ collab.name }}</Text>
+                                    <Text variant="small" muted>{{ collab.email }}</Text>
+                                </div>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                @click="removeCollaborator(collab)"
+                            >
+                                <X class="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div
+                            v-for="invitation in site.invitations"
+                            :key="invitation.id"
+                            class="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50/50 p-2 dark:border-amber-800 dark:bg-amber-900/10"
+                        >
+                            <div class="flex items-center gap-2">
+                                <Mail class="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                <div>
+                                    <Text class="font-medium">{{ invitation.email }}</Text>
+                                    <Text variant="small" muted>Einladung ausstehend</Text>
+                                </div>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                @click="removeInvitation(invitation)"
+                            >
+                                <X class="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                    <Dialog v-model:open="inviteDialogOpen">
+                        <DialogTrigger as-child>
+                            <Button class="mt-4 w-full" variant="outline" size="sm">
+                                <UserPlus class="mr-2 h-4 w-4" />
+                                Mitbearbeiter einladen
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Mitbearbeiter einladen</DialogTitle>
+                                <DialogDescription>
+                                    Laden Sie einen Nutzer per E-Mail-Adresse ein, an dieser Site mitzuarbeiten.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <form @submit.prevent="inviteCollaborator" class="space-y-4">
+                                <div class="space-y-2">
+                                    <Label for="email">E-Mail-Adresse</Label>
+                                    <Input
+                                        id="email"
+                                        v-model="inviteForm.email"
+                                        type="email"
+                                        placeholder="nutzer@example.com"
+                                        required
+                                        :aria-invalid="!!inviteForm.errors.email"
+                                    />
+                                    <InputError :message="inviteForm.errors.email" />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="role">Rolle</Label>
+                                    <Select id="role" v-model="inviteForm.role" name="role">
+                                        <option value="viewer">Viewer (nur ansehen)</option>
+                                        <option value="editor">Editor (bearbeiten)</option>
+                                        <option value="admin">Admin (vollständiger Zugriff)</option>
+                                    </Select>
+                                    <InputError :message="inviteForm.errors.role" />
+                                </div>
+                                <DialogFooter>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        @click="inviteDialogOpen = false"
+                                    >
+                                        Abbrechen
+                                    </Button>
+                                    <Button type="submit" :disabled="inviteForm.processing">
+                                        Einladung senden
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <div class="flex flex-wrap items-center justify-between gap-4">
                         <div>
                             <CardTitle>Domains</CardTitle>
-                            <CardDescription>Verwalten Sie Ihre Domains für diese Site</CardDescription>
+                            <CardDescription>Eigene Domains für diese Site</CardDescription>
                         </div>
                         <Dialog v-model:open="addDomainDialogOpen">
                             <DialogTrigger as-child>
-                                <Button>
+                                <Button size="sm">
                                     <Plus class="mr-2 h-4 w-4" />
                                     Domain hinzufügen
                                 </Button>
@@ -460,24 +574,20 @@ const canShowPageDesigner = computed(() => {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div v-if="!site.domains?.length" class="text-center py-8">
-                        <Globe class="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                        <Text variant="small" muted>
-                            Noch keine Domain hinzugefügt.
-                        </Text>
-                        <Text variant="small" muted class="mt-2">
-                            Fügen Sie eine Domain hinzu, um Ihre eigene Domain mit dieser Site zu verbinden.
-                        </Text>
+                    <div v-if="!site.domains?.length" class="py-8 text-center">
+                        <Globe class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                        <Text variant="small" muted>Noch keine Domain hinzugefügt.</Text>
+                        <Text variant="small" muted class="mt-2 block">Domain hinzufügen, um Ihre eigene Domain mit dieser Site zu verbinden.</Text>
                     </div>
-                    <div v-else class="space-y-4">
+                    <div v-else class="space-y-3">
                         <div
                             v-for="domain in site.domains"
                             :key="domain.id"
-                            class="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700"
+                            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3"
                         >
                             <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <Globe class="h-5 w-5 text-gray-500 shrink-0" />
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <Globe class="h-4 w-4 shrink-0 text-muted-foreground" />
                                     <a
                                         :href="domainToPublicUrl(domain.domain)"
                                         target="_blank"
@@ -499,11 +609,9 @@ const canShowPageDesigner = computed(() => {
                                         SSL: {{ getSslStatusBadge(domain.ssl_status).label }}
                                     </Badge>
                                 </div>
-                                <div v-if="domain.ssl_expires_at" class="mt-1">
-                                    <Text variant="small" muted>
-                                        SSL läuft ab: {{ new Date(domain.ssl_expires_at).toLocaleDateString('de-DE') }}
-                                    </Text>
-                                </div>
+                                <Text v-if="domain.ssl_expires_at" variant="small" muted class="mt-1 block">
+                                    SSL bis {{ new Date(domain.ssl_expires_at).toLocaleDateString('de-DE') }}
+                                </Text>
                             </div>
                             <div class="flex gap-2">
                                 <Button

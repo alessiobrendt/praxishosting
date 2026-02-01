@@ -11,11 +11,19 @@ import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 import { Plus, ExternalLink } from 'lucide-vue-next';
 
+type SiteSubscription = {
+    id: number;
+    stripe_status: string;
+    current_period_ends_at: string | null;
+    cancel_at_period_end: boolean;
+};
+
 type Site = {
     id: number;
     name: string;
     slug: string;
     template?: { name: string };
+    site_subscription?: SiteSubscription | null;
 };
 
 type Props = {
@@ -64,6 +72,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <TableHead>Name</TableHead>
                                 <TableHead>Slug</TableHead>
                                 <TableHead>Template</TableHead>
+                                <TableHead>Abo-Status</TableHead>
                                 <TableHead class="text-right">Aktionen</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -76,6 +85,29 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     </code>
                                 </TableCell>
                                 <TableCell>{{ site.template?.name ?? '-' }}</TableCell>
+                                <TableCell>
+                                    <template v-if="site.site_subscription">
+                                        <span
+                                            v-if="site.site_subscription.stripe_status === 'active' && !site.site_subscription.cancel_at_period_end"
+                                            class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                        >
+                                            Aktiv
+                                        </span>
+                                        <span
+                                            v-else-if="site.site_subscription.cancel_at_period_end"
+                                            class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                                        >
+                                            Läuft aus
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-800 dark:text-gray-400"
+                                        >
+                                            {{ site.site_subscription.stripe_status }}
+                                        </span>
+                                    </template>
+                                    <span v-else class="text-muted">–</span>
+                                </TableCell>
                                 <TableCell class="text-right">
                                     <Link :href="sitesShow({ site: site.id }).url">
                                         <Button variant="ghost" size="sm">
@@ -86,7 +118,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 </TableCell>
                             </TableRow>
                             <TableRow v-if="sites.length === 0">
-                                <TableCell colspan="4" class="text-center text-gray-500 dark:text-gray-400">
+                                <TableCell colspan="5" class="text-center text-gray-500 dark:text-gray-400">
                                     Keine Sites vorhanden
                                 </TableCell>
                             </TableRow>

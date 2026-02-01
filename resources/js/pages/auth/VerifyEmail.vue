@@ -4,7 +4,6 @@ import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2 } from 'lucide-vue-next';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { logout } from '@/routes';
 import { send } from '@/routes/verification';
@@ -26,7 +25,6 @@ defineProps<{
             variant="success"
             class="mb-6"
         >
-            <CheckCircle2 class="h-4 w-4" />
             <AlertDescription>
                 Ein neuer Verifizierungslink wurde an die E-Mail-Adresse gesendet, die Sie
                 bei der Registrierung angegeben haben.
@@ -45,7 +43,7 @@ defineProps<{
                 </Button>
 
                 <TextLink
-                    :href="logout()"
+                    :href="logout.url()"
                     as="button"
                     class="block text-sm"
                 >

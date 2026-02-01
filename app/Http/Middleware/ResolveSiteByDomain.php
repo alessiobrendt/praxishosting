@@ -36,7 +36,7 @@ class ResolveSiteByDomain
         }
 
         $host = strtolower($request->getHost());
-        $mainAppHosts = config('domains.main_app_hosts', []);
+        $mainAppHosts = Setting::getMainAppHosts();
 
         if (in_array($host, $mainAppHosts, true)) {
             return $next($request);

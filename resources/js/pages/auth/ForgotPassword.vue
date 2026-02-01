@@ -7,9 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Link as TypographyLink, Text } from '@/components/ui/typography';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2 } from 'lucide-vue-next';
 import AuthLayout from '@/layouts/AuthLayout.vue';
-import { login } from '@/routes';
 import { email } from '@/routes/password';
 
 defineProps<{
@@ -25,7 +23,6 @@ defineProps<{
         <Head title="Passwort vergessen" />
 
         <Alert v-if="status" variant="success" class="mb-6">
-            <CheckCircle2 class="h-4 w-4" />
             <AlertDescription>{{ status }}</AlertDescription>
         </Alert>
 
@@ -46,6 +43,7 @@ defineProps<{
                 </div>
 
                 <Button
+                    type="submit"
                     class="w-full"
                     :disabled="processing"
                     data-test="email-password-reset-link-button"
@@ -58,7 +56,7 @@ defineProps<{
             <div class="text-center">
                 <Text variant="small" muted>
                     Oder zurück zum
-                    <TypographyLink :href="login()">Anmelden</TypographyLink>
+                    <TypographyLink href="/login">Anmelden</TypographyLink>
                 </Text>
             </div>
         </div>

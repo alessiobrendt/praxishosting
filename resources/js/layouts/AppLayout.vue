@@ -5,11 +5,22 @@ import PinUnlockOverlay from '@/components/PinUnlockOverlay.vue';
 import { MainLayout } from '@/components/layout';
 import { useInactivityLock } from '@/composables/useInactivityLock';
 import { dashboard } from '@/routes';
+import { index as billingIndex } from '@/routes/billing';
 import { index as sitesIndex } from '@/routes/sites';
 import { index as adminTemplatesIndex } from '@/routes/admin/templates';
 import { index as adminCustomersIndex } from '@/routes/admin/customers';
-import { LayoutGrid, Globe, Users } from 'lucide-vue-next';
-import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import {
+    LayoutGrid,
+    Globe,
+    FileText,
+    Users,
+    Package,
+    Repeat,
+    Archive,
+    Mail,
+    Settings,
+    Shield,
+} from 'lucide-vue-next';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
 interface Props {
@@ -22,19 +33,67 @@ const props = withDefaults(defineProps<Props>(), {
 
 const page = usePage();
 const isAdmin = computed(() => (page.props.auth?.user as { is_admin?: boolean })?.is_admin ?? false);
-const { isCurrentUrl } = useCurrentUrl();
 const { isLocked, unlock } = useInactivityLock();
 
 const sidebarItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
-        { title: 'Dashboard', href: dashboard().url, icon: LayoutGrid, active: isCurrentUrl(dashboard().url) },
-        { title: 'Meine Sites', href: sitesIndex().url, icon: Globe, active: isCurrentUrl(sitesIndex().url) },
+        { title: 'Dashboard', href: dashboard().url, icon: LayoutGrid },
+        { title: 'Meine Sites', href: sitesIndex().url, icon: Globe },
+        { title: 'Meine Rechnungen', href: billingIndex().url, icon: FileText },
     ];
     if (isAdmin.value) {
-        items.push(
-            { title: 'Templates', href: adminTemplatesIndex().url, icon: LayoutGrid, active: isCurrentUrl(adminTemplatesIndex().url) },
-            { title: 'Kunden', href: adminCustomersIndex().url, icon: Users, active: isCurrentUrl(adminCustomersIndex().url) },
-        );
+        items.push({
+            title: 'Admin',
+            icon: Shield,
+            children: [
+                {
+                    title: 'Übersicht',
+                    icon: LayoutGrid,
+                    children: [
+                        { title: 'Dashboard (Admin)', href: '/admin', icon: LayoutGrid },
+                        { title: 'Aktivitätslog', href: '/admin/activity-log', icon: LayoutGrid },
+                    ],
+                },
+                {
+                    title: 'Vertrieb',
+                    icon: FileText,
+                    children: [
+                        { title: 'Rechnungen', href: '/admin/invoices', icon: FileText },
+                        { title: 'Angebote', href: '/admin/quotes', icon: FileText },
+                        { title: 'Auftragsbestätigungen', href: '/admin/order-confirmations', icon: FileText },
+                        { title: 'Mahnungen', href: '/admin/dunning-letters', icon: FileText },
+                        { title: 'Kommunikation & Erinnerungen', href: '/admin/communications', icon: Mail },
+                        { title: 'Abos', href: '/admin/subscriptions', icon: Repeat },
+                    ],
+                },
+                {
+                    title: 'Inhalte',
+                    icon: Globe,
+                    children: [
+                        { title: 'Sites', href: '/admin/sites', icon: Globe },
+                        { title: 'Templates', href: adminTemplatesIndex().url, icon: LayoutGrid },
+                    ],
+                },
+                {
+                    title: 'Marketing',
+                    icon: Mail,
+                    children: [
+                        { title: 'Rabattcodes', href: '/admin/discount-codes', icon: Package },
+                        { title: 'Gutscheine', href: '/admin/vouchers', icon: Package },
+                        { title: 'E-Mails', href: '/admin/emails', icon: Mail },
+                    ],
+                },
+                {
+                    title: 'System',
+                    icon: Settings,
+                    children: [
+                        { title: 'Einstellungen', href: '/admin/settings', icon: Settings },
+                        { title: 'Legacy-Migration', href: '/admin/legacy-migration', icon: Archive },
+                        { title: 'Kunden', href: adminCustomersIndex().url, icon: Users },
+                    ],
+                },
+            ],
+        });
     }
     return items;
 });
