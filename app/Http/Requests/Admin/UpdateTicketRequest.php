@@ -23,6 +23,12 @@ class UpdateTicketRequest extends FormRequest
         if ($this->has('ticket_priority_id') && $this->input('ticket_priority_id') === '') {
             $this->merge(['ticket_priority_id' => null]);
         }
+        if ($this->has('due_at') && $this->input('due_at') === '') {
+            $this->merge(['due_at' => null]);
+        }
+        if ($this->has('tag_ids') && ! is_array($this->input('tag_ids'))) {
+            $this->merge(['tag_ids' => []]);
+        }
     }
 
     /**
@@ -39,6 +45,9 @@ class UpdateTicketRequest extends FormRequest
             'ticket_priority_id' => ['nullable', 'exists:ticket_priorities,id'],
             'assigned_to' => ['nullable', 'exists:users,id'],
             'site_id' => ['nullable', Rule::in($allowedSiteIds)],
+            'due_at' => ['nullable', 'date'],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => ['integer', 'exists:tags,id'],
         ];
     }
 }

@@ -3,10 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\MergeTicketRequest;
 use App\Http\Requests\Admin\StoreTicketMessageRequest;
+use App\Http\Requests\Admin\StoreTicketTimeLogRequest;
+use App\Http\Requests\Admin\StoreTicketTodoRequest;
 use App\Http\Requests\Admin\UpdateTicketRequest;
+use App\Http\Requests\Admin\UpdateTicketTodoRequest;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use App\Models\TicketTimeLog;
+use App\Models\TicketTodo;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,12 +67,24 @@ class TicketController extends Controller
             'ticketPriority',
             'site:id,name,slug',
             'assignedTo:id,name',
-            'messages' => fn ($q) => $q->with('user:id,name')->orderBy('created_at'),
+            'tags:id,name,slug,color',
+            'timeLogs' => fn ($q) => $q->with('user:id,name')->orderBy('logged_at', 'desc'),
+            'todos' => fn ($q) => $q->orderBy('sort_order')->orderBy('id'),
+            'messages' => fn ($q) => $q->with('user:id,name,is_admin')->orderBy('created_at'),
         ]);
+        $lastMessage = $ticket->messages->last();
+        $lastMessageFromCustomer = $lastMessage !== null && ! $lastMessage->user?->is_admin;
         $categories = \App\Models\TicketCategory::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug']);
         $priorities = \App\Models\TicketPriority::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug', 'color']);
         $admins = User::query()->where('is_admin', true)->orderBy('name')->get(['id', 'name']);
         $customerSites = $ticket->user->sites()->orderBy('name')->get(['id', 'name', 'slug']);
+        $recentTickets = Ticket::query()
+            ->where('user_id', $ticket->user_id)
+            ->where('id', '!=', $ticket->id)
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'subject', 'status', 'created_at']);
+        $allTags = \App\Models\Tag::query()->orderBy('name')->get(['id', 'name', 'slug', 'color']);
 
         return Inertia::render('admin/tickets/Show', [
             'ticket' => $ticket,
@@ -74,28 +92,114 @@ class TicketController extends Controller
             'priorities' => $priorities,
             'admins' => $admins,
             'customerSites' => $customerSites,
+            'recentTickets' => $recentTickets,
+            'lastMessageFromCustomer' => $lastMessageFromCustomer,
+            'allTags' => $allTags,
         ]);
     }
 
     public function update(UpdateTicketRequest $request, Ticket $ticket): RedirectResponse
     {
         $validated = $request->validated();
-        $allowed = ['status', 'ticket_category_id', 'ticket_priority_id', 'assigned_to', 'site_id'];
+        $allowed = ['status', 'ticket_category_id', 'ticket_priority_id', 'assigned_to', 'site_id', 'due_at'];
         $update = array_intersect_key($validated, array_flip($allowed));
+        if (array_key_exists('due_at', $update) && $update['due_at'] === '') {
+            $update['due_at'] = null;
+        }
         $ticket->update($update);
+        if (array_key_exists('tag_ids', $validated)) {
+            $ticket->tags()->sync($validated['tag_ids']);
+        }
 
         return redirect()->route('admin.tickets.show', $ticket)->with('success', 'Ticket aktualisiert.');
     }
 
     public function storeMessage(StoreTicketMessageRequest $request, Ticket $ticket): RedirectResponse
     {
+        $isInternal = $request->boolean('is_internal', false);
+        $body = $request->validated('body');
+        if (! $isInternal) {
+            $signature = $request->user()->ticket_signature;
+            if ($signature !== null && trim($signature) !== '') {
+                $body = $body."\n\n--\n".trim($signature);
+            }
+        }
         TicketMessage::create([
             'ticket_id' => $ticket->id,
             'user_id' => $request->user()->id,
-            'body' => $request->validated('body'),
-            'is_internal' => $request->boolean('is_internal', false),
+            'body' => $body,
+            'is_internal' => $isInternal,
         ]);
+        if (! $isInternal) {
+            $ticket->update(['status' => 'waiting_customer']);
+        }
 
         return redirect()->route('admin.tickets.show', $ticket)->with('success', 'Antwort gespeichert.');
+    }
+
+    public function storeTimeLog(StoreTicketTimeLogRequest $request, Ticket $ticket): RedirectResponse
+    {
+        $validated = $request->validated();
+        TicketTimeLog::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $request->user()->id,
+            'minutes' => (int) $validated['minutes'],
+            'description' => $validated['description'] ?? null,
+            'logged_at' => isset($validated['logged_at']) ? $validated['logged_at'] : now(),
+        ]);
+
+        return redirect()->route('admin.tickets.show', $ticket)->with('success', 'Zeiteintrag hinzugefügt.');
+    }
+
+    public function storeTodo(StoreTicketTodoRequest $request, Ticket $ticket): RedirectResponse
+    {
+        $maxSort = $ticket->todos()->max('sort_order') ?? 0;
+        TicketTodo::create([
+            'ticket_id' => $ticket->id,
+            'created_by' => $request->user()->id,
+            'title' => $request->validated('title'),
+            'sort_order' => $maxSort + 1,
+        ]);
+
+        return redirect()->route('admin.tickets.show', $ticket)->with('success', 'To-do hinzugefügt.');
+    }
+
+    public function updateTodo(UpdateTicketTodoRequest $request, Ticket $ticket, TicketTodo $todo): RedirectResponse
+    {
+        if ($todo->ticket_id !== $ticket->id) {
+            abort(404);
+        }
+        $validated = $request->validated();
+        $todo->update(array_intersect_key($validated, array_flip(['title', 'is_done'])));
+
+        return redirect()->route('admin.tickets.show', $ticket)->with('success', 'To-do aktualisiert.');
+    }
+
+    public function destroyTodo(Ticket $ticket, TicketTodo $todo): RedirectResponse
+    {
+        if ($todo->ticket_id !== $ticket->id) {
+            abort(404);
+        }
+        $todo->delete();
+
+        return redirect()->route('admin.tickets.show', $ticket)->with('success', 'To-do gelöscht.');
+    }
+
+    public function merge(MergeTicketRequest $request, Ticket $ticket): RedirectResponse
+    {
+        $targetId = (int) $request->validated('target_ticket_id');
+        $target = Ticket::findOrFail($targetId);
+
+        if ($target->user_id !== $ticket->user_id) {
+            return redirect()->route('admin.tickets.show', $ticket)->with('error', 'Ziel-Ticket muss dem gleichen Kunden gehören.');
+        }
+
+        $ticket->messages()->update(['ticket_id' => $targetId]);
+        $ticket->update([
+            'status' => 'closed',
+            'subject' => $ticket->subject.' [Zusammengeführt in #'.$targetId.']',
+        ]);
+
+        return redirect()->route('admin.tickets.show', $target)->with('success', 'Ticket wurde zusammengeführt.');
     }
 }

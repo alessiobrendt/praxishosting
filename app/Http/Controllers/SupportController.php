@@ -123,6 +123,7 @@ class SupportController extends Controller
             'body' => $request->validated('body'),
             'is_internal' => false,
         ]);
+        $ticket->update(['status' => 'in_progress']);
 
         return redirect()->route('support.show', $ticket)->with('success', 'Nachricht gesendet.');
     }

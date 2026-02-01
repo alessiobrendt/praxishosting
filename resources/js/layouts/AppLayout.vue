@@ -35,14 +35,24 @@ const props = withDefaults(defineProps<Props>(), {
 
 const page = usePage();
 const isAdmin = computed(() => (page.props.auth?.user as { is_admin?: boolean })?.is_admin ?? false);
+const openTicketsCount = computed(() => (page.props.auth as { openTicketsCount?: number })?.openTicketsCount ?? 0);
+const adminOpenTicketsCount = computed(
+    () => (page.props.auth as { adminOpenTicketsCount?: number })?.adminOpenTicketsCount ?? 0,
+);
 const { isLocked, unlock } = useInactivityLock();
 
 const sidebarItems = computed<NavItem[]>(() => {
+    const supportItem: NavItem = {
+        title: 'Support',
+        href: supportIndex().url,
+        icon: MessageCircle,
+        ...(openTicketsCount.value > 0 && { badge: openTicketsCount.value }),
+    };
     const items: NavItem[] = [
         { title: 'Dashboard', href: dashboard().url, icon: LayoutGrid },
         { title: 'Meine Sites', href: sitesIndex().url, icon: Globe },
         { title: 'Meine Rechnungen', href: billingIndex().url, icon: FileText },
-        { title: 'Support', href: supportIndex().url, icon: MessageCircle },
+        supportItem,
     ];
     if (isAdmin.value) {
         items.push({
@@ -90,7 +100,12 @@ const sidebarItems = computed<NavItem[]>(() => {
                     title: 'Support',
                     icon: MessageCircle,
                     children: [
-                        { title: 'Tickets', href: '/admin/tickets', icon: MessageCircle },
+                        {
+                            title: 'Tickets',
+                            href: '/admin/tickets',
+                            icon: MessageCircle,
+                            ...(adminOpenTicketsCount.value > 0 && { badge: adminOpenTicketsCount.value }),
+                        },
                         { title: 'Ticket-Kategorien', href: '/admin/ticket-categories', icon: LayoutGrid },
                         { title: 'Ticket-Prioritäten', href: '/admin/ticket-priorities', icon: LayoutGrid },
                     ],

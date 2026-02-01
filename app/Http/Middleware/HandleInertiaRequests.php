@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Setting;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,12 +43,30 @@ class HandleInertiaRequests extends Middleware
             $request->session()->forget('pin_verified_at');
         }
 
+        $openTicketsCount = 0;
+        $adminOpenTicketsCount = 0;
+        if ($user) {
+            if (! $user->isAdmin()) {
+                $supportEnabled = filter_var(Setting::get('support_enabled', '1'), FILTER_VALIDATE_BOOLEAN);
+                if ($supportEnabled) {
+                    $openTicketsCount = Ticket::where('user_id', $user->id)
+                        ->whereIn('status', ['open', 'in_progress', 'waiting_customer'])
+                        ->count();
+                }
+            } else {
+                $adminOpenTicketsCount = Ticket::whereIn('status', ['open', 'in_progress', 'waiting_customer'])
+                    ->count();
+            }
+        }
+
         return [
             ...parent::share($request),
             'name' => Setting::get('app_name') ?: config('app.name'),
             'auth' => [
                 'user' => $user,
                 'pinVerifiedAt' => $user && $user->hasPin() ? $request->session()->get('pin_verified_at') : null,
+                'openTicketsCount' => $openTicketsCount,
+                'adminOpenTicketsCount' => $adminOpenTicketsCount,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

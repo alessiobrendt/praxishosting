@@ -22,6 +22,7 @@ trait ProfileValidationRules
             'city' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:2'],
             'company' => ['nullable', 'string', 'max:255'],
+            'ticket_signature' => ['nullable', 'string', 'max:2000'],
         ];
     }
 

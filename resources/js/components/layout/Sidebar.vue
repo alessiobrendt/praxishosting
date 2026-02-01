@@ -174,15 +174,31 @@ const groupTriggerClasses = (item: NavItem) =>
                         >
                             <component :is="item.icon" v-if="item.icon" class="h-5 w-5 shrink-0" />
                             <span>{{ item.title }}</span>
+                            <span
+                                v-if="item.badge"
+                                class="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                            >
+                                {{ item.badge }}
+                            </span>
                         </Link>
                         <Tooltip v-else>
                             <TooltipTrigger as-child>
-                                <Link :href="item.href" :class="cn(linkClasses(item.href), 'flex justify-center')">
+                                <Link
+                                    :href="item.href"
+                                    :class="cn(linkClasses(item.href), 'relative flex justify-center')"
+                                >
                                     <component :is="item.icon" v-if="item.icon" class="h-5 w-5 shrink-0" />
+                                    <span
+                                        v-if="item.badge"
+                                        class="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground"
+                                    >
+                                        {{ item.badge }}
+                                    </span>
                                 </Link>
                             </TooltipTrigger>
                             <TooltipContent side="right" class="font-medium">
                                 {{ item.title }}
+                                <template v-if="item.badge"> ({{ item.badge }})</template>
                             </TooltipContent>
                         </Tooltip>
                     </template>
@@ -243,6 +259,12 @@ const groupTriggerClasses = (item: NavItem) =>
                                                         >
                                                             <component :is="sub.icon" v-if="sub.icon" class="h-3.5 w-3.5 shrink-0" />
                                                             {{ sub.title }}
+                                                            <span
+                                                                v-if="sub.badge"
+                                                                class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                                                            >
+                                                                {{ sub.badge }}
+                                                            </span>
                                                         </Link>
                                                     </div>
                                                 </CollapsibleContent>
@@ -262,6 +284,12 @@ const groupTriggerClasses = (item: NavItem) =>
                                         >
                                             <component :is="child.icon" v-if="child.icon" class="h-3.5 w-3.5 shrink-0" />
                                             {{ child.title }}
+                                            <span
+                                                v-if="child.badge"
+                                                class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                                            >
+                                                {{ child.badge }}
+                                            </span>
                                         </Link>
                                     </template>
                                 </div>
@@ -295,6 +323,12 @@ const groupTriggerClasses = (item: NavItem) =>
                                             >
                                                 <component :is="sub.icon" v-if="sub.icon" class="h-3.5 w-3.5 shrink-0" />
                                                 {{ sub.title }}
+                                                <span
+                                                    v-if="sub.badge"
+                                                    class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
+                                                >
+                                                    {{ sub.badge }}
+                                                </span>
                                             </Link>
                                         </template>
                                         <Link
@@ -304,6 +338,12 @@ const groupTriggerClasses = (item: NavItem) =>
                                         >
                                             <component :is="child.icon" v-if="child.icon" class="h-3.5 w-3.5 shrink-0" />
                                             {{ child.title }}
+                                            <span
+                                                v-if="child.badge"
+                                                class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
+                                            >
+                                                {{ child.badge }}
+                                            </span>
                                         </Link>
                                     </template>
                                 </nav>

@@ -45,6 +45,7 @@ const form = useForm({
     postal_code: (user.value?.postal_code as string) ?? '',
     city: (user.value?.city as string) ?? '',
     country: (user.value?.country as string) ?? '',
+    ticket_signature: (user.value?.ticket_signature as string) ?? '',
 });
 
 function submit() {
@@ -183,6 +184,28 @@ function submit() {
                                     </Select>
                                     <InputError :message="form.errors.country" />
                                 </div>
+                            </div>
+
+                            <div
+                                v-if="user?.is_admin"
+                                class="space-y-2 border-t border-border pt-6"
+                            >
+                                <Label for="ticket_signature">Signatur für Support-Tickets</Label>
+                                <textarea
+                                    id="ticket_signature"
+                                    v-model="form.ticket_signature"
+                                    name="ticket_signature"
+                                    class="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Wird automatisch unter jeder Ihrer Ticket-Antworten eingefügt."
+                                    :aria-invalid="!!form.errors.ticket_signature"
+                                />
+                                <InputError :message="form.errors.ticket_signature" />
+                                <Text
+                                    variant="small"
+                                    class="text-muted-foreground"
+                                >
+                                    Nur für Mitarbeiter sichtbar. Wird unter jeder Ihrer Antworten im Support-Ticket-System angehängt.
+                                </Text>
                             </div>
 
                             <Alert

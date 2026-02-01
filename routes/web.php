@@ -166,6 +166,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
     Route::put('tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
     Route::post('tickets/{ticket}/messages', [TicketController::class, 'storeMessage'])->name('tickets.messages.store');
+    Route::post('tickets/{ticket}/time-logs', [TicketController::class, 'storeTimeLog'])->name('tickets.time-logs.store');
+    Route::post('tickets/{ticket}/todos', [TicketController::class, 'storeTodo'])->name('tickets.todos.store');
+    Route::patch('tickets/{ticket}/todos/{todo}', [TicketController::class, 'updateTodo'])->name('tickets.todos.update');
+    Route::delete('tickets/{ticket}/todos/{todo}', [TicketController::class, 'destroyTodo'])->name('tickets.todos.destroy');
+    Route::post('tickets/{ticket}/merge', [TicketController::class, 'merge'])->name('tickets.merge');
     Route::resource('ticket-categories', TicketCategoryController::class)->except(['show']);
     Route::resource('ticket-priorities', TicketPriorityController::class)->except(['show']);
 });

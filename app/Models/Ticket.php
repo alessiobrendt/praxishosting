@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ticket extends Model
@@ -23,6 +24,7 @@ class Ticket extends Model
         'subject',
         'status',
         'assigned_to',
+        'due_at',
     ];
 
     /**
@@ -30,7 +32,9 @@ class Ticket extends Model
      */
     protected function casts(): array
     {
-        return [];
+        return [
+            'due_at' => 'datetime',
+        ];
     }
 
     public function user(): BelongsTo
@@ -69,5 +73,29 @@ class Ticket extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(TicketMessage::class);
+    }
+
+    /**
+     * @return BelongsToMany<Tag>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'ticket_tag');
+    }
+
+    /**
+     * @return HasMany<TicketTimeLog>
+     */
+    public function timeLogs(): HasMany
+    {
+        return $this->hasMany(TicketTimeLog::class);
+    }
+
+    /**
+     * @return HasMany<TicketTodo>
+     */
+    public function todos(): HasMany
+    {
+        return $this->hasMany(TicketTodo::class);
     }
 }
