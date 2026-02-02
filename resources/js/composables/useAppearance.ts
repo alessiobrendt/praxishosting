@@ -75,6 +75,17 @@ export function initializeTheme(): void {
         return;
     }
 
+    const serverAppearance = document.documentElement.dataset.appearance;
+    if (serverAppearance === 'light') {
+        document.documentElement.classList.remove('dark');
+        return;
+    }
+
+    if (serverAppearance === 'dark') {
+        document.documentElement.classList.add('dark');
+        return;
+    }
+
     // Initialize theme from saved preference or default to system...
     const savedAppearance = getStoredAppearance();
     updateTheme(savedAppearance || 'system');
