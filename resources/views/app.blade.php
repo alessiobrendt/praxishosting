@@ -36,6 +36,25 @@
             html.dark {
                 background-color: oklch(0.145 0 0);
             }
+
+            {{-- Force light mode when data-appearance="light" (e.g. site-render) - overrides .dark --}}
+            html[data-appearance="light"],
+            html[data-appearance="light"].dark {
+                --background: hsl(0 0% 100%);
+                --foreground: hsl(0 0% 3.9%);
+                --card: hsl(0 0% 100%);
+                --card-foreground: hsl(0 0% 3.9%);
+                --popover: hsl(0 0% 100%);
+                --popover-foreground: hsl(0 0% 3.9%);
+                --secondary: hsl(0 0% 96.1%);
+                --secondary-foreground: hsl(0 0% 9%);
+                --muted: hsl(0 0% 96.1%);
+                --muted-foreground: hsl(0 0% 45.1%);
+                --border: hsl(0 0% 89.2%);
+                --input: hsl(0 0% 89.2%);
+                background-color: oklch(1 0 0) !important;
+                color-scheme: light;
+            }
         </style>
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
