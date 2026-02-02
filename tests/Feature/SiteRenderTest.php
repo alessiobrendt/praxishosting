@@ -29,7 +29,7 @@ test('public can view site by domain when GET root on site host', function () {
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
         ->component('site-render/Home')
-        ->where('site.id', $site->id)
+        ->where('site.uuid', $site->uuid)
         ->where('pageData.hero.heading', 'Domain Hero')
     );
 });
@@ -81,7 +81,7 @@ test('GET root on site host with .test suffix resolves domain without .test', fu
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
         ->component('site-render/Home')
-        ->where('site.id', $site->id)
+        ->where('site.uuid', $site->uuid)
         ->where('pageData.hero.heading', 'Herd Hero')
     );
 });

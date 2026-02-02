@@ -7,6 +7,7 @@ use App\Models\Setting;
 use App\Services\SiteRenderService;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\View;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -74,6 +75,8 @@ class ResolveSiteByDomain
             return redirect('/');
         }
         $data = $this->siteRenderService->resolveRenderData($site, null, null, $normalizedSlug);
+
+        View::share('appearance', 'light');
 
         $inertiaResponse = Inertia::render('site-render/Home', [
             'site' => $site->only(['uuid', 'name', 'slug']),
