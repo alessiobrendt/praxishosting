@@ -935,7 +935,7 @@ onUnmounted(() => {
                         Zurück zum Template
                     </Button>
                 </Link>
-                <Link v-else :href="sitesShow({ site: site!.id }).url">
+                <Link v-else :href="sitesShow({ site: site!.uuid }).url">
                     <Button type="button" variant="ghost" size="sm">
                         <ArrowLeft class="mr-1 h-4 w-4" />
                         Zurück zur Site
