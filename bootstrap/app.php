@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+// Caddy als vertrauenswürdigen Proxy konfigurieren
+$middleware->trustProxies(at: env('TRUSTED_PROXIES', '127.0.0.1'));
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->validateCsrfTokens(except: [
