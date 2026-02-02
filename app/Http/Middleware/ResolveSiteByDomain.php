@@ -90,7 +90,11 @@ class ResolveSiteByDomain
         View::share('appearance', 'light');
 
         $mainAppUrl = rtrim(config('app.url'), '/');
+        if (str_starts_with($mainAppUrl, 'http://')) {
+            $mainAppUrl = 'https://'.substr($mainAppUrl, 7);
+        }
         URL::forceRootUrl($mainAppUrl);
+        URL::forceScheme('https');
         config(['app.asset_url' => $mainAppUrl]);
 
         $inertiaResponse = Inertia::render('site-render/Home', [
