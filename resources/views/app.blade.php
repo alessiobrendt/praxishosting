@@ -4,6 +4,11 @@
 @endphp
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-appearance="{{ $appearance }}" class="{{ $appearance === 'dark' ? 'dark' : '' }}">
     <head>
+        <script>
+            if (document.documentElement.dataset.appearance === 'light') {
+                document.documentElement.classList.remove('dark');
+            }
+        </script>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
