@@ -35,7 +35,7 @@ const cnameValue = `${props.domain || 'ihre-domain.de'} → ${props.baseDomain}`
 </script>
 
 <template>
-    <Card>
+    <Card v-if="!isVerified">
         <CardHeader>
             <CardTitle>Domain verbinden</CardTitle>
             <CardDescription>

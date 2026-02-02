@@ -1,0 +1,80 @@
+# Caddy Configuration für PraxisHosting On-Demand TLS
+# 
+# Diese Konfiguration ermöglicht automatische SSL-Zertifikate für Custom Domains
+# via Let's Encrypt und On-Demand TLS.
+#
+# Setup:
+# 1. Kopiere diese Datei: cp Caddyfile.example Caddyfile
+# 2. Passe die Werte an (Domain, Port, E-Mail)
+# 3. Starte Caddy: caddy run --config Caddyfile
+
+{
+    # On-Demand TLS Konfiguration
+    on_demand_tls {
+        # Laravel-Endpoint zum Verifizieren der Domain
+        # Caddy fragt bei jeder neuen Domain hier nach, ob ein Zertifikat ausgestellt werden soll
+        ask http://127.0.0.1:8000/api/verify-domain
+        
+        # Rate Limiting: Max 5 neue Zertifikats-Anfragen pro 2 Minuten
+        # Verhindert Missbrauch und schützt vor Let's Encrypt Rate Limits
+        interval 2m
+        burst 5
+    }
+    
+    # Optional: E-Mail für Let's Encrypt-Benachrichtigungen
+    # email admin@praxishosting.de
+    
+    # Optional: Admin-Endpoint aktivieren (http://localhost:2019)
+    # admin localhost:2019
+}
+
+# Haupt-Domain (Panel/Dashboard)
+# Passe "praxishosting.abrendt.de" an deine tatsächliche Domain an
+praxishosting.abrendt.de {
+    # Reverse Proxy zu Laravel-App
+    # Passe den Port an, falls Laravel auf einem anderen Port läuft
+    reverse_proxy 127.0.0.1:8000
+    
+    # Optional: Access Logs
+    log {
+        output file /var/log/caddy/praxishosting.log
+    }
+}
+
+# Wildcard-Handler für alle Custom Domains
+# Dieser Block fängt ALLE eingehenden HTTPS-Anfragen ab, die nicht explizit definiert sind
+:443 {
+    tls {
+        # On-Demand TLS aktivieren
+        # Caddy stellt automatisch ein Zertifikat aus, wenn:
+        # 1. Eine neue Domain das erste Mal angefragt wird
+        # 2. Der /api/verify-domain Endpoint mit 200 OK antwortet
+        on_demand
+    }
+    
+    # Reverse Proxy zu Laravel-App
+    reverse_proxy 127.0.0.1:8000 {
+        # Header für Laravel, damit es die originale Domain kennt
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
+    # Optional: Access Logs
+    log {
+        output file /var/log/caddy/custom-domains.log
+    }
+}
+
+# HTTP zu HTTPS Redirect
+# Alle HTTP-Anfragen werden automatisch zu HTTPS umgeleitet
+:80 {
+    redir https://{host}{uri} permanent
+}
+
+# Alternative Konfiguration für Development (ohne SSL)
+# Uncomment diese Zeilen für lokale Entwicklung:
+# :8080 {
+#     reverse_proxy 127.0.0.1:8000
+# }

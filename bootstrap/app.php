@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        $middleware->validateCsrfTokens(except: [
+            'api/verify-domain', // Caddy On-Demand TLS verification (GET, no session)
+        ]);
+
         $middleware->web(prepend: [
             ResolveSiteByDomain::class,
         ]);
