@@ -79,7 +79,7 @@ type Template = {
 };
 
 type Site = {
-    id: number;
+    uuid: string;
     name: string;
     slug: string;
     custom_page_data: Partial<SitePageData> | null;
@@ -935,7 +935,7 @@ onUnmounted(() => {
                         Zurück zum Template
                     </Button>
                 </Link>
-                <Link v-else :href="sitesShow({ site: site!.uuid }).url">
+                <Link v-else-if="site?.uuid" :href="sitesShow({ site: site.uuid }).url">
                     <Button type="button" variant="ghost" size="sm">
                         <ArrowLeft class="mr-1 h-4 w-4" />
                         Zurück zur Site
