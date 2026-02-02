@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Site;
+use App\Models\User;
 
 class SiteRenderService
 {
@@ -49,6 +50,7 @@ class SiteRenderService
         if (isset($templatePageData['footer'])) {
             $generalInformation['footer'] = $templatePageData['footer'];
         }
+        $generalInformation['active_modules'] = $this->resolveActiveModules($source ?? [], $templatePages);
 
         return [
             'pageData' => $pageData,
@@ -247,5 +249,165 @@ class SiteRenderService
         ];
 
         return $components;
+    }
+
+    /**
+     * Resolve active module types (e.g. newsletter) from layout_components across all pages.
+     * Modules that show in navbar (e.g. newsletter) are detected by their block type.
+     *
+     * @param  array<string, mixed>  $customPageData
+     * @param  \Illuminate\Support\Collection<int, \App\Models\TemplatePage>  $templatePages
+     * @return list<string>
+     */
+    protected function resolveActiveModules(array $customPageData, $templatePages): array
+    {
+        $types = [];
+        $sources = [];
+
+        $root = $customPageData;
+        if (isset($root['layout_components']) && is_array($root['layout_components'])) {
+            $sources[] = $root['layout_components'];
+        }
+        if (isset($root['pages']) && is_array($root['pages'])) {
+            foreach ($root['pages'] as $page) {
+                if (is_array($page) && isset($page['layout_components']) && is_array($page['layout_components'])) {
+                    $sources[] = $page['layout_components'];
+                }
+            }
+        }
+        foreach ($templatePages as $tp) {
+            if (is_array($tp->data ?? null) && isset($tp->data['layout_components']) && is_array($tp->data['layout_components'])) {
+                $sources[] = $tp->data['layout_components'];
+            }
+        }
+
+        $moduleTypes = ['newsletter', 'contactform'];
+        foreach ($sources as $components) {
+            foreach ($this->collectBlockTypes($components) as $type) {
+                if (in_array($type, $moduleTypes, true) && ! in_array($type, $types, true)) {
+                    $types[] = $type;
+                }
+            }
+        }
+
+        return $types;
+    }
+
+    /**
+     * Recursively collect block types from layout_components.
+     *
+     * @param  array<int, array{type?: string, children?: array}>  $components
+     * @return array<string>
+     */
+    protected function collectBlockTypes(array $components): array
+    {
+        $types = [];
+        foreach ($components as $c) {
+            if (is_array($c) && isset($c['type']) && is_string($c['type'])) {
+                $types[] = $c['type'];
+                if (isset($c['children']) && is_array($c['children'])) {
+                    $types = array_merge($types, $this->collectBlockTypes($c['children']));
+                }
+            }
+        }
+
+        return $types;
+    }
+
+    /**
+     * Recursively collect moduleLabels for blocks of a given type.
+     *
+     * @param  array<int, array{type?: string, data?: array{moduleLabel?: string}, children?: array}>  $components
+     * @return list<string>
+     */
+    public function collectModuleLabels(array $components, string $moduleType): array
+    {
+        $labels = [];
+        foreach ($components as $c) {
+            if (! is_array($c)) {
+                continue;
+            }
+            if (isset($c['type']) && $c['type'] === $moduleType) {
+                $label = $c['data']['moduleLabel'] ?? '';
+                if (is_string($label) && trim($label) !== '') {
+                    $labels[] = trim($label);
+                }
+            }
+            if (isset($c['children']) && is_array($c['children'])) {
+                $labels = array_merge($labels, $this->collectModuleLabels($c['children'], $moduleType));
+            }
+        }
+
+        return array_values(array_unique($labels));
+    }
+
+    /**
+     * Get module labels for a site (e.g. "Haupt-Newsletter", "Kontakt Impressum").
+     *
+     * @return list<string>
+     */
+    public function getModuleLabelsForSite(Site $site, string $moduleType): array
+    {
+        $site->loadMissing('template.pages');
+        $custom = $site->custom_page_data ?? [];
+        $labels = [];
+
+        $root = $custom;
+        if (isset($root['layout_components']) && is_array($root['layout_components'])) {
+            $labels = array_merge($labels, $this->collectModuleLabels($root['layout_components'], $moduleType));
+        }
+        if (isset($root['pages']) && is_array($root['pages'])) {
+            foreach ($root['pages'] as $page) {
+                if (is_array($page) && isset($page['layout_components']) && is_array($page['layout_components'])) {
+                    $labels = array_merge($labels, $this->collectModuleLabels($page['layout_components'], $moduleType));
+                }
+            }
+        }
+        foreach ($site->template?->pages ?? [] as $tp) {
+            if (is_array($tp->data ?? null) && isset($tp->data['layout_components']) && is_array($tp->data['layout_components'])) {
+                $labels = array_merge($labels, $this->collectModuleLabels($tp->data['layout_components'], $moduleType));
+            }
+        }
+
+        return array_values(array_unique($labels));
+    }
+
+    /**
+     * Get active module types (newsletter, contactform) across all sites the user can access.
+     *
+     * @return list<string>
+     */
+    public function getActiveModulesForUser(User $user): array
+    {
+        $sites = $user->sites()->with('template.pages')->get();
+        $collaborating = $user->collaboratingSites()->with('template.pages')->get();
+        $allSites = $sites->merge($collaborating)->unique('id');
+
+        $active = [];
+        foreach ($allSites as $site) {
+            $custom = $site->custom_page_data ?? [];
+            $templatePages = $site->template?->pages ?? collect();
+            foreach ($this->resolveActiveModules($custom, $templatePages) as $type) {
+                if (! in_array($type, $active, true)) {
+                    $active[] = $type;
+                }
+            }
+        }
+
+        return $active;
+    }
+
+    /**
+     * Get active module types for a single site.
+     *
+     * @return list<string>
+     */
+    public function getActiveModulesForSite(Site $site): array
+    {
+        $site->loadMissing('template.pages');
+        $custom = $site->custom_page_data ?? [];
+        $templatePages = $site->template?->pages ?? collect();
+
+        return $this->resolveActiveModules($custom, $templatePages);
     }
 }

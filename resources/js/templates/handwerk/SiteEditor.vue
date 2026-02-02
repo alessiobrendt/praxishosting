@@ -122,7 +122,7 @@ const heroImageInputRef = ref<HTMLInputElement | null>(null);
 async function uploadHeroImage(file: File): Promise<void> {
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(images.store.url({ site: props.site.id }), {
+    const r = await fetch(images.store.url({ site: props.site.uuid }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',

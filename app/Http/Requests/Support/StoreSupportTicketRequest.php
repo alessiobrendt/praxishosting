@@ -22,9 +22,10 @@ class StoreSupportTicketRequest extends FormRequest
             'body' => ['required', 'string', 'max:10000'],
             'ticket_category_id' => ['required', 'exists:ticket_categories,id'],
             'ticket_priority_id' => ['nullable', 'exists:ticket_priorities,id'],
-            'site_id' => [
+            'site_uuid' => [
                 'nullable',
-                Rule::in($this->user()?->sites()->pluck('id')->all() ?? []),
+                'string',
+                Rule::in($this->user()?->sites()->pluck('uuid')->all() ?? []),
             ],
         ];
     }

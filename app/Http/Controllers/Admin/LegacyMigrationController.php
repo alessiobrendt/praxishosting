@@ -18,7 +18,8 @@ class LegacyMigrationController extends Controller
             ->with(['template', 'user'])
             ->latest()
             ->paginate(15)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(fn (Site $site) => $site->makeHidden('id')->toArray());
 
         return Inertia::render('admin/legacy-migration/Index', [
             'legacySites' => $legacySitesWithoutSubscription,

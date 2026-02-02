@@ -26,6 +26,7 @@ use App\Http\Controllers\BillingPortalController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\InvoiceController as CustomerInvoiceController;
+use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\SiteCollaboratorController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SiteRenderController;
@@ -89,6 +90,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sites/{site}/domains/{domain}/verify', [\App\Http\Controllers\SiteDomainController::class, 'verify'])->name('sites.domains.verify');
     Route::post('sites/{site}/domains/{domain}/set-primary', [\App\Http\Controllers\SiteDomainController::class, 'setPrimary'])->name('sites.domains.set-primary');
     Route::delete('sites/{site}/domains/{domain}', [\App\Http\Controllers\SiteDomainController::class, 'destroy'])->name('sites.domains.destroy');
+
+    Route::get('modules/newsletter', [ModuleController::class, 'newsletter'])->name('modules.newsletter.index');
+    Route::get('modules/newsletter/sites/{site}', [ModuleController::class, 'newsletterSite'])->name('modules.newsletter.site');
+    Route::post('modules/newsletter/sites/{site}/posts', [ModuleController::class, 'storePost'])->name('modules.newsletter.posts.store');
+    Route::get('modules/contact', [ModuleController::class, 'contact'])->name('modules.contact.index');
+    Route::get('modules/contact/sites/{site}', [ModuleController::class, 'contactSubmissions'])->name('modules.contact.submissions');
 
     Route::get('support', [SupportController::class, 'index'])->name('support.index');
     Route::get('support/create', [SupportController::class, 'create'])->name('support.create');

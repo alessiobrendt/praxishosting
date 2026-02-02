@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import SiteController from '@/actions/App/Http/Controllers/SiteController';
+import { store as sitesStore } from '@/routes/sites';
 import InputError from '@/components/InputError.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,8 @@ const breadcrumbs: BreadcrumbItem[] = [
                 </CardHeader>
                 <CardContent>
                     <Form
-                        v-bind="SiteController.store.form()"
+                        :action="sitesStore.url()"
+                        method="post"
                         class="space-y-6"
                         v-slot="{ errors }"
                     >

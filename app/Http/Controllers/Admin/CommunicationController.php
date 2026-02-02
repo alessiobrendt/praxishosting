@@ -77,8 +77,8 @@ class CommunicationController extends Controller
                 $subjectDisplay = $inv?->number ?? $subjectDisplay;
             }
             if ($r->subject_type === Site::class && $r->subject_id) {
-                $subjectLink = route('admin.sites.show', $r->subject_id);
                 $site = Site::find($r->subject_id);
+                $subjectLink = $site ? route('admin.sites.show', $site->uuid) : '#';
                 $subjectDisplay = $site?->name ?? $subjectDisplay;
             }
             if ($r->subject_type === User::class && $r->subject_id) {

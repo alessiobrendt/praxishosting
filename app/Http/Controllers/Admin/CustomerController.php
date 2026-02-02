@@ -80,6 +80,9 @@ class CustomerController extends Controller
         ]);
 
         $customerArray = $customer->toArray();
+        foreach ($customerArray['sites'] ?? [] as &$site) {
+            unset($site['id']);
+        }
         if (! empty($customerArray['balance_transactions'] ?? [])) {
             foreach ($customerArray['balance_transactions'] as &$tx) {
                 if (! empty($tx['created_at'] ?? null)) {

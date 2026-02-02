@@ -22,7 +22,7 @@ class SiteController extends Controller
     {
         $site->load(['template', 'user', 'siteSubscription']);
 
-        $data = $site->toArray();
+        $data = $site->makeHidden('id')->toArray();
         $sub = $site->siteSubscription;
         if ($sub && $sub->current_period_ends_at) {
             $data['site_subscription']['current_period_ends_at_formatted'] = Carbon::parse($sub->current_period_ends_at)->format('d.m.Y');
@@ -62,7 +62,7 @@ class SiteController extends Controller
         }
 
         $sites = $query->latest()->paginate(15)->withQueryString()->through(function (Site $site) {
-            $arr = $site->toArray();
+            $arr = $site->makeHidden('id')->toArray();
             if (! empty($arr['site_subscription']['current_period_ends_at'] ?? null)) {
                 $arr['site_subscription']['current_period_ends_at'] = Carbon::parse($arr['site_subscription']['current_period_ends_at'])->format('d.m.Y');
             }

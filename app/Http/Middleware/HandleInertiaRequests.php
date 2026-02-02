@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Setting;
 use App\Models\Ticket;
+use App\Services\SiteRenderService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -59,6 +60,11 @@ class HandleInertiaRequests extends Middleware
             }
         }
 
+        $activeUserModules = [];
+        if ($user) {
+            $activeUserModules = app(SiteRenderService::class)->getActiveModulesForUser($user);
+        }
+
         return [
             ...parent::share($request),
             'name' => Setting::get('app_name') ?: config('app.name'),
@@ -67,6 +73,7 @@ class HandleInertiaRequests extends Middleware
                 'pinVerifiedAt' => $user && $user->hasPin() ? $request->session()->get('pin_verified_at') : null,
                 'openTicketsCount' => $openTicketsCount,
                 'adminOpenTicketsCount' => $adminOpenTicketsCount,
+                'activeUserModules' => $activeUserModules,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

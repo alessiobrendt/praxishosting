@@ -7,6 +7,9 @@ use App\Listeners\LogStripeWebhookReceived;
 use App\Listeners\SendPaymentFailedNotification;
 use App\Listeners\SyncSiteSubscriptionFromStripeWebhook;
 use App\Models\Site;
+use App\Modules\Handlers\ContactModuleHandler;
+use App\Modules\Handlers\NewsletterModuleHandler;
+use App\Modules\ModuleRegistry;
 use App\Observers\SiteObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -56,6 +59,9 @@ class AppServiceProvider extends ServiceProvider
         );
 
         Site::observe(SiteObserver::class);
+
+        ModuleRegistry::register('contact', ContactModuleHandler::class);
+        ModuleRegistry::register('newsletter', NewsletterModuleHandler::class);
 
         Event::listen(WebhookReceived::class, LogStripeWebhookReceived::class);
         Event::listen(WebhookReceived::class, SyncSiteSubscriptionFromStripeWebhook::class);

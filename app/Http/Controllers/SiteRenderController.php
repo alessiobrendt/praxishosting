@@ -36,7 +36,7 @@ class SiteRenderController extends Controller
         $data = $this->siteRenderService->resolveRenderData($site, null, null, $normalizedSlug);
 
         return Inertia::render('site-render/Home', [
-            'site' => $site->only(['id', 'name', 'slug']),
+            'site' => $site->only(['uuid', 'name', 'slug']),
             'templateSlug' => $site->template->slug,
             'pageData' => $data['pageData'],
             'colors' => $data['colors'],
@@ -70,7 +70,7 @@ class SiteRenderController extends Controller
         $designMode = $request->boolean('design_mode');
 
         return Inertia::render('site-render/Home', [
-            'site' => $site->only(['id', 'name', 'slug']),
+            'site' => $site->only(['uuid', 'name', 'slug']),
             'templateSlug' => $site->template->slug,
             'pageData' => $data['pageData'],
             'colors' => $data['colors'],

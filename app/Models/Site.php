@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class Site extends Model
 {
@@ -17,6 +18,7 @@ class Site extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'uuid',
         'user_id',
         'template_id',
         'name',
@@ -130,5 +132,49 @@ class Site extends Model
     public function tickets(): HasMany
     {
         return $this->hasMany(Ticket::class);
+    }
+
+    /**
+     * Contact form submissions for this site.
+     *
+     * @return HasMany<ContactSubmission>
+     */
+    public function contactSubmissions(): HasMany
+    {
+        return $this->hasMany(ContactSubmission::class);
+    }
+
+    /**
+     * Newsletter subscriptions for this site.
+     *
+     * @return HasMany<NewsletterSubscription>
+     */
+    public function newsletterSubscriptions(): HasMany
+    {
+        return $this->hasMany(NewsletterSubscription::class);
+    }
+
+    /**
+     * Newsletter posts (news) for this site.
+     *
+     * @return HasMany<NewsletterPost>
+     */
+    public function newsletterPosts(): HasMany
+    {
+        return $this->hasMany(NewsletterPost::class);
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Site $site): void {
+            if (empty($site->uuid)) {
+                $site->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

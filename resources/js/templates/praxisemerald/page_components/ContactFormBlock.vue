@@ -1,27 +1,41 @@
 <script lang="ts">
+import type { Component } from 'vue';
+import ContactFormBlockEditor from './editors/ContactFormBlockEditor.vue';
+
 export const meta = {
     type: 'contactform',
     label: 'Kontaktformular',
     placement: 'above_main' as const,
-    category: 'Inhalt',
-    defaultData: { note: '' },
-    fields: [
-        { key: 'note', label: 'Hinweistext (optional)', type: 'textarea' as const },
-    ],
+    category: 'Module',
+    defaultData: {
+        moduleLabel: '',
+        note: '',
+        fields: [
+            { key: 'name', label: 'Name', type: 'text' as const, required: true },
+            { key: 'email', label: 'E-Mail', type: 'email' as const, required: true },
+            { key: 'message', label: 'Nachricht', type: 'textarea' as const, required: true },
+        ],
+    },
 };
+export const Editor = ContactFormBlockEditor as Component;
 </script>
 
 <script setup lang="ts">
-import ContactForm from '@/templates/praxisemerald/components/ui/ContactForm.vue';
+import { inject, computed } from 'vue';
+import ContactFormModule from '@/templates/praxisemerald/page_components/modules/ContactFormModule.vue';
 
-const props = defineProps<{ data: Record<string, unknown> }>();
+const props = defineProps<{ data: Record<string, unknown>; designMode?: boolean }>();
+
+const layoutEntry = inject<{ value: { id: string } } | null>('layoutEntry', null);
+const moduleInstanceId = computed(() => {
+    const entry = layoutEntry?.value ?? layoutEntry;
+    return (entry as { id?: string } | null)?.id ?? undefined;
+});
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
-        <p v-if="props.data.note" class="mb-4 text-sm text-slate-600">
-            {{ props.data.note }}
-        </p>
-        <ContactForm />
-    </div>
+    <ContactFormModule
+        :data="props.data"
+        :module-instance-id="moduleInstanceId"
+    />
 </template>

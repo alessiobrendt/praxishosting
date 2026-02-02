@@ -499,7 +499,7 @@ function postDraft(): Promise<Response> | null {
         custom_page_data: data,
         custom_colors: (data.colors as Record<string, string>) ?? {},
     };
-    return fetch(storePreviewDraft({ site: props.site.id }).url, {
+    return fetch(storePreviewDraft({ site: props.site.uuid }).url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -773,7 +773,11 @@ function moveAt(list: LayoutComponentEntry[], fromIndex: number, direction: 'up'
     pushPreviewDraft();
 }
 
-function getComponentLabel(type: string): string {
+function getComponentLabel(type: string, entry?: { data?: Record<string, unknown> }): string {
+    const label = entry?.data?.moduleLabel;
+    if (typeof label === 'string' && label.trim() !== '') {
+        return label.trim();
+    }
     return registry.value?.LAYOUT_COMPONENT_REGISTRY?.find((r: { type: string }) => r.type === type)?.label ?? type;
 }
 
@@ -819,7 +823,7 @@ function saveToSite(): void {
     formData.append('_method', 'PUT');
     formData.append('custom_colors', JSON.stringify(data.colors ?? {}));
     formData.append('custom_page_data', JSON.stringify(data));
-    fetch(sitesUpdate({ site: props.site.id }).url, {
+    fetch(sitesUpdate({ site: props.site.uuid }).url, {
         method: 'POST',
         headers: {
             'X-XSRF-TOKEN': getCsrfToken(),
@@ -1075,7 +1079,7 @@ onUnmounted(() => {
                         <CardDescription class="text-xs">
                             {{
                                 selectedEntry && acceptsChildren(selectedEntry.type as LayoutComponentType)
-                                    ? `Wird in „${getComponentLabel(selectedEntry.type)}“ eingefügt`
+                                    ? `Wird in „${getComponentLabel(selectedEntry.type, selectedEntry)}“ eingefügt`
                                     : 'Wird unten an der Seite eingefügt'
                             }}
                         </CardDescription>
@@ -1212,7 +1216,7 @@ onUnmounted(() => {
                 :style="isTemplateMode && previewFullscreen ? { top: '4.5rem' } : undefined"
             >
                 <div class="sticky top-0 z-10 border-b border-border bg-background px-3 py-2">
-                    <h2 class="text-sm font-semibold">{{ getComponentLabel(selectedEntry.type) }}</h2>
+                    <h2 class="text-sm font-semibold">{{ getComponentLabel(selectedEntry.type, selectedEntry) }}</h2>
                     <p class="text-xs text-muted-foreground">Daten dieser Komponente</p>
                 </div>
                 <div class="flex-1 p-3">
@@ -1231,7 +1235,7 @@ onUnmounted(() => {
         <MediaLibraryModal
             v-if="site"
             :open="mediaLibraryOpen"
-            :site-id="site.id"
+            :site-uuid="site.uuid"
             @select="onMediaLibrarySelect"
             @close="onMediaLibraryClose"
         />

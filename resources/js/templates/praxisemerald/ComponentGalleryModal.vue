@@ -17,6 +17,7 @@ const PREVIEW_VIEW_HEIGHT = 140;
 
 /** Reihenfolge der Kategorien in der Galerie. */
 const CATEGORY_ORDER = [
+    'Module',
     'Navigation & Layout',
     'Container',
     'Bereiche',

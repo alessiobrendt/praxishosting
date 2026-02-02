@@ -290,7 +290,7 @@ onMounted(() => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow v-for="site in customer.sites" :key="site.id">
+                            <TableRow v-for="site in customer.sites" :key="site.uuid">
                                 <TableCell class="font-medium">{{ site.name }}</TableCell>
                                 <TableCell>
                                     <code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">
@@ -299,7 +299,7 @@ onMounted(() => {
                                 </TableCell>
                                 <TableCell>{{ site.template?.name ?? '-' }}</TableCell>
                                 <TableCell class="text-right">
-                                    <Link :href="sitesShow({ site: site.id }).url">
+                                    <Link :href="sitesShow({ site: site.uuid }).url">
                                         <Button variant="ghost" size="sm">
                                             Bearbeiten
                                             <ExternalLink class="ml-2 h-3 w-3" />

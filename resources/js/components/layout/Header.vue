@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { cn } from '@/lib/utils';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Avatar } from '@/components/ui/avatar';
 import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
-import { Bell, Search, Settings, LogOut } from 'lucide-vue-next';
+import { Bell, Search, Settings, LogOut, Menu } from 'lucide-vue-next';
 
 import type { BreadcrumbItem } from '@/types';
 
@@ -22,6 +22,8 @@ const props = withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 });
 
+const openMobileSidebar = inject<() => void>('openMobileSidebar', () => {});
+
 const headerClasses = computed(() =>
     cn(
         'sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/80',
@@ -33,6 +35,14 @@ const headerClasses = computed(() =>
 <template>
     <header :class="headerClasses">
         <div class="flex flex-1 items-center gap-4">
+            <button
+                type="button"
+                class="lg:hidden -ml-2 rounded-lg p-2 transition-modern hover:bg-gray-100 dark:hover:bg-gray-800"
+                aria-label="Menü öffnen"
+                @click="openMobileSidebar"
+            >
+                <Menu class="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            </button>
             <Breadcrumb v-if="breadcrumbs.length > 0" :items="breadcrumbs" />
         </div>
 

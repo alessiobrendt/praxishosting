@@ -34,7 +34,7 @@ import adminTickets from '@/routes/admin/tickets';
 import type { BreadcrumbItem } from '@/types';
 
 type User = { id: number; name: string; email?: string };
-type Site = { id: number; name: string; slug: string };
+type Site = { uuid: string; name: string; slug: string };
 type TicketCategory = { id: number; name: string; slug: string };
 type TicketPriority = { id: number; name: string; slug: string; color: string | null };
 type Message = {
@@ -112,7 +112,7 @@ const updateForm = useForm({
     ticket_category_id: props.ticket.ticket_category_id,
     ticket_priority_id: props.ticket.ticket_priority_id ?? '',
     assigned_to: props.ticket.assigned_to ?? '',
-    site_id: props.ticket.site_id ?? '',
+    site_uuid: props.ticket.site?.uuid ?? '',
     due_at: formatDatetimeLocal(props.ticket.due_at ?? undefined),
     tag_ids: (props.ticket.tags ?? []).map((t) => t.id),
 });
@@ -346,9 +346,9 @@ function deleteTodo(todo: Todo) {
                             </div>
                             <div v-if="customerSites.length" class="space-y-2">
                                 <Label>Produkt/Site</Label>
-                                <Select v-model="updateForm.site_id" name="site_id">
+                                <Select v-model="updateForm.site_uuid" name="site_uuid">
                                     <option value="">–</option>
-                                    <option v-for="s in customerSites" :key="s.id" :value="s.id">{{ s.name }}</option>
+                                    <option v-for="s in customerSites" :key="s.uuid" :value="s.uuid">{{ s.name }}</option>
                                 </Select>
                             </div>
                             <div class="space-y-2">
@@ -400,7 +400,7 @@ function deleteTodo(todo: Todo) {
                             <span v-if="ticket.site" class="mt-1 block">
                                 Produkt/Site:
                                 <Link
-                                    :href="adminSites.show(ticket.site.id).url"
+                                    :href="adminSites.show(ticket.site.uuid).url"
                                     class="font-medium text-primary underline hover:no-underline"
                                 >
                                     {{ ticket.site.name }}

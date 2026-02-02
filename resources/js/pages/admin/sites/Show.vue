@@ -33,7 +33,7 @@ type SiteSubscription = {
 };
 
 type Site = {
-    id: number;
+    uuid: string;
     name: string;
     slug: string;
     status: string;
@@ -76,26 +76,26 @@ const periodForm = useForm({
 });
 
 const submitPeriod = () => {
-    periodForm.put(`/admin/sites/${props.site.id}/subscription`, {
+    periodForm.put(`/admin/sites/${props.site.uuid}/subscription`, {
         preserveScroll: true,
         onSuccess: () => periodForm.reset(),
     });
 };
 
 const updateStatus = (status: 'active' | 'suspended') => {
-    router.put(`/admin/sites/${props.site.id}/status`, { status });
+    router.put(`/admin/sites/${props.site.uuid}/status`, { status });
 };
 
 const cancelSubscription = () => {
-    router.post(`/admin/sites/${props.site.id}/subscription/cancel`);
+    router.post(`/admin/sites/${props.site.uuid}/subscription/cancel`);
 };
 
 const reactivateSubscription = () => {
-    router.post(`/admin/sites/${props.site.id}/subscription/reactivate`);
+    router.post(`/admin/sites/${props.site.uuid}/subscription/reactivate`);
 };
 
 const syncSubscription = () => {
-    router.post(`/admin/sites/${props.site.id}/subscription/sync`);
+    router.post(`/admin/sites/${props.site.uuid}/subscription/sync`);
 };
 
 const suspendDialogOpen = ref(false);
@@ -104,9 +104,9 @@ const cancelSubDialogOpen = ref(false);
 onMounted(() => {
     pushAdminRecent({
         type: 'site',
-        id: props.site.id,
+        id: props.site.uuid,
         label: props.site.name,
-        url: `/admin/sites/${props.site.id}`,
+        url: `/admin/sites/${props.site.uuid}`,
     });
 });
 </script>

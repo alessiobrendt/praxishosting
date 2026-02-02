@@ -21,12 +21,14 @@ class SiteController extends Controller
         $sites = $user->sites()
             ->with('template', 'siteSubscription')
             ->latest()
-            ->get();
+            ->get()
+            ->each(fn ($s) => $s->makeHidden('id'));
 
         $collaboratingSites = $user->collaboratingSites()
             ->with('template', 'user')
             ->latest()
-            ->get();
+            ->get()
+            ->each(fn ($s) => $s->makeHidden('id'));
 
         return Inertia::render('sites/Index', [
             'sites' => $sites,
@@ -89,7 +91,7 @@ class SiteController extends Controller
             'draftVersion',
         ]);
 
-        $siteArray = $site->toArray();
+        $siteArray = $site->makeHidden('id')->toArray();
         if (! empty($siteArray['site_subscription']['current_period_ends_at'] ?? null)) {
             $siteArray['site_subscription']['current_period_ends_at'] = Carbon::parse($siteArray['site_subscription']['current_period_ends_at'])->format('d.m.Y');
         }
@@ -118,7 +120,7 @@ class SiteController extends Controller
         $site->load('template');
 
         return Inertia::render('sites/Edit', [
-            'site' => $site,
+            'site' => $site->makeHidden('id'),
         ]);
     }
 
@@ -138,7 +140,7 @@ class SiteController extends Controller
 
         return Inertia::render('PageDesigner/PageDesigner', [
             'mode' => 'site',
-            'site' => $site,
+            'site' => $site->makeHidden('id'),
             'baseDomain' => \App\Models\Setting::getBaseDomain(),
         ]);
     }

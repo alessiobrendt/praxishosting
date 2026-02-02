@@ -12,7 +12,7 @@ import { dashboard } from '@/routes';
 import { index as supportIndex, store } from '@/routes/support';
 import type { BreadcrumbItem } from '@/types';
 
-type Site = { id: number; name: string; slug: string };
+type Site = { uuid: string; name: string; slug: string };
 type Category = { id: number; name: string; slug: string };
 type Priority = { id: number; name: string; slug: string; color: string | null };
 
@@ -29,7 +29,7 @@ const form = useForm({
     body: '',
     ticket_category_id: '' as string | number,
     ticket_priority_id: '' as string | number,
-    site_id: '' as string | number,
+    site_uuid: '' as string,
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -74,10 +74,10 @@ const breadcrumbs: BreadcrumbItem[] = [
                             </Select>
                         </div>
                         <div v-if="sites.length" class="space-y-2">
-                            <Label for="site_id">Betrifft Website (optional)</Label>
-                            <Select id="site_id" v-model="form.site_id">
+                            <Label for="site_uuid">Betrifft Website (optional)</Label>
+                            <Select id="site_uuid" v-model="form.site_uuid">
                                 <option value="">–</option>
-                                <option v-for="s in sites" :key="s.id" :value="s.id">{{ s.name }}</option>
+                                <option v-for="s in sites" :key="s.uuid" :value="s.uuid">{{ s.name }}</option>
                             </Select>
                         </div>
                         <div class="space-y-2">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
+import { useMediaQuery } from '@vueuse/core';
 import { cn } from '@/lib/utils';
 import AppLogo from '@/components/AppLogo.vue';
 import { Avatar } from '@/components/ui/avatar';
@@ -15,6 +16,8 @@ import { useAppearance } from '@/composables/useAppearance';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { Moon, Sun, Menu, X, ChevronDown, ChevronRight } from 'lucide-vue-next';
 import type { NavItem } from '@/types';
+
+const isMobile = useMediaQuery('(max-width: 1023px)');
 
 const STORAGE_KEY = 'app-sidebar-open';
 
@@ -39,20 +42,25 @@ interface Props {
         avatar?: string;
     };
     collapsed?: boolean;
+    mobileOpen?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     collapsed: false,
+    mobileOpen: false,
 });
 
 const emit = defineEmits<{
     (e: 'update:collapsed', value: boolean): void;
+    (e: 'close-mobile'): void;
 }>();
 
 const isCollapsed = computed({
     get: () => props.collapsed,
     set: (value) => emit('update:collapsed', value),
 });
+
+const effectiveCollapsed = computed(() => isCollapsed.value && !isMobile.value);
 
 const openGroupKeys = ref<Set<string>>(new Set());
 
@@ -107,13 +115,31 @@ function toggleTheme() {
     updateAppearance(newAppearance);
 }
 
+function closeSidebar() {
+    if (isMobile.value) {
+        emit('close-mobile');
+    } else {
+        isCollapsed.value = !isCollapsed.value;
+    }
+}
+
+function onNavClick(e: MouseEvent) {
+    if (isMobile.value && (e.target as HTMLElement).closest('a')) {
+        emit('close-mobile');
+    }
+}
+
 const sidebarClasses = computed(() =>
     cn(
-        'fixed left-0 top-0 z-40 h-screen transition-modern-slow',
+        'fixed left-0 top-0 z-50 h-screen transition-modern-slow',
         'bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950',
         'border-r border-gray-200 dark:border-gray-800',
         'shadow-modern-lg',
-        isCollapsed.value ? 'w-20' : 'w-64',
+        // Mobile: overlay, full sidebar width when open
+        'lg:z-40',
+        isMobile.value ? 'w-64' : effectiveCollapsed.value ? 'w-20' : 'w-64',
+        isMobile.value && !props.mobileOpen && '-translate-x-full',
+        isMobile.value && props.mobileOpen && 'translate-x-0',
     ),
 );
 
@@ -123,7 +149,7 @@ const linkClasses = (href: string) =>
         'hover:bg-gray-100 dark:hover:bg-gray-800',
         isCurrentUrl(href) && 'gradient-primary text-white shadow-emerald',
         !isCurrentUrl(href) && 'text-gray-700 dark:text-gray-300',
-        isCollapsed.value && 'justify-center',
+        effectiveCollapsed.value && 'justify-center',
     );
 
 const groupTriggerClasses = (item: NavItem) =>
@@ -131,35 +157,43 @@ const groupTriggerClasses = (item: NavItem) =>
         'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-modern',
         'hover:bg-gray-100 dark:hover:bg-gray-800',
         'text-gray-700 dark:text-gray-300',
-        isCollapsed.value && 'justify-center',
+        effectiveCollapsed.value && 'justify-center',
     );
 </script>
 
 <template>
+    <!-- Mobile backdrop -->
+    <div
+        v-if="isMobile && mobileOpen"
+        class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+        aria-hidden="true"
+        @click="emit('close-mobile')"
+    />
     <aside :class="sidebarClasses" aria-label="Hauptnavigation">
         <TooltipProvider :delay-duration="300">
             <div class="flex h-full flex-col">
             <!-- Header -->
             <div class="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
-                <div v-if="!isCollapsed" class="flex items-center gap-2">
+                <div v-if="!effectiveCollapsed" class="flex items-center gap-2">
                     <AppLogo class="h-8" />
                 </div>
                 <button
                     type="button"
-                    :aria-label="isCollapsed ? 'Sidebar öffnen' : 'Sidebar schließen'"
-                    @click="isCollapsed = !isCollapsed"
+                    :aria-label="isMobile ? 'Menü schließen' : isCollapsed ? 'Sidebar öffnen' : 'Sidebar schließen'"
+                    @click="closeSidebar"
                     class="rounded-lg p-2 transition-modern hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
-                    <Menu v-if="isCollapsed" class="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <X v-if="isMobile" class="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <Menu v-else-if="isCollapsed" class="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <X v-else class="h-5 w-5 text-gray-600 dark:text-gray-400" />
                 </button>
             </div>
 
             <!-- Navigation -->
-            <nav class="flex-1 space-y-1 overflow-y-auto p-4">
+            <nav class="flex-1 space-y-1 overflow-y-auto p-4" @click="onNavClick">
                 <template v-for="(item, idx) in items" :key="item.title + String(idx)">
                     <div
-                        v-if="idx > 0 && item.children?.length && !isCollapsed"
+                        v-if="idx > 0 && item.children?.length && !effectiveCollapsed"
                         class="my-3 border-t border-gray-200 dark:border-gray-700"
                         role="separator"
                         aria-hidden="true"
@@ -167,7 +201,7 @@ const groupTriggerClasses = (item: NavItem) =>
                     <!-- Leaf: direct link -->
                     <template v-if="!item.children?.length && item.href">
                         <Link
-                            v-if="!isCollapsed"
+                            v-if="!effectiveCollapsed"
                             :href="item.href"
                             :class="linkClasses(item.href)"
                             :aria-current="isCurrentUrl(item.href) ? 'page' : undefined"
@@ -206,7 +240,7 @@ const groupTriggerClasses = (item: NavItem) =>
                     <!-- Group: collapsible with children -->
                     <template v-else-if="item.children?.length">
                         <Collapsible
-                            v-if="!isCollapsed"
+                            v-if="!effectiveCollapsed"
                             :key="`group-${item.title}`"
                             :open="isGroupOpen(item.title, item)"
                             class="group"
@@ -355,7 +389,7 @@ const groupTriggerClasses = (item: NavItem) =>
 
             <!-- Footer -->
             <div class="border-t border-gray-200 p-4 dark:border-gray-800">
-                <div v-if="!isCollapsed && user" class="mb-4 flex items-center gap-3">
+                <div v-if="!effectiveCollapsed && user" class="mb-4 flex items-center gap-3">
                     <Avatar :name="user.name" :src="user.avatar" size="sm" />
                     <div class="min-w-0 flex-1">
                         <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -372,13 +406,13 @@ const groupTriggerClasses = (item: NavItem) =>
                         @click="toggleTheme"
                         :class="cn(
                             'flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-modern hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800',
-                            isCollapsed && 'px-2',
+                            effectiveCollapsed && 'px-2',
                         )"
                         aria-label="Theme wechseln"
                     >
                         <Sun v-if="appearance === 'dark'" class="h-4 w-4" />
                         <Moon v-else class="h-4 w-4" />
-                        <span v-if="!isCollapsed">Theme</span>
+                        <span v-if="!effectiveCollapsed">Theme</span>
                     </button>
                 </div>
             </div>

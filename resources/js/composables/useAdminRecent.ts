@@ -3,7 +3,7 @@ const ADMIN_RECENT_MAX = 10;
 
 export type AdminRecentItem = {
     type: string;
-    id: number;
+    id: number | string;
     label: string;
     url: string;
 };

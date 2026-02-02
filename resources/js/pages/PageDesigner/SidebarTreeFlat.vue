@@ -9,7 +9,7 @@ import { GripVertical, Copy, Trash2 } from 'lucide-vue-next';
 
 const props = defineProps<{
     list: LayoutComponentEntry[];
-    getComponentLabel: (type: string) => string;
+    getComponentLabel: (type: string, entry?: { data?: Record<string, unknown> }) => string;
     selectedModuleId: string | null;
 }>();
 
@@ -79,7 +79,7 @@ function handleMoveAt(flatIndex: number, direction: 'up' | 'down'): void {
                     class="min-w-0 flex-1 truncate text-left font-medium hover:underline"
                     @click="emit('select', flatItem.entry.id)"
                 >
-                    {{ getComponentLabel(flatItem.entry.type) }}
+                    {{ getComponentLabel(flatItem.entry.type, flatItem.entry) }}
                 </button>
                 <div class="flex shrink-0 gap-0.5">
                     <Button

@@ -31,7 +31,7 @@ class DashboardController extends Controller
         $endOfNextSevenDays = Carbon::now()->addDays(7);
 
         $expiringSubscriptions = SiteSubscription::query()
-            ->with('site:id,name')
+            ->with('site:uuid,name')
             ->whereNotNull('stripe_subscription_id')
             ->where('stripe_status', 'active')
             ->whereBetween('current_period_ends_at', [now(), $endOfNextSevenDays])
@@ -39,7 +39,7 @@ class DashboardController extends Controller
             ->limit(20)
             ->get()
             ->map(fn ($sub) => [
-                'site_id' => $sub->site?->id,
+                'site_uuid' => $sub->site?->uuid,
                 'site_name' => $sub->site?->name,
                 'current_period_ends_at' => $sub->current_period_ends_at?->format('d.m.Y'),
             ]);

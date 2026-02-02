@@ -23,7 +23,7 @@ class SupportController extends Controller
         }
         $tickets = $request->user()
             ->tickets()
-            ->with(['ticketCategory', 'ticketPriority', 'site:id,name,slug'])
+            ->with(['ticketCategory', 'ticketPriority', 'site:uuid,name,slug'])
             ->latest()
             ->paginate(15)
             ->withQueryString();
@@ -39,7 +39,7 @@ class SupportController extends Controller
             return redirect()->route('support.index')->with('error', 'Support-Tickets sind derzeit deaktiviert.');
         }
         $user = $this->user();
-        $sites = $user->sites()->orderBy('name')->get(['id', 'name', 'slug']);
+        $sites = $user->sites()->orderBy('name')->get(['uuid', 'name', 'slug']);
         $categories = TicketCategory::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug']);
         $priorities = TicketPriority::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug', 'color']);
 
@@ -63,9 +63,13 @@ class SupportController extends Controller
             }
         }
         $validated = $request->validated();
+        $siteId = null;
+        if (! empty($validated['site_uuid'] ?? null)) {
+            $siteId = \App\Models\Site::where('uuid', $validated['site_uuid'])->value('id');
+        }
         $ticket = Ticket::create([
             'user_id' => $request->user()->id,
-            'site_id' => $validated['site_id'] ?? null,
+            'site_id' => $siteId,
             'ticket_category_id' => $validated['ticket_category_id'],
             'ticket_priority_id' => $validated['ticket_priority_id'] ?? null,
             'subject' => $validated['subject'],
@@ -105,7 +109,7 @@ class SupportController extends Controller
             'ticket' => $ticket->only(['id', 'subject', 'status', 'created_at', 'ticket_category_id', 'ticket_priority_id', 'site_id']),
             'ticketCategory' => $ticket->ticketCategory?->only(['id', 'name', 'slug']),
             'ticketPriority' => $ticket->ticketPriority?->only(['id', 'name', 'slug', 'color']),
-            'site' => $ticket->site?->only(['id', 'name', 'slug']),
+            'site' => $ticket->site?->only(['uuid', 'name', 'slug']),
             'messages' => $messages,
         ]);
     }

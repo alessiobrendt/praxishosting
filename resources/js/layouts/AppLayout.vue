@@ -21,8 +21,10 @@ import {
     MessageCircle,
     Settings,
     Shield,
+    PackageCheck,
 } from 'lucide-vue-next';
 import { index as supportIndex } from '@/routes/support';
+import modules from '@/routes/modules';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
 interface Props {
@@ -36,6 +38,7 @@ const props = withDefaults(defineProps<Props>(), {
 const page = usePage();
 const isAdmin = computed(() => (page.props.auth?.user as { is_admin?: boolean })?.is_admin ?? false);
 const openTicketsCount = computed(() => (page.props.auth as { openTicketsCount?: number })?.openTicketsCount ?? 0);
+const activeUserModules = computed(() => (page.props.auth as { activeUserModules?: string[] })?.activeUserModules ?? []);
 const adminOpenTicketsCount = computed(
     () => (page.props.auth as { adminOpenTicketsCount?: number })?.adminOpenTicketsCount ?? 0,
 );
@@ -54,6 +57,30 @@ const sidebarItems = computed<NavItem[]>(() => {
         { title: 'Meine Rechnungen', href: billingIndex().url, icon: FileText },
         supportItem,
     ];
+    if (activeUserModules.value.length > 0) {
+        const moduleChildren: NavItem[] = [];
+        if (activeUserModules.value.includes('newsletter')) {
+            moduleChildren.push({
+                title: 'Newsletter',
+                href: modules.newsletter.index.url(),
+                icon: Mail,
+            });
+        }
+        if (activeUserModules.value.includes('contactform')) {
+            moduleChildren.push({
+                title: 'Kontaktformular',
+                href: modules.contact.index.url(),
+                icon: MessageCircle,
+            });
+        }
+        if (moduleChildren.length > 0) {
+            items.push({
+                title: 'Module',
+                icon: PackageCheck,
+                children: moduleChildren,
+            });
+        }
+    }
     if (isAdmin.value) {
         items.push({
             title: 'Admin',

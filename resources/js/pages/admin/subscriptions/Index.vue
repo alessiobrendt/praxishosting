@@ -71,7 +71,7 @@ const handlePagination = (url: string) => {
                         <TableBody>
                             <TableRow v-for="sub in subscriptions.data" :key="sub.id">
                                 <TableCell>
-                                    <Link v-if="sub.site" :href="`/sites/${sub.site.id}`" class="font-medium text-primary hover:underline">
+                                    <Link v-if="sub.site" :href="`/sites/${sub.site.uuid}`" class="font-medium text-primary hover:underline">
                                         {{ sub.site.name }}
                                     </Link>
                                     <span v-else>–</span>

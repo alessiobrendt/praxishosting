@@ -12,7 +12,7 @@ import { Upload } from 'lucide-vue-next';
 
 const props = defineProps<{
     open: boolean;
-    siteId: number;
+    siteUuid: string;
 }>();
 
 const emit = defineEmits<{
@@ -30,10 +30,10 @@ function getCsrfToken(): string {
 }
 
 async function fetchUrls() {
-    if (!props.siteId) return;
+    if (!props.siteUuid) return;
     loading.value = true;
     try {
-        const r = await fetch(images.index.url({ site: props.siteId }), {
+        const r = await fetch(images.index.url({ site: props.siteUuid }), {
             credentials: 'same-origin',
             headers: { Accept: 'application/json' },
         });
@@ -45,9 +45,9 @@ async function fetchUrls() {
 }
 
 watch(
-    () => [props.open, props.siteId] as const,
-    ([open, siteId]) => {
-        if (open && siteId) fetchUrls();
+    () => [props.open, props.siteUuid] as const,
+    ([open, siteUuid]) => {
+        if (open && siteUuid) fetchUrls();
     },
     { immediate: true },
 );
@@ -58,10 +58,10 @@ function triggerUpload() {
 
 async function onFileSelected(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file || !props.siteId) return;
+    if (!file || !props.siteUuid) return;
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(images.store.url({ site: props.siteId }), {
+    const r = await fetch(images.store.url({ site: props.siteUuid }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',

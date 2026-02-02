@@ -72,7 +72,7 @@ type Template = {
 };
 
 type Site = {
-    id: number;
+    uuid: string;
     name: string;
     slug: string;
     has_page_designer?: boolean;
@@ -104,7 +104,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Meine Sites', href: sitesIndex().url },
     {
         title: props.site.name,
-        href: sitesShow({ site: props.site.id }).url,
+        href: sitesShow({ site: props.site.uuid }).url,
     },
     { title: 'Bearbeiten', href: '#' },
 ];
@@ -190,7 +190,7 @@ onMounted(() => {
 });
 
 const previewIframeRef = ref<HTMLIFrameElement | null>(null);
-const previewUrl = computed(() => sitesPreview({ site: props.site.id }).url);
+const previewUrl = computed(() => sitesPreview({ site: props.site.uuid }).url);
 
 function getCsrfToken(): string {
     const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
@@ -205,7 +205,7 @@ function updatePreview() {
         custom_page_data: form.custom_page_data,
         custom_colors: form.custom_colors,
     };
-    fetch(storePreviewDraft({ site: props.site.id }).url, {
+    fetch(storePreviewDraft({ site: props.site.uuid }).url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -229,7 +229,7 @@ function submitForm() {
     const data = pageData.value as Record<string, unknown>;
     form.custom_colors = (data.colors as Record<string, string>) ?? {};
     form.custom_page_data = data;
-    form.put(SiteController.update.url({ site: props.site.id }), {
+    form.put(SiteController.update.url({ site: props.site.uuid }), {
         preserveScroll: true,
     });
 }
@@ -297,12 +297,12 @@ function submitForm() {
                                     Vorschau in neuem Tab öffnen
                                 </Button>
                             </a>
-                            <Link v-if="canShowPageDesigner" :href="sitesDesign({ site: site.id }).url">
+                            <Link v-if="canShowPageDesigner" :href="sitesDesign({ site: site.uuid }).url">
                                 <Button type="button" variant="outline">
                                     Page Designer
                                 </Button>
                             </Link>
-                            <Link :href="sitesShow({ site: site.id }).url">
+                            <Link :href="sitesShow({ site: site.uuid }).url">
                                 <Button type="button" variant="outline">Abbrechen</Button>
                             </Link>
                         </CardFooter>

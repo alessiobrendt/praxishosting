@@ -94,6 +94,8 @@ function onReorder(): void {
 }
 
 provide('designMode', computed(() => props.designMode ?? false));
+provide('site', computed(() => props.site));
+provide('generalInformation', computed(() => props.generalInformation ?? {}));
 
 const dropTargetIndex = ref<number | null>(null);
 

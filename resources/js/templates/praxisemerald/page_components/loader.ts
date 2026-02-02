@@ -33,6 +33,7 @@ import * as MapEmbedBlockMod from './MapEmbedBlock.vue';
 import * as ServiceGroupBlockMod from './ServiceGroupBlock.vue';
 import * as InfoSectionBlockMod from './InfoSectionBlock.vue';
 import * as TeamCardBlockMod from './TeamCardBlock.vue';
+import * as NewsletterBlockMod from './NewsletterBlock.vue';
 
 export interface PageComponentField {
     key: string;
@@ -94,6 +95,7 @@ const modules: Record<string, PageComponentModule> = {
     './ServiceGroupBlock.vue': ServiceGroupBlockMod as PageComponentModule,
     './InfoSectionBlock.vue': InfoSectionBlockMod as PageComponentModule,
     './TeamCardBlock.vue': TeamCardBlockMod as PageComponentModule,
+    './NewsletterBlock.vue': NewsletterBlockMod as PageComponentModule,
 };
 
 const registry: Array<PageComponentMeta & { Editor?: Component }> = [];

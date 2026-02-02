@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, provide } from 'vue';
 import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
 import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
 import { getMotionPreset } from '@/templates/praxisemerald/motion-presets';
@@ -38,6 +38,8 @@ const emit = defineEmits<{
     (e: 'reorder'): void;
     (e: 'dragStart'): void;
 }>();
+
+provide('layoutEntry', computed(() => props.entry));
 
 function childEntries(): LayoutComponentEntry[] {
     if (!acceptsChildren(props.entry.type as LayoutComponentType)) return [];

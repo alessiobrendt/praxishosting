@@ -198,7 +198,7 @@ class CheckoutController extends Controller
         if ($existing) {
             Log::debug('Checkout success: existing subscription', ['site_id' => $existing->site_id]);
 
-            return redirect()->route('sites.show', ['site' => $existing->site->id]);
+            return redirect()->route('sites.show', ['site' => $existing->site->uuid]);
         }
 
         $template = Template::find($templateId);
@@ -250,7 +250,7 @@ class CheckoutController extends Controller
             $user->notify(new OrderCompletedNotification($site));
 
             return redirect()
-                ->route('sites.show', ['site' => $site->id])
+                ->route('sites.show', ['site' => $site->uuid])
                 ->with('success', 'Ihre Webseite wurde erfolgreich eingerichtet.');
         } catch (\Throwable $e) {
             Log::error('Checkout success: exception during site creation', [

@@ -76,7 +76,7 @@ function removeCtaLink(i: number) {
 async function uploadHeroImage(file: File) {
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(images.store.url({ site: props.site.id }), {
+    const r = await fetch(images.store.url({ site: props.site.uuid }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',
@@ -92,7 +92,7 @@ async function uploadHeroImage(file: File) {
 async function uploadCtaImage(file: File) {
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(images.store.url({ site: props.site.id }), {
+    const r = await fetch(images.store.url({ site: props.site.uuid }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',
@@ -116,7 +116,7 @@ async function uploadLayoutComponentImage(file: File) {
     if (!pending) return;
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(images.store.url({ site: props.site.id }), {
+    const r = await fetch(images.store.url({ site: props.site.uuid }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',
@@ -184,7 +184,11 @@ function moveLayoutComponent(index: number, direction: 'up' | 'down') {
     (props.pageData as SitePageData).layout_components = list;
 }
 
-function getComponentLabel(type: string): string {
+function getComponentLabel(type: string, entry?: { data?: Record<string, unknown> }): string {
+    const label = entry?.data?.moduleLabel;
+    if (typeof label === 'string' && label.trim() !== '') {
+        return label.trim();
+    }
     return LAYOUT_COMPONENT_REGISTRY.find((r) => r.type === type)?.label ?? type;
 }
 
@@ -269,7 +273,7 @@ const showAddComponentMenu = ref(false);
                     >
                         <div class="flex items-center gap-2">
                             <GripVertical class="h-4 w-4 text-muted-foreground" />
-                            <span class="font-medium">{{ getComponentLabel(entry.type) }}</span>
+                            <span class="font-medium">{{ getComponentLabel(entry.type, entry) }}</span>
                             <div class="ml-auto flex gap-1">
                                 <Button type="button" variant="ghost" size="icon" :disabled="index === 0" @click="moveLayoutComponent(index, 'up')">
                                     <ChevronDown class="h-4 w-4 rotate-180" />

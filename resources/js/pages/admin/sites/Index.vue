@@ -95,7 +95,7 @@ const applyFilter = (key: string, value: string | null) => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow v-for="site in sites.data" :key="site.id">
+                            <TableRow v-for="site in sites.data" :key="site.uuid">
                                 <TableCell class="font-medium">{{ site.name }}</TableCell>
                                 <TableCell>
                                     <span v-if="site.user">{{ site.user.name }} ({{ site.user.email }})</span>
@@ -108,7 +108,7 @@ const applyFilter = (key: string, value: string | null) => {
                                 <TableCell>{{ site.is_legacy ? 'Ja' : 'Nein' }}</TableCell>
                                 <TableCell>{{ site.siteSubscription?.current_period_ends_at ?? '–' }}</TableCell>
                                 <TableCell class="text-right">
-                                    <Link :href="`/admin/sites/${site.id}`">
+                                    <Link :href="`/admin/sites/${site.uuid}`">
                                         <Button variant="ghost" size="sm">Verwalten</Button>
                                     </Link>
                                 </TableCell>

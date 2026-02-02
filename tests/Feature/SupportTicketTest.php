@@ -30,7 +30,7 @@ test('customers can create ticket', function () {
         'body' => 'First message body',
         'ticket_category_id' => $category->id,
         'ticket_priority_id' => '',
-        'site_id' => '',
+        'site_uuid' => '',
     ]);
     $response->assertRedirect();
     $this->assertDatabaseHas('tickets', ['user_id' => $user->id, 'subject' => 'Test Ticket']);
@@ -76,7 +76,7 @@ test('customer cannot set site_id to another users site', function () {
         'subject' => 'Test',
         'body' => 'Body',
         'ticket_category_id' => $category->id,
-        'site_id' => $otherSite->id,
+        'site_uuid' => $otherSite->uuid,
     ]);
-    $response->assertSessionHasErrors('site_id');
+    $response->assertSessionHasErrors('site_uuid');
 });

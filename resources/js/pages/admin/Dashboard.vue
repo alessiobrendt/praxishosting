@@ -33,7 +33,7 @@ type Stats = {
 };
 
 type ActionItemExpiring = {
-    site_id: number | null;
+    site_uuid: string | null;
     site_name: string | null;
     current_period_ends_at: string | null;
 };
@@ -254,8 +254,8 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <ul class="mt-2 space-y-1">
                             <li v-for="(item, i) in actionItems.expiringSubscriptions" :key="i">
                                 <Link
-                                    v-if="item.site_id"
-                                    :href="`/admin/sites/${item.site_id}`"
+                                    v-if="item.site_uuid"
+                                    :href="`/admin/sites/${item.site_uuid}`"
                                     class="text-primary hover:underline"
                                 >
                                     {{ item.site_name }} – {{ item.current_period_ends_at }}

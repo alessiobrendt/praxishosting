@@ -64,7 +64,7 @@ const handlePagination = (url: string) => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow v-for="site in legacySites.data" :key="site.id">
+                            <TableRow v-for="site in legacySites.data" :key="site.uuid">
                                 <TableCell class="font-medium">{{ site.name }}</TableCell>
                                 <TableCell>
                                     <span v-if="site.user">{{ site.user.name }} ({{ site.user.email }})</span>
@@ -72,7 +72,7 @@ const handlePagination = (url: string) => {
                                 </TableCell>
                                 <TableCell>{{ site.template?.name ?? '–' }}</TableCell>
                                 <TableCell class="text-right">
-                                    <Link :href="`/sites/${site.id}`">
+                                    <Link :href="`/sites/${site.uuid}`">
                                         <Button variant="ghost" size="sm">Site ansehen</Button>
                                     </Link>
                                 </TableCell>

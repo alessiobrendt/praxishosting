@@ -78,7 +78,7 @@ type SiteSubscription = {
 };
 
 type Site = {
-    id: number;
+    uuid: string;
     name: string;
     slug: string;
     has_page_designer?: boolean;
@@ -129,7 +129,7 @@ const domainForm = useForm({
 });
 
 const inviteCollaborator = () => {
-    inviteForm.post(storeCollaborator({ site: props.site.id }).url, {
+    inviteForm.post(storeCollaborator({ site: props.site.uuid }).url, {
         preserveScroll: true,
         onSuccess: () => {
             inviteForm.reset();
@@ -140,7 +140,7 @@ const inviteCollaborator = () => {
 
 function confirmCancelSubscription() {
     cancelSubscriptionProcessing.value = true;
-    router.post(`/sites/${props.site.id}/subscription/cancel`, {}, {
+    router.post(`/sites/${props.site.uuid}/subscription/cancel`, {}, {
         preserveScroll: true,
         onSuccess: () => {
             cancelSubscriptionDialogOpen.value = false;
@@ -157,7 +157,7 @@ function confirmCancelSubscription() {
 
 const removeCollaborator = (user: User) => {
     if (confirm(`Möchten Sie ${user.name} wirklich als Mitbearbeiter entfernen?`)) {
-        router.delete(destroyCollaborator({ site: props.site.id, user: user.id }).url, {
+        router.delete(destroyCollaborator({ site: props.site.uuid, user: user.id }).url, {
             preserveScroll: true,
         });
     }
@@ -165,7 +165,7 @@ const removeCollaborator = (user: User) => {
 
 const removeInvitation = (invitation: SiteInvitation) => {
     if (confirm(`Möchten Sie die Einladung für ${invitation.email} wirklich löschen?`)) {
-        router.delete(`/sites/${props.site.id}/invitations/${invitation.id}`, {
+        router.delete(`/sites/${props.site.uuid}/invitations/${invitation.id}`, {
             preserveScroll: true,
         });
     }
@@ -211,7 +211,7 @@ const sitePublicUrl = computed(() => {
 });
 
 const addDomain = () => {
-    domainForm.post(storeDomain({ site: props.site.id }).url, {
+    domainForm.post(storeDomain({ site: props.site.uuid }).url, {
         preserveScroll: true,
         onSuccess: () => {
             domainForm.reset();
@@ -221,20 +221,20 @@ const addDomain = () => {
 };
 
 const verifyDomainAction = (domain: Domain) => {
-    router.post(verifyDomain({ site: props.site.id, domain: domain.id }).url, {}, {
+    router.post(verifyDomain({ site: props.site.uuid, domain: domain.id }).url, {}, {
         preserveScroll: true,
     });
 };
 
 const setPrimaryDomainAction = (domain: Domain) => {
-    router.post(setPrimaryDomain({ site: props.site.id, domain: domain.id }).url, {}, {
+    router.post(setPrimaryDomain({ site: props.site.uuid, domain: domain.id }).url, {}, {
         preserveScroll: true,
     });
 };
 
 const removeDomain = (domain: Domain) => {
     if (confirm(`Möchten Sie die Domain ${domain.domain} wirklich entfernen?`)) {
-        router.delete(destroyDomain({ site: props.site.id, domain: domain.id }).url, {
+        router.delete(destroyDomain({ site: props.site.uuid, domain: domain.id }).url, {
             preserveScroll: true,
         });
     }
@@ -258,7 +258,7 @@ const canShowPageDesigner = computed(() => {
                     </Text>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <Link :href="sitesEdit({ site: site.id }).url">
+                    <Link :href="sitesEdit({ site: site.uuid }).url">
                         <Button variant="outline">
                             <Edit class="mr-2 h-4 w-4" />
                             Inhalt bearbeiten
@@ -266,7 +266,7 @@ const canShowPageDesigner = computed(() => {
                     </Link>
                     <Link
                         v-if="canShowPageDesigner"
-                        :href="sitesDesign({ site: site.id }).url"
+                        :href="sitesDesign({ site: site.uuid }).url"
                     >
                         <Button variant="outline">
                             <Layout class="mr-2 h-4 w-4" />
@@ -657,7 +657,7 @@ const canShowPageDesigner = computed(() => {
             <SiteVersionTimeline
                 v-if="site.versions?.length"
                 :versions="site.versions"
-                :site-id="site.id"
+                :site-uuid="site.uuid"
                 :published-version-id="site.published_version_id"
             />
         </div>

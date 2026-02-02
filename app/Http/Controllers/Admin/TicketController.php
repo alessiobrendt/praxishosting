@@ -66,7 +66,7 @@ class TicketController extends Controller
             'user:id,name,email',
             'ticketCategory',
             'ticketPriority',
-            'site:id,name,slug',
+            'site:uuid,name,slug',
             'assignedTo:id,name',
             'tags:id,name,slug,color',
             'timeLogs' => fn ($q) => $q->with('user:id,name')->orderBy('logged_at', 'desc'),
@@ -78,7 +78,7 @@ class TicketController extends Controller
         $categories = \App\Models\TicketCategory::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug']);
         $priorities = \App\Models\TicketPriority::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug', 'color']);
         $admins = User::query()->where('is_admin', true)->orderBy('name')->get(['id', 'name']);
-        $customerSites = $ticket->user->sites()->orderBy('name')->get(['id', 'name', 'slug']);
+        $customerSites = $ticket->user->sites()->orderBy('name')->get(['uuid', 'name', 'slug']);
         $recentTickets = Ticket::query()
             ->where('user_id', $ticket->user_id)
             ->where('id', '!=', $ticket->id)
@@ -104,6 +104,11 @@ class TicketController extends Controller
         $validated = $request->validated();
         $allowed = ['status', 'ticket_category_id', 'ticket_priority_id', 'assigned_to', 'site_id', 'due_at'];
         $update = array_intersect_key($validated, array_flip($allowed));
+        if (isset($validated['site_uuid'])) {
+            $update['site_id'] = $validated['site_uuid']
+                ? \App\Models\Site::where('uuid', $validated['site_uuid'])->value('id')
+                : null;
+        }
         if (array_key_exists('due_at', $update) && $update['due_at'] === '') {
             $update['due_at'] = null;
         }

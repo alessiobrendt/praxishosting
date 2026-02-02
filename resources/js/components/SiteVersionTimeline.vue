@@ -25,7 +25,7 @@ type SiteVersion = {
 
 interface Props {
     versions: SiteVersion[];
-    siteId: number;
+    siteUuid: string;
     publishedVersionId?: number | null;
 }
 
@@ -33,7 +33,7 @@ const props = defineProps<Props>();
 
 const publishVersion = (versionId: number) => {
     if (confirm('Möchten Sie diese Version wirklich veröffentlichen?')) {
-        router.post(`/sites/${props.siteId}/versions/${versionId}/publish`, {}, {
+        router.post(`/sites/${props.siteUuid}/versions/${versionId}/publish`, {}, {
             preserveScroll: true,
         });
     }
@@ -41,7 +41,7 @@ const publishVersion = (versionId: number) => {
 
 const rollbackVersion = (versionId: number) => {
     if (confirm('Möchten Sie wirklich zu dieser Version zurückkehren? Alle aktuellen Änderungen gehen verloren.')) {
-        router.post(`/sites/${props.siteId}/versions/${versionId}/rollback`, {}, {
+        router.post(`/sites/${props.siteUuid}/versions/${versionId}/rollback`, {}, {
             preserveScroll: true,
         });
     }

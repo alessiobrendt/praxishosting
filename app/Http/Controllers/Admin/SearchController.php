@@ -39,9 +39,9 @@ class SearchController extends Controller
                 $query->where('name', 'like', $term)->orWhere('slug', 'like', $term);
             })
             ->limit($limit)
-            ->get(['id', 'name', 'slug'])
+            ->get(['uuid', 'name', 'slug'])
             ->map(fn (Site $s) => [
-                'id' => $s->id,
+                'uuid' => $s->uuid,
                 'label' => $s->name.' ('.$s->slug.')',
                 'url' => route('admin.sites.show', $s),
             ]);
@@ -70,12 +70,12 @@ class SearchController extends Controller
 
         $subscriptions = SiteSubscription::query()
             ->where('stripe_subscription_id', 'like', $term)
-            ->with('site:id,name')
+            ->with('site:uuid,name')
             ->limit($limit)
             ->get()
             ->map(fn (SiteSubscription $sub) => [
                 'id' => $sub->id,
-                'site_id' => $sub->site_id,
+                'site_uuid' => $sub->site?->uuid,
                 'label' => ($sub->site?->name ?? 'Site #'.$sub->site_id).' – '.$sub->stripe_subscription_id,
                 'url' => $sub->site_id ? route('admin.sites.show', $sub->site) : route('admin.subscriptions.index'),
             ]);

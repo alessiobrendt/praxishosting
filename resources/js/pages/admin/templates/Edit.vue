@@ -387,7 +387,11 @@ function updateLayoutComponentData(index: number, data: Record<string, unknown>)
     templateData.value = { ...templateData.value };
 }
 
-function getComponentLabel(type: string): string {
+function getComponentLabel(type: string, entry?: { data?: Record<string, unknown> }): string {
+    const label = entry?.data?.moduleLabel;
+    if (typeof label === 'string' && label.trim() !== '') {
+        return label.trim();
+    }
     return componentRegistry.value?.LAYOUT_COMPONENT_REGISTRY.find((r) => r.type === type)?.label ?? type;
 }
 
@@ -545,7 +549,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 >
                                     <div class="flex items-center gap-2">
                                         <GripVertical class="h-4 w-4 text-muted-foreground" />
-                                        <span class="font-medium">{{ getComponentLabel(entry.type) }}</span>
+                                        <span class="font-medium">{{ getComponentLabel(entry.type, entry) }}</span>
                                         <div class="ml-auto flex gap-1">
                                             <Button type="button" variant="ghost" size="icon" :disabled="index === 0" @click="moveLayoutComponent(index, 'up')">
                                                 <ChevronDown class="h-4 w-4 rotate-180" />

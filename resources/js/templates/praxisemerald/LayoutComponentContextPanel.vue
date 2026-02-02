@@ -42,7 +42,7 @@ async function onImageSelected(event: Event) {
     pendingUpload.value = null;
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch(images.store.url({ site: props.site.id }), {
+    const r = await fetch(images.store.url({ site: props.site.uuid }), {
         method: 'POST',
         body: fd,
         credentials: 'same-origin',
