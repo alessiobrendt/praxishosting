@@ -28,11 +28,6 @@ class ResolveSiteByDomain
         }
 
         $host = strtolower($request->getHost());
-        $mainAppHosts = Setting::getMainAppHosts();
-
-        if (in_array($host, $mainAppHosts, true)) {
-            return $next($request);
-        }
 
         $domain = Domain::query()
             ->where('domain', $host)
@@ -48,6 +43,11 @@ class ResolveSiteByDomain
         }
 
         if (! $domain) {
+            $mainAppHosts = Setting::getMainAppHosts();
+            if (in_array($host, $mainAppHosts, true)) {
+                return $next($request);
+            }
+
             abort(404);
         }
 
