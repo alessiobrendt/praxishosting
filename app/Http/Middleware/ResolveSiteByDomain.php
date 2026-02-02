@@ -7,6 +7,7 @@ use App\Models\Setting;
 use App\Services\SiteRenderService;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,6 +30,8 @@ class ResolveSiteByDomain
 
         $host = strtolower($request->getHost());
 
+        Log::debug('ResolveSiteByDomain request', ['host' => $host, 'path' => $request->path()]);
+
         $domain = Domain::query()
             ->where('domain', $host)
             ->with(['site'])
@@ -44,6 +47,7 @@ class ResolveSiteByDomain
 
         if (! $domain) {
             $mainAppHosts = Setting::getMainAppHosts();
+            Log::debug('ResolveSiteByDomain no domain', ['host' => $host, 'mainAppHosts' => $mainAppHosts]);
             if (in_array($host, $mainAppHosts, true)) {
                 return $next($request);
             }
@@ -64,10 +68,20 @@ class ResolveSiteByDomain
         $pageSlug = $path === '' ? null : $path;
 
         $normalizedSlug = $this->siteRenderService->normalizePageSlug($pageSlug, $site);
+        $isActive = $this->siteRenderService->isPageActive($site->custom_page_data, $normalizedSlug);
+
+        Log::debug('ResolveSiteByDomain', [
+            'host' => $host,
+            'path' => $path,
+            'pageSlug' => $pageSlug,
+            'normalizedSlug' => $normalizedSlug,
+            'isActive' => $isActive,
+        ]);
+
         if ($pageSlug !== null && $normalizedSlug === 'index') {
             abort(404);
         }
-        if ($normalizedSlug !== 'index' && ! $this->siteRenderService->isPageActive($site->custom_page_data, $normalizedSlug)) {
+        if ($normalizedSlug !== 'index' && ! $isActive) {
             abort(404);
         }
         $data = $this->siteRenderService->resolveRenderData($site, null, null, $normalizedSlug);
