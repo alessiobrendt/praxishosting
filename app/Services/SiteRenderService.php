@@ -126,6 +126,15 @@ class SiteRenderService
             return false;
         }
 
+        $customPages = $customPageData['custom_pages'] ?? [];
+        if (is_array($customPages)) {
+            foreach ($customPages as $cp) {
+                if (isset($cp['slug']) && $cp['slug'] === $pageSlug) {
+                    return true;
+                }
+            }
+        }
+
         $meta = $customPageData['pages_meta'][$pageSlug] ?? null;
         if (! is_array($meta)) {
             return false;
@@ -151,18 +160,17 @@ class SiteRenderService
 
         $templatePage = $templatePages->firstWhere('slug', $pageSlug);
         $templateDefaults = $templatePage && is_array($templatePage->data) ? $templatePage->data : [];
+        $custom = $source !== null && isset($source['pages'][$pageSlug]) && is_array($source['pages'][$pageSlug]) ? $source['pages'][$pageSlug] : null;
+
         if ($contentFromTemplateOnly) {
-            $layout = $templateDefaults['layout_components'] ?? null;
+            $merged = $templatePage ? $templateDefaults : ($custom ?? []);
+            $layout = $merged['layout_components'] ?? null;
 
             return [
                 'layout_components' => is_array($layout) && $layout !== [] ? $layout : [],
             ];
         }
 
-        $custom = null;
-        if ($source !== null && isset($source['pages'][$pageSlug]) && is_array($source['pages'][$pageSlug])) {
-            $custom = $source['pages'][$pageSlug];
-        }
         $merged = array_merge($templateDefaults, $custom ?? []);
         $layout = $merged['layout_components'] ?? null;
 

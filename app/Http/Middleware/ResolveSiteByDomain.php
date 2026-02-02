@@ -27,16 +27,6 @@ class ResolveSiteByDomain
             return $next($request);
         }
 
-        $path = trim($request->path(), '/');
-        $pageSlug = null;
-        if ($path === '') {
-            $pageSlug = null;
-        } elseif (in_array($path, ['notfallinformationen', 'patienteninformationen'], true)) {
-            $pageSlug = $path;
-        } else {
-            return $next($request);
-        }
-
         $host = strtolower($request->getHost());
         $mainAppHosts = Setting::getMainAppHosts();
 
@@ -70,9 +60,15 @@ class ResolveSiteByDomain
         $site->unsetRelation('template');
         $site->load(['template.pages']);
 
+        $path = trim($request->path(), '/');
+        $pageSlug = $path === '' ? null : $path;
+
         $normalizedSlug = $this->siteRenderService->normalizePageSlug($pageSlug, $site);
+        if ($pageSlug !== null && $normalizedSlug === 'index') {
+            abort(404);
+        }
         if ($normalizedSlug !== 'index' && ! $this->siteRenderService->isPageActive($site->custom_page_data, $normalizedSlug)) {
-            return redirect('/');
+            abort(404);
         }
         $data = $this->siteRenderService->resolveRenderData($site, null, null, $normalizedSlug);
 
