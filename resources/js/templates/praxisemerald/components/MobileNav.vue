@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, inject } from 'vue';
+import { ref } from 'vue';
 import Button from '@/templates/praxisemerald/components/ui/Button.vue';
-import NewsletterModule from '@/templates/praxisemerald/page_components/modules/NewsletterModule.vue';
 import type { NavLink } from '@/types/layout-components';
-import type { Ref } from 'vue';
 
 const props = withDefaults(
     defineProps<{
@@ -17,14 +15,6 @@ const props = withDefaults(
     }>(),
     { designMode: false },
 );
-
-const generalInfo = inject<{ value: Record<string, unknown> } | Ref<Record<string, unknown>>>('generalInformation', { value: {} });
-const activeModules = computed(() => {
-    const g = generalInfo?.value ?? (generalInfo as Ref<Record<string, unknown>>)?.value ?? {};
-    const mods = g.active_modules;
-    return Array.isArray(mods) ? mods : [];
-});
-const showNewsletter = computed(() => activeModules.value.includes('newsletter'));
 
 const open = ref(false);
 </script>
@@ -102,9 +92,6 @@ const open = ref(false);
                             >
                                 {{ link.label }}
                             </a>
-                        </li>
-                        <li v-if="showNewsletter && !designMode" class="mt-4 border-t pt-4">
-                            <NewsletterModule :data="{ heading: 'Newsletter', buttonText: 'Anmelden' }" />
                         </li>
                         <li v-if="ctaButtonText" class="mt-4">
                             <Button variant="default" size="sm" class="w-full">

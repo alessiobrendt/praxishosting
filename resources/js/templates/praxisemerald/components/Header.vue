@@ -3,7 +3,6 @@ import { computed, inject } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Button from '@/templates/praxisemerald/components/ui/Button.vue';
 import MobileNav from '@/templates/praxisemerald/components/MobileNav.vue';
-import NewsletterModule from '@/templates/praxisemerald/page_components/modules/NewsletterModule.vue';
 import type { HeaderComponentData, NavLink } from '@/types/layout-components';
 import type { Ref } from 'vue';
 
@@ -16,14 +15,6 @@ const props = withDefaults(
 );
 
 const injectedDesignMode = inject<Ref<boolean> | boolean>('designMode', false);
-const generalInfo = inject<{ value: Record<string, unknown> } | Ref<Record<string, unknown>>>('generalInformation', { value: {} });
-const activeModules = computed(() => {
-    const g = generalInfo?.value ?? (generalInfo as Ref<Record<string, unknown>>)?.value ?? {};
-    const mods = g.active_modules;
-    return Array.isArray(mods) ? mods : [];
-});
-const showNewsletter = computed(() => activeModules.value.includes('newsletter'));
-
 const isDesignMode = computed(
     () =>
         props.designMode ??
@@ -92,12 +83,6 @@ function isActive(href: string): boolean {
                 </ul>
             </div>
             <div class="flex items-center gap-4">
-                <div
-                    v-if="showNewsletter && !isDesignMode"
-                    class="hidden max-w-[200px] lg:block"
-                >
-                    <NewsletterModule :data="{ heading: '', buttonText: 'Newsletter' }" />
-                </div>
                 <Button v-if="ctaButtonText" variant="default" size="sm" class="hidden sm:inline-flex">
                     <a
                         :href="isDesignMode ? '#' : ctaButtonHref"
