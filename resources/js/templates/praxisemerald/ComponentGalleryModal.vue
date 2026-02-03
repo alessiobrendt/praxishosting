@@ -8,7 +8,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
+import { getLayoutComponent as defaultGetLayoutComponent } from '@/templates/praxisemerald/component-map';
+import type { Component } from 'vue';
 import type { LayoutComponentType } from '@/types/layout-components';
 
 const PREVIEW_SCALE = 0.28;
@@ -36,11 +37,20 @@ type ComponentRegistryEntry = {
     category?: string;
 };
 
-const props = defineProps<{
-    open: boolean;
-    components: ComponentRegistryEntry[];
-    getComponentLabel: (type: string) => string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        open: boolean;
+        components: ComponentRegistryEntry[];
+        getComponentLabel: (type: string) => string;
+        /** When provided (e.g. from template registry), use for previews instead of default praxisemerald map. */
+        getLayoutComponent?: (type: string) => Component | undefined;
+    }>(),
+    { getLayoutComponent: undefined },
+);
+
+function getLayoutComponent(type: string): Component | undefined {
+    return props.getLayoutComponent ? props.getLayoutComponent(type) : defaultGetLayoutComponent(type);
+}
 
 const emit = defineEmits<{
     (e: 'close'): void;
@@ -144,12 +154,12 @@ function onSelect(type: LayoutComponentType | string) {
                                     :style="{ height: `${PREVIEW_VIEW_HEIGHT}px` }"
                                 >
                                     <div
-                                        v-if="getLayoutComponent(reg.type)"
+                                        v-if="getLayoutComponent(reg.type as string)"
                                         class="absolute left-0 top-0 bg-white"
                                         :style="getPreviewStyle()"
                                     >
                                         <component
-                                            :is="getLayoutComponent(reg.type)!"
+                                            :is="getLayoutComponent(reg.type as string)!"
                                             :data="reg.defaultData"
                                             :design-mode="true"
                                         />

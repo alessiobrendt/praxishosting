@@ -1229,6 +1229,7 @@ onUnmounted(() => {
             :open="componentGalleryOpen"
             :components="registry?.LAYOUT_COMPONENT_REGISTRY ?? []"
             :get-component-label="getComponentLabel"
+            :get-layout-component="registry?.getLayoutComponent"
             @select="(type) => { addComponent(type); componentGalleryOpen = false; }"
             @close="componentGalleryOpen = false"
         />

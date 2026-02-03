@@ -4,11 +4,21 @@ import {
     getDefaultDataForType as praxisemeraldGetDefaultDataForType,
     generateLayoutComponentId as praxisemeraldGenerateLayoutComponentId,
 } from '@/templates/praxisemerald/combined-registry';
+import { getLayoutComponent as praxisemeraldGetLayoutComponent } from '@/templates/praxisemerald/component-map';
+import {
+    LAYOUT_COMPONENT_REGISTRY as HANDYSO_REGISTRY,
+    getDefaultDataForType as handysoGetDefaultDataForType,
+    generateLayoutComponentId as handysoGenerateLayoutComponentId,
+} from '@/templates/handyso/combined-registry';
+import { getDefaultLayoutComponents } from '@/templates/handyso/component-registry';
+import { getLayoutComponent as handysoGetLayoutComponent } from '@/templates/handyso/component-map';
 
 export interface ComponentRegistryAdapter {
     LAYOUT_COMPONENT_REGISTRY: Array<{ type: string; label: string; placement: string; defaultData: Record<string, unknown> }>;
     getDefaultDataForType: (type: string) => Record<string, unknown>;
     generateLayoutComponentId: () => string;
+    /** Resolve layout component by type for preview (e.g. in ComponentGalleryModal). */
+    getLayoutComponent?: (type: string) => Component | undefined;
 }
 
 export interface TemplateRegistryEntry {
@@ -101,6 +111,7 @@ function registerPraxisemerald(): void {
             LAYOUT_COMPONENT_REGISTRY: PRAXISEMERALD_REGISTRY,
             getDefaultDataForType: praxisemeraldGetDefaultDataForType,
             generateLayoutComponentId: praxisemeraldGenerateLayoutComponentId,
+            getLayoutComponent: praxisemeraldGetLayoutComponent,
         }),
         getDefaultPageData: () => ({ ...praxisemeraldDefaultPageData }),
         pageSlugs: ['index', 'notfallinformationen', 'patienteninformationen'],
@@ -161,5 +172,38 @@ function registerHandwerk(): void {
     });
 }
 
+const handysoDefaultColors = {
+    primary: '#fd7f2b',
+    primaryHover: '#e67220',
+    primaryLight: '#fff4ed',
+    primaryDark: '#010b1a',
+    secondary: '#010b1a',
+    tertiary: '#334155',
+    quaternary: '#f8fafc',
+    quinary: '#f1f5f9',
+};
+
+const handysoDefaultPageData: Record<string, unknown> = {
+    colors: { ...handysoDefaultColors },
+    layout_components: getDefaultLayoutComponents(),
+};
+
+/** Register Handyso template (handyman / repair services). */
+function registerHandyso(): void {
+    register({
+        slug: 'handyso',
+        Layout: () => import('@/templates/handyso/HandysoLayout.vue'),
+        PageComponent: () => import('@/templates/handyso/pages/Index.vue'),
+        getComponentRegistry: () => ({
+            LAYOUT_COMPONENT_REGISTRY: HANDYSO_REGISTRY,
+            getDefaultDataForType: handysoGetDefaultDataForType,
+            generateLayoutComponentId: handysoGenerateLayoutComponentId,
+            getLayoutComponent: handysoGetLayoutComponent,
+        }),
+        getDefaultPageData: () => ({ ...handysoDefaultPageData }),
+    });
+}
+
 registerPraxisemerald();
 registerHandwerk();
+registerHandyso();
