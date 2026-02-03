@@ -8,6 +8,7 @@ use App\Services\SiteRenderService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
@@ -87,6 +88,14 @@ class ResolveSiteByDomain
         $data = $this->siteRenderService->resolveRenderData($site, null, null, $normalizedSlug);
 
         View::share('appearance', 'light');
+
+        $assetBaseUrl = rtrim(config('app.url'), '/');
+        if (str_starts_with($assetBaseUrl, 'http://')) {
+            $assetBaseUrl = 'https://'.substr($assetBaseUrl, 7);
+        }
+        URL::forceRootUrl($assetBaseUrl);
+        URL::forceScheme('https');
+        config(['app.asset_url' => $assetBaseUrl]);
 
         $inertiaResponse = Inertia::render('site-render/Home', [
             'site' => $site->only(['uuid', 'name', 'slug']),

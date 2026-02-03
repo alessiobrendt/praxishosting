@@ -30,6 +30,9 @@ Erstelle eine `Caddyfile` mit folgender Konfiguration:
 
 # Haupt-Domain (praxishosting.abrendt.de)
 praxishosting.abrendt.de {
+    # CORS: Custom Domains laden CSS/JS von der App-URL
+    header /build/* Access-Control-Allow-Origin *
+
     reverse_proxy 127.0.0.1:8000
 }
 

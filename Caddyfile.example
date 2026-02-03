@@ -31,10 +31,13 @@
 # Haupt-Domain (Panel/Dashboard)
 # Passe "praxishosting.abrendt.de" an deine tatsächliche Domain an
 praxishosting.abrendt.de {
+    # CORS für Assets: Custom Domains laden CSS/JS von hier
+    header /build/* Access-Control-Allow-Origin *
+
     # Reverse Proxy zu Laravel-App
     # Passe den Port an, falls Laravel auf einem anderen Port läuft
     reverse_proxy 127.0.0.1:8000
-    
+
     # Optional: Access Logs
     log {
         output file /var/log/caddy/praxishosting.log
