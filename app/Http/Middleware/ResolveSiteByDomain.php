@@ -29,6 +29,10 @@ class ResolveSiteByDomain
             return $next($request);
         }
 
+        if ($request->is('api/verify-domain')) {
+            return $next($request);
+        }
+
         $host = strtolower($request->getHost());
 
         Log::debug('ResolveSiteByDomain request', ['host' => $host, 'path' => $request->path()]);
