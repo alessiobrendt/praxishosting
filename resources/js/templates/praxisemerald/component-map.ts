@@ -4,13 +4,13 @@ import Header from '@/templates/praxisemerald/components/Header.vue';
 import Footer from '@/templates/praxisemerald/components/Footer.vue';
 import Hero from '@/templates/praxisemerald/components/Hero.vue';
 import MobileNav from '@/templates/praxisemerald/components/MobileNav.vue';
-import JsonBlock from '@/templates/praxisemerald/components/JsonBlock.vue';
+import JsonBlock from '@/templates/shared/components/JsonBlock.vue';
 import AboutBlock from '@/templates/praxisemerald/components/AboutBlock.vue';
 import HoursBlock from '@/templates/praxisemerald/components/HoursBlock.vue';
 import CtaBlock from '@/templates/praxisemerald/components/CtaBlock.vue';
-import SectionBlock from '@/templates/praxisemerald/components/SectionBlock.vue';
-import GridBlock from '@/templates/praxisemerald/components/GridBlock.vue';
-import FlexContainerBlock from '@/templates/praxisemerald/components/FlexContainerBlock.vue';
+import SectionBlock from '@/templates/shared/components/SectionBlock.vue';
+import GridBlock from '@/templates/shared/components/GridBlock.vue';
+import FlexContainerBlock from '@/templates/shared/components/FlexContainerBlock.vue';
 import { getLayoutComponentFromPageComponents } from '@/templates/praxisemerald/page_components/loader';
 import { getComponentRegistryEntry } from '@/templates/praxisemerald/combined-registry';
 

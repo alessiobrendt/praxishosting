@@ -45,7 +45,7 @@ const items = () => (Array.isArray(props.data.items) ? props.data.items : []) as
                     <p v-if="p.date" class="text-xs text-slate-500">{{ new Date(p.date).toLocaleDateString('de-DE') }}</p>
                     <h2 class="mt-1 text-lg font-semibold text-slate-900">{{ p.title || 'Titel' }}</h2>
                     <p class="mt-1 text-sm text-slate-700">{{ p.excerpt || 'Kurzbeschreibung' }}</p>
-                    <a v-if="p.href" :href="p.href" class="mt-3 inline-block text-sm font-medium text-emerald-700 hover:underline">
+                    <a v-if="p.href" :href="p.href" class="mt-3 inline-block text-sm font-medium hover:underline" style="color: var(--primary)">
                         Mehr lesen
                     </a>
                 </div>

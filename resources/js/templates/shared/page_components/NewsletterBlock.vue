@@ -21,7 +21,7 @@ export const meta = {
 
 <script setup lang="ts">
 import { inject, computed } from 'vue';
-import NewsletterModule from '@/templates/praxisemerald/page_components/modules/NewsletterModule.vue';
+import NewsletterModule from '@/templates/shared/page_components/modules/NewsletterModule.vue';
 
 const props = defineProps<{ data: Record<string, unknown>; designMode?: boolean }>();
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, computed, provide } from 'vue';
+import { ref, watch, computed, provide, nextTick } from 'vue';
 import { getLayoutComponent } from '@/templates/handyso/component-map';
 import { acceptsChildren } from '@/templates/handyso/combined-registry';
+import { isSlotContainer } from '@/templates/handyso/component-registry';
 import { getMotionPreset } from '@/templates/handyso/motion-presets';
 import type {
     LayoutComponentEntry,
@@ -42,8 +43,9 @@ const emit = defineEmits<{
 provide('layoutEntry', computed(() => props.entry));
 
 function childEntries(): LayoutComponentEntry[] {
-    if (!acceptsChildren(props.entry.type as LayoutComponentType)) return [];
-    const c = props.entry.children;
+    const entry = props.entry;
+    if (!entry || !acceptsChildren(entry.type as LayoutComponentType)) return [];
+    const c = entry.children;
     if (!Array.isArray(c)) return [];
     return c.filter(
         (e): e is LayoutComponentEntry =>
@@ -53,11 +55,12 @@ function childEntries(): LayoutComponentEntry[] {
 
 /** Container children array; ensures entry.children is always an array for any container type. */
 function getContainerChildren(): LayoutComponentEntry[] {
-    if (!acceptsChildren(props.entry.type as LayoutComponentType)) return [];
-    let c = props.entry.children;
+    const entry = props.entry;
+    if (!entry || !acceptsChildren(entry.type as LayoutComponentType)) return [];
+    let c = entry.children;
     if (!Array.isArray(c)) {
         c = [];
-        (props.entry as Record<string, unknown>).children = c;
+        (entry as Record<string, unknown>).children = c;
     }
     return c as LayoutComponentEntry[];
 }
@@ -75,7 +78,7 @@ watch(
 
 function onContainerDragEnd(): void {
     (props.entry as Record<string, unknown>).children = [...containerChildrenFiltered.value];
-    emit('reorder');
+    nextTick(() => emit('reorder'));
 }
 
 const isRow = (): boolean => (props.entry.data?.direction as string) === 'row';
@@ -205,8 +208,35 @@ const motionPreset = computed(() =>
             <GripVertical class="h-4 w-4" />
         </div>
         <div class="min-w-0 flex-1 pl-6">
-        <!-- Container in design mode -->
-        <template v-if="designMode && acceptsChildren(entry.type as LayoutComponentType)">
+        <!-- Slot container: render only the section with entry (reorder in sidebar) -->
+        <template v-if="designMode && isSlotContainer(entry.type)">
+            <template v-if="motionPreset">
+                <motion.div
+                    class="min-w-0 flex-1"
+                    :initial="motionPreset.initial"
+                    :animate="motionPreset.animate"
+                    :transition="motionPreset.transition"
+                >
+                    <component
+                        :is="getLayoutComponent(entry.type)"
+                        v-if="getLayoutComponent(entry.type)"
+                        :entry="entry"
+                        :design-mode="designMode"
+                        class="min-w-0 flex-1"
+                    />
+                </motion.div>
+            </template>
+            <component
+                v-else
+                :is="getLayoutComponent(entry.type)"
+                v-if="getLayoutComponent(entry.type)"
+                :entry="entry"
+                :design-mode="designMode"
+                class="min-w-0 flex-1"
+            />
+        </template>
+        <!-- Container in design mode (section/grid/flex with draggable children) -->
+        <template v-else-if="designMode && acceptsChildren(entry.type as LayoutComponentType)">
             <template v-if="motionPreset">
                 <motion.div
                     class="min-w-0 flex-1"
@@ -463,49 +493,76 @@ const motionPreset = computed(() =>
         </div>
     </div>
     <template v-else>
-        <template v-if="motionPreset">
-            <motion.div
-                class="min-w-0"
-                :initial="motionPreset.initial"
-                :animate="motionPreset.animate"
-                :transition="motionPreset.transition"
-            >
-                <component
-                    :is="getLayoutComponent(entry.type)"
-                    v-if="getLayoutComponent(entry.type)"
-                    :data="entry.data ?? {}"
-                    :design-mode="designMode"
+        <!-- Non-design mode: slot containers receive entry and render children at slots -->
+        <template v-if="isSlotContainer(entry.type)">
+            <template v-if="motionPreset">
+                <motion.div
+                    class="min-w-0"
+                    :initial="motionPreset.initial"
+                    :animate="motionPreset.animate"
+                    :transition="motionPreset.transition"
                 >
-                    <template v-if="childEntries().length > 0">
-                        <div
-                            v-for="child in childEntries()"
-                            :key="child.id"
-                            class="section-child min-w-0"
-                            :style="getChildFlexStyle(child)"
-                        >
-                            <LayoutBlock :entry="child" />
-                        </div>
-                    </template>
-                </component>
-            </motion.div>
-        </template>
-        <component
-            v-else
-            :is="getLayoutComponent(entry.type)"
-            v-if="getLayoutComponent(entry.type)"
-            :data="entry.data ?? {}"
-            :design-mode="designMode"
-        >
-            <template v-if="childEntries().length > 0">
-                <div
-                    v-for="child in childEntries()"
-                    :key="child.id"
-                    class="section-child min-w-0"
-                    :style="getChildFlexStyle(child)"
-                >
-                    <LayoutBlock :entry="child" />
-                </div>
+                    <component
+                        :is="getLayoutComponent(entry.type)"
+                        v-if="getLayoutComponent(entry.type)"
+                        :entry="entry"
+                        :design-mode="designMode"
+                    />
+                </motion.div>
             </template>
-        </component>
+            <component
+                v-else
+                :is="getLayoutComponent(entry.type)"
+                v-if="getLayoutComponent(entry.type)"
+                :entry="entry"
+                :design-mode="designMode"
+            />
+        </template>
+        <template v-else>
+            <template v-if="motionPreset">
+                <motion.div
+                    class="min-w-0"
+                    :initial="motionPreset.initial"
+                    :animate="motionPreset.animate"
+                    :transition="motionPreset.transition"
+                >
+                    <component
+                        :is="getLayoutComponent(entry.type)"
+                        v-if="getLayoutComponent(entry.type)"
+                        :data="entry.data ?? {}"
+                        :design-mode="designMode"
+                    >
+                        <template v-if="childEntries().length > 0">
+                            <div
+                                v-for="child in childEntries()"
+                                :key="child.id"
+                                class="section-child min-w-0"
+                                :style="getChildFlexStyle(child)"
+                            >
+                                <LayoutBlock :entry="child" />
+                            </div>
+                        </template>
+                    </component>
+                </motion.div>
+            </template>
+            <component
+                v-else
+                :is="getLayoutComponent(entry.type)"
+                v-if="getLayoutComponent(entry.type)"
+                :data="entry.data ?? {}"
+                :design-mode="designMode"
+            >
+                <template v-if="childEntries().length > 0">
+                    <div
+                        v-for="child in childEntries()"
+                        :key="child.id"
+                        class="section-child min-w-0"
+                        :style="getChildFlexStyle(child)"
+                    >
+                        <LayoutBlock :entry="child" />
+                    </div>
+                </template>
+            </component>
+        </template>
     </template>
 </template>

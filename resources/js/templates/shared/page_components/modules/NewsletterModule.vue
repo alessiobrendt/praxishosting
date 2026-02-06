@@ -76,7 +76,7 @@ onMounted(checkStatus);
             {{ (data.heading as string) ?? '' }}
         </p>
 
-        <div v-if="subscribed" class="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">
+        <div v-if="subscribed" class="rounded-md p-3 text-sm bg-primary/10" style="color: var(--primary-dark)">
             {{ (data.subscribedMessage as string) ?? 'Sie sind bereits für unseren Newsletter angemeldet.' }}
         </div>
 
@@ -98,20 +98,20 @@ onMounted(checkStatus);
                     type="email"
                     required
                     placeholder="E-Mail-Adresse"
-                    class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
+                    class="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:ring-primary"
                 />
                 <p v-if="getError('email')" class="text-xs text-red-600">{{ getError('email') }}</p>
             </div>
             <button
                 type="submit"
                 :disabled="pending"
-                class="shrink-0 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                class="shrink-0 rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50 bg-primary text-primary-foreground hover:opacity-90"
             >
                 {{ (data.buttonText as string) ?? 'Anmelden' }}
             </button>
         </form>
 
-        <p v-if="successMessage" class="text-sm text-emerald-700">
+        <p v-if="successMessage" class="text-sm" style="color: var(--primary)">
             {{ successMessage }}
         </p>
     </div>

@@ -3,15 +3,18 @@ import {
     LAYOUT_COMPONENT_REGISTRY as PRAXISEMERALD_REGISTRY,
     getDefaultDataForType as praxisemeraldGetDefaultDataForType,
     generateLayoutComponentId as praxisemeraldGenerateLayoutComponentId,
+    acceptsChildren as praxisemeraldAcceptsChildren,
 } from '@/templates/praxisemerald/combined-registry';
 import { getLayoutComponent as praxisemeraldGetLayoutComponent } from '@/templates/praxisemerald/component-map';
 import {
     LAYOUT_COMPONENT_REGISTRY as HANDYSO_REGISTRY,
     getDefaultDataForType as handysoGetDefaultDataForType,
     generateLayoutComponentId as handysoGenerateLayoutComponentId,
+    acceptsChildren as handysoAcceptsChildren,
 } from '@/templates/handyso/combined-registry';
 import { getDefaultLayoutComponents } from '@/templates/handyso/component-registry';
 import { getLayoutComponent as handysoGetLayoutComponent } from '@/templates/handyso/component-map';
+import HandysoLayoutComponentContextPanel from '@/templates/handyso/LayoutComponentContextPanel.vue';
 
 export interface ComponentRegistryAdapter {
     LAYOUT_COMPONENT_REGISTRY: Array<{ type: string; label: string; placement: string; defaultData: Record<string, unknown> }>;
@@ -19,6 +22,8 @@ export interface ComponentRegistryAdapter {
     generateLayoutComponentId: () => string;
     /** Resolve layout component by type for preview (e.g. in ComponentGalleryModal). */
     getLayoutComponent?: (type: string) => Component | undefined;
+    /** Whether a type accepts children (for layout tree flattening). */
+    acceptsChildren?: (type: string) => boolean;
 }
 
 export interface TemplateRegistryEntry {
@@ -30,6 +35,8 @@ export interface TemplateRegistryEntry {
     getDefaultPageData?: () => Record<string, unknown>;
     /** Optional template-specific site editor component or async loader. */
     SiteEditor?: Component | (() => Promise<{ default: Component }>);
+    /** Optional template-specific context panel for layout components in Page Designer. */
+    LayoutComponentContextPanel?: Component;
 }
 
 const registry = new Map<string, TemplateRegistryEntry>();
@@ -112,6 +119,7 @@ function registerPraxisemerald(): void {
             getDefaultDataForType: praxisemeraldGetDefaultDataForType,
             generateLayoutComponentId: praxisemeraldGenerateLayoutComponentId,
             getLayoutComponent: praxisemeraldGetLayoutComponent,
+            acceptsChildren: praxisemeraldAcceptsChildren,
         }),
         getDefaultPageData: () => ({ ...praxisemeraldDefaultPageData }),
         pageSlugs: ['index', 'notfallinformationen', 'patienteninformationen'],
@@ -199,8 +207,10 @@ function registerHandyso(): void {
             getDefaultDataForType: handysoGetDefaultDataForType,
             generateLayoutComponentId: handysoGenerateLayoutComponentId,
             getLayoutComponent: handysoGetLayoutComponent,
+            acceptsChildren: handysoAcceptsChildren,
         }),
         getDefaultPageData: () => ({ ...handysoDefaultPageData }),
+        LayoutComponentContextPanel: HandysoLayoutComponentContextPanel,
     });
 }
 

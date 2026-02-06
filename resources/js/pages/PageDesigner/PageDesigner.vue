@@ -16,13 +16,21 @@ import { getTemplateEntry } from '@/templates/template-registry';
 import { Plus, Copy, Trash2, ArrowLeft, Save, Undo2, Redo2, Monitor, Tablet, Smartphone, Maximize2, Minimize2, ShieldAlert } from 'lucide-vue-next';
 import { usePageDesignerHistory } from '@/composables/usePageDesignerHistory';
 import { notify } from '@/composables/useNotify';
-import LayoutComponentContextPanel from '@/templates/praxisemerald/LayoutComponentContextPanel.vue';
+import PraxisemeraldLayoutComponentContextPanel from '@/templates/praxisemerald/LayoutComponentContextPanel.vue';
 import ComponentGalleryModal from '@/templates/praxisemerald/ComponentGalleryModal.vue';
 import MediaLibraryModal from '@/templates/praxisemerald/MediaLibraryModal.vue';
 import AddPageModal from '@/pages/PageDesigner/AddPageModal.vue';
 import SidebarTreeFlat from '@/pages/PageDesigner/SidebarTreeFlat.vue';
-import { treeToFlat, flatToTree } from '@/lib/layout-tree';
+import {
+    treeToFlat,
+    flatToTree,
+    normalizeDepthsAfterDrop,
+    getSubtreeEndIndex,
+    getPreviousSiblingStart,
+    moveFlatSubtree,
+} from '@/lib/layout-tree';
 
+/** Fallback only when template has no default (should not happen). */
 const defaultColors: SitePageDataColors = {
     primary: '#059669',
     primaryHover: '#047857',
@@ -33,6 +41,13 @@ const defaultColors: SitePageDataColors = {
     quaternary: '#f8fafc',
     quinary: '#f1f5f9',
 };
+
+/** Template-spezifische Standardfarben (z. B. Handyso orange, Praxisemerald grün). */
+const templateDefaultColors = computed((): Record<string, string> => {
+    const data = templateEntry.value?.getDefaultPageData?.();
+    const c = (data as Record<string, unknown>)?.colors as Record<string, string> | undefined;
+    return (c && Object.keys(c).length > 0 ? c : defaultColors) as Record<string, string>;
+});
 
 function deepMergePreferNonEmpty<T extends Record<string, unknown>>(
     target: T,
@@ -124,6 +139,10 @@ const templateEntry = computed(() =>
     getTemplateEntry(isTemplateMode.value ? props.template?.slug : props.site?.template?.slug),
 );
 const registry = computed(() => templateEntry.value?.getComponentRegistry?.());
+const getAcceptsChildren = computed(() => registry.value?.acceptsChildren);
+const LayoutComponentContextPanelComponent = computed(
+    () => templateEntry.value?.LayoutComponentContextPanel ?? PraxisemeraldLayoutComponentContextPanel,
+);
 
 function defaultLayoutComponents(): LayoutComponentEntry[] {
     const reg = registry.value;
@@ -169,7 +188,11 @@ function mergePageDataForSlug(
     const templateData = (props.site!.template?.page_data ?? {}) as Record<string, unknown>;
     const defaultBase = (entry?.getDefaultPageData?.() ?? templateData ?? {}) as Record<string, unknown>;
     const base = deepMergePreferNonEmpty(defaultBase, templateData) as Record<string, unknown>;
-    const customColors = props.site!.custom_colors ?? (custom.colors as Record<string, string> | undefined);
+    let customColors = props.site!.custom_colors ?? (custom.colors as Record<string, string> | undefined);
+    // Veraltete Praxisemerald-Farben in custom_colors/custom_page_data ignorieren
+    if (customColors?.primary === defaultColors.primary) {
+        customColors = undefined;
+    }
     const templatePages = (props.site!.template?.pages ?? []) as TemplatePageFromSite[];
     const hasTemplatePage = slug === 'index' || templatePages.some((p) => p.slug === slug);
 
@@ -195,7 +218,7 @@ function mergePageDataForSlug(
                   : defaultLayoutComponents();
         return {
             ...merged,
-            colors: { ...defaultColors, ...(base.colors as Record<string, string> ?? {}), ...(customColors ?? {}) },
+            colors: { ...templateDefaultColors.value, ...(customColors ?? {}) },
             layout_components:
                 (layout_components?.length ?? 0) > 0 ? layout_components : (merged.layout_components ?? defaultLayoutComponents()),
         } as SitePageData;
@@ -217,7 +240,7 @@ function mergePageDataForSlug(
               ? templateLayout
               : defaultLayoutComponents();
     return {
-        colors: { ...defaultColors, ...(base.colors as Record<string, string> ?? {}), ...(customColors ?? {}) },
+        colors: { ...templateDefaultColors.value, ...(customColors ?? {}) },
         layout_components: (layout_components?.length ?? 0) > 0 ? layout_components : defaultLayoutComponents(),
     } as SitePageData;
 }
@@ -232,7 +255,7 @@ const currentPageSlug = ref<string>('index');
 
 /** Reactive page data: in site mode merged; in template mode ref to current TemplatePage.data. */
 const pageData = ref<SitePageData | Record<string, unknown>>({
-    colors: { ...defaultColors },
+    colors: {},
     layout_components: [],
 });
 
@@ -247,9 +270,11 @@ if (isTemplateMode.value && props.template?.pages?.length) {
         if (!Array.isArray(data.layout_components) || data.layout_components.length === 0) {
             data.layout_components = defaultLayoutComponents();
         }
-        if (!data.colors) {
-            data.colors = { ...defaultColors };
-        }
+        // Veraltete DB-Farben (z. B. #059669 von Praxisemerald) durch Template-Standard ersetzen.
+        const templateColors = templateDefaultColors.value;
+        const stored = (data.colors ?? {}) as Record<string, string>;
+        const isStaleColors = stored.primary === defaultColors.primary;
+        data.colors = isStaleColors ? { ...templateColors } : { ...templateColors, ...stored };
         pageData.value = data as SitePageData;
     }
 } else if (!isTemplateMode.value && props.site) {
@@ -375,9 +400,10 @@ function switchPage(slug: string): void {
             if (!Array.isArray(data.layout_components)) {
                 data.layout_components = defaultLayoutComponents();
             }
-            if (!data.colors) {
-                data.colors = { ...defaultColors };
-            }
+            const templateColors = templateDefaultColors.value;
+            const stored = (data.colors ?? {}) as Record<string, string>;
+            const isStale = stored.primary === defaultColors.primary;
+            data.colors = isStale ? { ...templateColors } : { ...templateColors, ...stored };
             pageData.value = data as SitePageData;
         }
     } else {
@@ -445,6 +471,13 @@ const layoutComponents = computed({
 
 const selectedModuleId = ref<string | null>(null);
 
+/** Runs after two nextTicks so Vue and vuedraggable can finish any in-flight patches before we replace the tree. */
+function scheduleLayoutUpdate(apply: () => void): void {
+    nextTick(() => {
+        nextTick(apply);
+    });
+}
+
 function findEntryById(tree: LayoutComponentEntry[], id: string): LayoutComponentEntry | null {
     for (const entry of tree) {
         if (entry.id === id) return entry;
@@ -465,15 +498,16 @@ const selectedEntry = computed(() => {
 
 const previewColors = computed(() => {
     const c = (pageData.value as SitePageData).colors ?? {};
+    const fallback = templateDefaultColors.value;
     return {
-        '--primary': c.primary ?? defaultColors.primary,
-        '--primary-hover': c.primaryHover ?? defaultColors.primaryHover,
-        '--primary-light': c.primaryLight ?? defaultColors.primaryLight,
-        '--primary-dark': c.primaryDark ?? defaultColors.primaryDark,
-        '--secondary': c.secondary ?? defaultColors.secondary,
-        '--tertiary': c.tertiary ?? defaultColors.tertiary,
-        '--quaternary': c.quaternary ?? defaultColors.quaternary,
-        '--quinary': c.quinary ?? defaultColors.quinary,
+        '--primary': c.primary ?? fallback.primary,
+        '--primary-hover': c.primaryHover ?? fallback.primaryHover,
+        '--primary-light': c.primaryLight ?? fallback.primaryLight,
+        '--primary-dark': c.primaryDark ?? fallback.primaryDark,
+        '--secondary': c.secondary ?? fallback.secondary,
+        '--tertiary': c.tertiary ?? fallback.tertiary,
+        '--quaternary': c.quaternary ?? fallback.quaternary,
+        '--quinary': c.quinary ?? fallback.quinary,
     };
 });
 
@@ -617,19 +651,25 @@ function onLayoutReorder(tree: LayoutComponentEntry[]) {
     const cleaned = cleanLayoutTree(tree);
     const currentCount = countEntryIds(layoutComponents.value);
     const newCount = countEntryIds(cleaned);
-    if (newCount < currentCount && layoutDragStartSnapshot.value !== null) {
-        layoutComponents.value = JSON.parse(JSON.stringify(layoutDragStartSnapshot.value));
-        syncLayoutComponentsToFullCustom(layoutComponents.value);
+    const snapshot = layoutDragStartSnapshot.value;
+    if (newCount < currentCount && snapshot !== null) {
         layoutDragStartSnapshot.value = null;
-        if (import.meta.env.DEV) {
-            console.debug('[PageDesigner] Reorder abgebrochen: weniger Einträge, Snapshot wiederhergestellt.');
-        }
+        const restored = JSON.parse(JSON.stringify(snapshot));
+        scheduleLayoutUpdate(() => {
+            layoutComponents.value = restored;
+            syncLayoutComponentsToFullCustom(layoutComponents.value);
+            if (import.meta.env.DEV) {
+                console.debug('[PageDesigner] Reorder abgebrochen: weniger Einträge, Snapshot wiederhergestellt.');
+            }
+        });
         return;
     }
     layoutDragStartSnapshot.value = null;
     if (!isTemplateMode.value) pushHistory();
-    layoutComponents.value = cleaned;
-    pushPreviewDraft();
+    scheduleLayoutUpdate(() => {
+        layoutComponents.value = cleaned;
+        pushPreviewDraft();
+    });
 }
 
 function countEntryIds(entries: LayoutComponentEntry[]): number {
@@ -645,27 +685,33 @@ function countEntryIds(entries: LayoutComponentEntry[]): number {
 
 function onSidebarListUpdate(tree: LayoutComponentEntry[]) {
     if (!isTemplateMode.value) pushHistory();
-    layoutComponents.value = cleanLayoutTree(tree);
-    pushPreviewDraft();
+    const cleaned = cleanLayoutTree(tree);
+    scheduleLayoutUpdate(() => {
+        layoutComponents.value = cleaned;
+        pushPreviewDraft();
+    });
 }
 
 function onSidebarRemove(flatIndex: number): void {
     if (!isTemplateMode.value) pushHistory();
-    const flat = treeToFlat(layoutComponents.value);
+    const flat = treeToFlat(layoutComponents.value, 0, getAcceptsChildren.value);
     const removed = flat[flatIndex];
     if (removed && selectedModuleId.value === removed.entry.id) {
         selectedModuleId.value = null;
     }
     flat.splice(flatIndex, 1);
-    layoutComponents.value = flatToTree(flat);
-    pushPreviewDraft();
+    const newTree = flatToTree(flat, getAcceptsChildren.value);
+    scheduleLayoutUpdate(() => {
+        layoutComponents.value = newTree;
+        pushPreviewDraft();
+    });
 }
 
 function onSidebarDuplicate(flatIndex: number): void {
     if (!isTemplateMode.value) pushHistory();
     const reg = registry.value;
     if (!reg) return;
-    const flat = treeToFlat(layoutComponents.value);
+    const flat = treeToFlat(layoutComponents.value, 0, getAcceptsChildren.value);
     const item = flat[flatIndex];
     if (!item) return;
     const entry = item.entry;
@@ -676,19 +722,68 @@ function onSidebarDuplicate(flatIndex: number): void {
         children: Array.isArray(entry.children) ? JSON.parse(JSON.stringify(entry.children)) : undefined,
     };
     flat.splice(flatIndex + 1, 0, { entry: newEntry, depth: item.depth });
-    layoutComponents.value = flatToTree(flat);
     selectedModuleId.value = newEntry.id;
-    pushPreviewDraft();
+    const newTree = flatToTree(flat, getAcceptsChildren.value);
+    scheduleLayoutUpdate(() => {
+        layoutComponents.value = newTree;
+        pushPreviewDraft();
+    });
 }
 
 function onSidebarMove(flatIndex: number, direction: 'up' | 'down'): void {
     if (!isTemplateMode.value) pushHistory();
-    const flat = treeToFlat(layoutComponents.value);
-    const toIndex = direction === 'up' ? flatIndex - 1 : flatIndex + 1;
-    if (toIndex < 0 || toIndex >= flat.length) return;
-    [flat[flatIndex], flat[toIndex]] = [flat[toIndex], flat[flatIndex]];
-    layoutComponents.value = flatToTree(flat);
-    pushPreviewDraft();
+    const flat = treeToFlat(layoutComponents.value, 0, getAcceptsChildren.value);
+    const fromEnd = getSubtreeEndIndex(flat, flatIndex);
+    const acc = getAcceptsChildren.value;
+    let insertAt: number;
+    if (direction === 'up') {
+        if (flatIndex <= 0) return;
+        insertAt = getPreviousSiblingStart(flat, flatIndex);
+    } else {
+        if (fromEnd >= flat.length - 1) return;
+        const nextSiblingStart = fromEnd + 1;
+        const nextSiblingEnd = getSubtreeEndIndex(flat, nextSiblingStart);
+        insertAt = flatIndex + (nextSiblingEnd - nextSiblingStart + 1);
+    }
+    const newFlat = moveFlatSubtree(flat, flatIndex, fromEnd, insertAt);
+    const normalized = normalizeDepthsAfterDrop(newFlat, acc);
+    const newTree = flatToTree(normalized, acc);
+    scheduleLayoutUpdate(() => {
+        layoutComponents.value = newTree;
+        pushPreviewDraft();
+    });
+}
+
+/**
+ * Immutably inserts newEntry into the tree at parentId. Returns a new tree (no mutation).
+ * Prevents Vue parentNode errors when adding nested elements by avoiding mutate-then-replace.
+ */
+function cloneTreeAndInsertAtParent(
+    tree: LayoutComponentEntry[],
+    parentId: string,
+    insertIndex: number,
+    newEntry: LayoutComponentEntry,
+): LayoutComponentEntry[] {
+    return tree.map((entry) => {
+        const cloned: LayoutComponentEntry = {
+            id: entry.id,
+            type: entry.type,
+            data: { ...(entry.data ?? {}) },
+        };
+        if (entry.id === parentId && acceptsChildren(entry.type as LayoutComponentType)) {
+            const children = [...(entry.children ?? []).filter(isValidLayoutEntry)];
+            children.splice(insertIndex, 0, newEntry);
+            cloned.children = children;
+        } else if (Array.isArray(entry.children)) {
+            cloned.children = cloneTreeAndInsertAtParent(
+                entry.children,
+                parentId,
+                insertIndex,
+                newEntry,
+            );
+        }
+        return cloned;
+    });
 }
 
 function addComponent(type: LayoutComponentType | string, insertIndex?: number, parentId?: string) {
@@ -703,41 +798,43 @@ function addComponent(type: LayoutComponentType | string, insertIndex?: number, 
     if (acceptsChildren(type as LayoutComponentType)) {
         newEntry.children = [];
     }
+    let newTree: LayoutComponentEntry[];
     if (parentId !== undefined) {
         const parent = findEntryInTree(layoutComponents.value, parentId);
         if (parent && acceptsChildren(parent.type as LayoutComponentType)) {
-            const children = parent.children ?? [];
-            const list = [...children].filter(isValidLayoutEntry);
-            list.splice(insertIndex ?? list.length, 0, newEntry);
-            parent.children = list;
-            selectedModuleId.value = newEntry.id;
-            layoutComponents.value = JSON.parse(JSON.stringify(layoutComponents.value));
+            const idx = insertIndex ?? (parent.children ?? []).filter(isValidLayoutEntry).length;
+            newTree = cloneTreeAndInsertAtParent(layoutComponents.value, parentId, idx, newEntry);
         } else {
-            const list = [...layoutComponents.value];
-            list.push(newEntry);
-            layoutComponents.value = list;
-            selectedModuleId.value = newEntry.id;
+            newTree = [...layoutComponents.value, newEntry];
         }
+        selectedModuleId.value = newEntry.id;
     } else if (insertIndex !== undefined) {
         const list = [...layoutComponents.value];
         list.splice(insertIndex, 0, newEntry);
-        layoutComponents.value = list;
         selectedModuleId.value = newEntry.id;
+        newTree = list;
     } else {
         const selected = selectedEntry.value;
         if (selected && acceptsChildren(selected.type as LayoutComponentType)) {
-            const children = (selected.children ?? []).filter(isValidLayoutEntry);
-            selected.children = [...children, newEntry];
+            const idx = insertIndex ?? (selected.children ?? []).filter(isValidLayoutEntry).length;
+            newTree = cloneTreeAndInsertAtParent(
+                layoutComponents.value,
+                selected.id,
+                idx,
+                newEntry,
+            );
             selectedModuleId.value = newEntry.id;
-            layoutComponents.value = JSON.parse(JSON.stringify(layoutComponents.value));
         } else {
             const list = [...layoutComponents.value];
             list.push(newEntry);
-            layoutComponents.value = list;
             selectedModuleId.value = newEntry.id;
+            newTree = list;
         }
     }
-    pushPreviewDraft();
+    scheduleLayoutUpdate(() => {
+        layoutComponents.value = newTree;
+        pushPreviewDraft();
+    });
 }
 
 function removeAt(list: LayoutComponentEntry[], index: number): void {
@@ -1100,13 +1197,14 @@ onUnmounted(() => {
                 <Card>
                     <CardHeader class="pb-2">
                         <CardTitle class="text-sm">Seitenstruktur</CardTitle>
-                        <CardDescription class="text-xs">Pfeile: Reihenfolge. Klick: Bearbeiten.</CardDescription>
+                        <CardDescription class="text-xs">Baum: Auf-/Zuklappen. Pfeile: Reihenfolge. Klick: Bearbeiten.</CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-1 pt-0">
                         <SidebarTreeFlat
                             :list="layoutComponents"
                             :get-component-label="getComponentLabel"
                             :selected-module-id="selectedModuleId"
+                            :get-accepts-children="getAcceptsChildren"
                             @update:list="onSidebarListUpdate"
                             @remove="onSidebarRemove"
                             @duplicate="onSidebarDuplicate"
@@ -1184,7 +1282,7 @@ onUnmounted(() => {
                             v-if="layoutComponent && registry"
                             :is="layoutComponent"
                             :page-data="pageData"
-                            :colors="(pageData as SitePageData).colors ?? defaultColors"
+                            :colors="(pageData as SitePageData).colors ?? templateDefaultColors"
                             :general-information="{ name: displayName }"
                             :site="site ?? undefined"
                             :design-mode="true"
@@ -1220,7 +1318,12 @@ onUnmounted(() => {
                     <p class="text-xs text-muted-foreground">Daten dieser Komponente</p>
                 </div>
                 <div class="flex-1 p-3">
-                    <LayoutComponentContextPanel :entry="selectedEntry" :site="site ?? undefined" />
+                    <component
+                        :is="LayoutComponentContextPanelComponent"
+                        :entry="selectedEntry"
+                        :site="site ?? undefined"
+                        :colors="(pageData as SitePageData).colors ?? templateDefaultColors"
+                    />
                 </div>
             </aside>
         </div>

@@ -6,7 +6,7 @@ import {
 import {
     getPageComponentRegistry,
     getDefaultDataForTypeFromPageComponents,
-} from '@/templates/praxisemerald/page_components/loader';
+} from '@/templates/shared/page_components/loader';
 
 const pageRegistry = getPageComponentRegistry();
 

@@ -82,7 +82,7 @@ function goToPage(page: number) {
         <DropdownMenuTrigger as-child>
             <button
                 type="button"
-                class="inline-flex h-10 w-full items-center justify-start gap-2 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow-modern outline-none transition-modern hover:border-emerald-500 hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+                class="inline-flex h-10 w-full items-center justify-start gap-2 rounded-lg border-2 border-input bg-background px-4 py-2 text-sm font-medium text-foreground shadow-modern outline-none transition-modern hover:border-primary hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
             >
                 <component
                     :is="currentIconComponent"

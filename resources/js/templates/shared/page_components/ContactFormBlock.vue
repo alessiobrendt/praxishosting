@@ -22,7 +22,7 @@ export const Editor = ContactFormBlockEditor as Component;
 
 <script setup lang="ts">
 import { inject, computed } from 'vue';
-import ContactFormModule from '@/templates/praxisemerald/page_components/modules/ContactFormModule.vue';
+import ContactFormModule from '@/templates/shared/page_components/modules/ContactFormModule.vue';
 
 const props = defineProps<{ data: Record<string, unknown>; designMode?: boolean }>();
 

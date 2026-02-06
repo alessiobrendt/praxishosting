@@ -138,20 +138,61 @@ export interface SectionComponentData {
     paddingLeft?: string;
     /** Innenabstand rechts (z. B. 1rem, 1.5rem). */
     paddingRight?: string;
+    /**
+     * Hintergrundfarbe: leer/undefined = keine, 'var(--primary)' etc. = Seitenthema,
+     * oder Hex/RGB für benutzerdefinierte Farbe.
+     */
+    backgroundColor?: string;
 }
 
 export interface GridComponentData {
     /** CSS grid-template-columns (z. B. "1fr 1fr", "repeat(3, 1fr)"). */
     columns?: string;
+    /** Responsive columns: mobile-first approach */
+    columnsSm?: string; // >= 640px
+    columnsMd?: string; // >= 768px
+    columnsLg?: string; // >= 1024px
+    columnsXl?: string; // >= 1280px
     gap?: string;
+    gapSm?: string;
+    gapMd?: string;
+    gapLg?: string;
+    gapXl?: string;
     rowGap?: string;
     columnGap?: string;
+    padding?: boolean;
+    /** Innenabstand links (z. B. 1rem, 1.5rem). */
+    paddingLeft?: string;
+    /** Innenabstand rechts (z. B. 1rem, 1.5rem). */
+    paddingRight?: string;
 }
 
 export interface FlexContainerComponentData {
     direction?: SectionFlexDirection;
+    /** Responsive direction: mobile-first approach */
+    directionSm?: SectionFlexDirection; // >= 640px
+    directionMd?: SectionFlexDirection; // >= 768px
+    directionLg?: SectionFlexDirection; // >= 1024px
+    directionXl?: SectionFlexDirection; // >= 1280px
     wrap?: boolean;
     gap?: string;
+    gapSm?: string;
+    gapMd?: string;
+    gapLg?: string;
+    gapXl?: string;
     justify?: SectionJustify;
+    justifySm?: SectionJustify;
+    justifyMd?: SectionJustify;
+    justifyLg?: SectionJustify;
+    justifyXl?: SectionJustify;
     align?: SectionAlign;
+    alignSm?: SectionAlign;
+    alignMd?: SectionAlign;
+    alignLg?: SectionAlign;
+    alignXl?: SectionAlign;
+    padding?: boolean;
+    /** Innenabstand links (z. B. 1rem, 1.5rem). */
+    paddingLeft?: string;
+    /** Innenabstand rechts (z. B. 1rem, 1.5rem). */
+    paddingRight?: string;
 }

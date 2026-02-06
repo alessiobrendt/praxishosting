@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, provide } from 'vue';
+import { computed, ref, watch, provide, nextTick } from 'vue';
 import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
 import type { LayoutComponentEntry } from '@/types/layout-components';
 import type { LayoutComponentType } from '@/types/layout-components';
@@ -79,14 +79,17 @@ watch(
     layoutComponents,
     (val) => {
         const cloned = cloneDeepAndNormalize(val);
-        localTree.value = cloned;
-        const cleaned = JSON.stringify(cloned);
-        const original = JSON.stringify(val);
-        if (cleaned !== original) {
-            emit('reorder', JSON.parse(cleaned));
-        }
+        // Defer update to avoid race with Vue's patch cycle (parentNode / vnode null errors)
+        nextTick(() => {
+            localTree.value = cloned;
+            const cleaned = JSON.stringify(cloned);
+            const original = JSON.stringify(val);
+            if (cleaned !== original) {
+                emit('reorder', JSON.parse(cleaned));
+            }
+        });
     },
-    { immediate: true, deep: true },
+    { immediate: true, deep: true, flush: 'post' },
 );
 
 function onReorder(): void {

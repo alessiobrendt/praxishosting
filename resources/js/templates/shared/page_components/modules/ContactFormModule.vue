@@ -74,7 +74,7 @@ function getFieldError(key: string): string | undefined {
             {{ (data.note as string) ?? '' }}
         </p>
 
-        <div v-if="successMessage" class="rounded-md bg-emerald-50 p-4 text-emerald-800">
+        <div v-if="successMessage" class="rounded-md p-4 bg-primary/10" style="color: var(--primary-dark)">
             {{ successMessage }}
         </div>
 
@@ -107,21 +107,21 @@ function getFieldError(key: string): string | undefined {
                         :id="`contact-${(field as { key: string }).key}`"
                         v-model="formData[(field as { key: string }).key]"
                         :type="(field as { type?: string }).type === 'email' ? 'email' : (field as { type?: string }).type === 'tel' ? 'tel' : 'text'"
-                        class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
+                        class="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:ring-primary"
                     />
                     <textarea
                         v-else-if="(field as { type?: string }).type === 'textarea'"
                         :id="`contact-${(field as { key: string }).key}`"
                         v-model="formData[(field as { key: string }).key]"
                         rows="4"
-                        class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
+                        class="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:ring-primary"
                     />
                     <div v-else class="flex items-center gap-2">
                         <input
                             :id="`contact-${(field as { key: string }).key}`"
                             v-model="formData[(field as { key: string }).key]"
                             type="checkbox"
-                            class="rounded border-slate-300"
+                            class="rounded border-input"
                         />
                     </div>
                     <p v-if="getFieldError((field as { key: string }).key)" class="text-sm text-red-600">
@@ -136,7 +136,7 @@ function getFieldError(key: string): string | undefined {
                         id="contact-name"
                         v-model="formData.name"
                         type="text"
-                        class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
+                        class="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:ring-primary"
                     />
                     <p v-if="getFieldError('name')" class="text-sm text-red-600">{{ getFieldError('name') }}</p>
                 </div>
@@ -146,7 +146,7 @@ function getFieldError(key: string): string | undefined {
                         id="contact-email"
                         v-model="formData.email"
                         type="email"
-                        class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
+                        class="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:ring-primary"
                     />
                     <p v-if="getFieldError('email')" class="text-sm text-red-600">{{ getFieldError('email') }}</p>
                 </div>
@@ -156,7 +156,7 @@ function getFieldError(key: string): string | undefined {
                         id="contact-message"
                         v-model="formData.message"
                         rows="4"
-                        class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
+                        class="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:ring-primary"
                     />
                     <p v-if="getFieldError('message')" class="text-sm text-red-600">{{ getFieldError('message') }}</p>
                 </div>
@@ -165,7 +165,7 @@ function getFieldError(key: string): string | undefined {
             <button
                 type="submit"
                 :disabled="pending"
-                class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                class="rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50 bg-primary text-primary-foreground hover:opacity-90"
             >
                 {{ pending ? 'Wird gesendet…' : 'Nachricht senden' }}
             </button>

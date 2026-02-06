@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, provide } from 'vue';
+import { ref, watch, computed, provide, nextTick } from 'vue';
 import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
 import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
 import { getMotionPreset } from '@/templates/praxisemerald/motion-presets';
@@ -68,14 +68,18 @@ const containerChildrenFiltered = ref<LayoutComponentEntry[]>([]);
 watch(
     () => getContainerChildren(),
     (raw) => {
-        containerChildrenFiltered.value = raw.filter(isValidContainerChild);
+        const filtered = raw.filter(isValidContainerChild);
+        // Defer update to avoid race with Vue's patch cycle (parentNode / vnode null errors)
+        nextTick(() => {
+            containerChildrenFiltered.value = filtered;
+        });
     },
-    { immediate: true, deep: true },
+    { immediate: true, deep: true, flush: 'post' },
 );
 
 function onContainerDragEnd(): void {
     (props.entry as Record<string, unknown>).children = [...containerChildrenFiltered.value];
-    emit('reorder');
+    nextTick(() => emit('reorder'));
 }
 
 const isRow = (): boolean => (props.entry.data?.direction as string) === 'row';

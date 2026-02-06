@@ -1,26 +1,30 @@
 import type { LayoutComponentEntry, LayoutComponentType } from '@/types/layout-components';
-import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
+import { acceptsChildren as defaultAcceptsChildren } from '@/templates/praxisemerald/combined-registry';
 
 export interface FlatEntry {
     entry: LayoutComponentEntry;
     depth: number;
 }
 
+export type AcceptsChildrenFn = (type: LayoutComponentType | string) => boolean;
+
 /**
  * Flattens a tree of layout entries to a list of { entry, depth } in pre-order.
  * depth 0 = root level, 1 = direct child, etc.
+ * Optional getAcceptsChildren uses template-specific registry when provided (e.g. Handyso).
  */
 export function treeToFlat(
     entries: LayoutComponentEntry[],
     depth = 0,
+    getAcceptsChildren: AcceptsChildrenFn = defaultAcceptsChildren,
 ): FlatEntry[] {
     const result: FlatEntry[] = [];
     for (const entry of entries) {
         result.push({ entry, depth });
-        if (acceptsChildren(entry.type as LayoutComponentType)) {
+        if (getAcceptsChildren(entry.type as LayoutComponentType)) {
             const children = entry.children;
             if (Array.isArray(children)) {
-                result.push(...treeToFlat(children, depth + 1));
+                result.push(...treeToFlat(children, depth + 1, getAcceptsChildren));
             }
         }
     }
@@ -32,13 +36,16 @@ export function treeToFlat(
  * becomes its child: if the previous item accepts children and current depth <= previous depth,
  * set current depth = previous depth + 1.
  */
-export function normalizeDepthsAfterDrop(flat: FlatEntry[]): FlatEntry[] {
+export function normalizeDepthsAfterDrop(
+    flat: FlatEntry[],
+    getAcceptsChildren: AcceptsChildrenFn = defaultAcceptsChildren,
+): FlatEntry[] {
     const result = flat.map((item) => ({ ...item, depth: item.depth }));
     for (let i = 1; i < result.length; i++) {
         const prev = result[i - 1];
         const cur = result[i];
         if (
-            acceptsChildren(prev.entry.type as LayoutComponentType) &&
+            getAcceptsChildren(prev.entry.type as LayoutComponentType) &&
             cur.depth <= prev.depth
         ) {
             cur.depth = prev.depth + 1;
@@ -48,10 +55,78 @@ export function normalizeDepthsAfterDrop(flat: FlatEntry[]): FlatEntry[] {
 }
 
 /**
+ * Returns the inclusive end index of the subtree starting at flatIndex.
+ * The subtree includes the entry at flatIndex and all descendants (entries with greater depth).
+ */
+export function getSubtreeEndIndex(
+    flat: FlatEntry[],
+    startIndex: number,
+): number {
+    if (startIndex >= flat.length) return startIndex;
+    const startDepth = flat[startIndex].depth;
+    let i = startIndex + 1;
+    while (i < flat.length && flat[i].depth > startDepth) {
+        i += 1;
+    }
+    return i - 1;
+}
+
+/**
+ * Returns the slice of flat that is the subtree at startIndex (inclusive).
+ * Used when reordering only visible nodes: each visible node stands for its full subtree.
+ */
+export function getSubtreeSlice(
+    flat: FlatEntry[],
+    startIndex: number,
+): FlatEntry[] {
+    if (startIndex >= flat.length) return [];
+    const end = getSubtreeEndIndex(flat, startIndex);
+    return flat.slice(startIndex, end + 1);
+}
+
+/**
+ * Returns the start index of the subtree that immediately precedes flatIndex.
+ * Used when moving up: we insert our subtree before this preceding subtree.
+ */
+export function getPreviousSiblingStart(flat: FlatEntry[], flatIndex: number): number {
+    if (flatIndex <= 0) return 0;
+    const ourDepth = flat[flatIndex].depth;
+    let i = flatIndex - 1;
+    while (i >= 0 && flat[i].depth > ourDepth) {
+        i -= 1;
+    }
+    if (i < 0) return 0;
+    const prevRootDepth = flat[i].depth;
+    while (i > 0 && flat[i - 1].depth >= prevRootDepth) {
+        i -= 1;
+    }
+    return i;
+}
+
+/**
+ * Moves a subtree (flat range [fromStart, fromEnd]) to insertAt in the array without that range.
+ * insertAt is the index in the "without" array where extracted should be inserted.
+ */
+export function moveFlatSubtree(
+    flat: FlatEntry[],
+    fromStart: number,
+    fromEnd: number,
+    insertAt: number,
+): FlatEntry[] {
+    const extracted = flat.slice(fromStart, fromEnd + 1);
+    const without = [...flat.slice(0, fromStart), ...flat.slice(fromEnd + 1)];
+    const pos = Math.max(0, Math.min(insertAt, without.length));
+    return [...without.slice(0, pos), ...extracted, ...without.slice(pos)];
+}
+
+/**
  * Rebuilds a tree from a flat list of { entry, depth }.
  * Same depth = siblings; greater depth = child of the previous entry with depth - 1.
  */
-export function flatToTree(flat: FlatEntry[]): LayoutComponentEntry[] {
+export function flatToTree(
+    flat: FlatEntry[],
+    getAcceptsChildren: AcceptsChildrenFn = defaultAcceptsChildren,
+): LayoutComponentEntry[] {
     if (flat.length === 0) {
         return [];
     }
@@ -65,7 +140,7 @@ export function flatToTree(flat: FlatEntry[]): LayoutComponentEntry[] {
             type: entry.type,
             data: { ...(entry.data ?? {}) },
         };
-        if (acceptsChildren(entry.type as LayoutComponentType)) {
+        if (getAcceptsChildren(entry.type as LayoutComponentType)) {
             cloned.children = [];
         }
 
@@ -75,7 +150,7 @@ export function flatToTree(flat: FlatEntry[]): LayoutComponentEntry[] {
         const parent = stack[stack.length - 1];
         parent.children.push(cloned);
 
-        if (acceptsChildren(entry.type as LayoutComponentType)) {
+        if (getAcceptsChildren(entry.type as LayoutComponentType)) {
             stack.push({ depth, children: cloned.children ?? [] });
         }
     }

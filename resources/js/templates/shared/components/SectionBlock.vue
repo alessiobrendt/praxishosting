@@ -48,12 +48,19 @@ const flexStyle = computed(() => ({
     justifyContent: mapJustify(sectionData.value.justify),
     alignItems: mapAlign(sectionData.value.align),
 }));
+
+const sectionStyle = computed(() => {
+    const bg = sectionData.value.backgroundColor;
+    if (!bg || bg.trim() === '') return {};
+    return { backgroundColor: bg };
+});
 </script>
 
 <template>
     <div
         v-if="designMode"
         class="section-block-design min-h-[2rem] w-full rounded border-2 border-dashed border-primary/50 bg-primary/5 py-2"
+        :style="sectionStyle"
     >
         <span class="mb-1 block px-2 text-xs font-medium text-primary">Bereich</span>
         <div
@@ -77,6 +84,7 @@ const flexStyle = computed(() => ({
         :style="{
             paddingLeft: paddingLeft,
             paddingRight: paddingRight,
+            ...sectionStyle,
         }"
     >
         <div

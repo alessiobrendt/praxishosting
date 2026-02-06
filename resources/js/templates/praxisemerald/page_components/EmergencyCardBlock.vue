@@ -30,7 +30,7 @@ function iconComponent(name: string) {
     return icons[name] ?? LucideIcons.Phone;
 }
 </script>
-
+ 
 <template>
     <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
         <div class="space-y-4">

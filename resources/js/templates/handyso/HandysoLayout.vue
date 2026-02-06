@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, provide } from 'vue';
+import { computed, ref, watch, provide, nextTick } from 'vue';
 import { acceptsChildren } from '@/templates/handyso/combined-registry';
 import type { LayoutComponentEntry } from '@/types/layout-components';
 import type { LayoutComponentType } from '@/types/layout-components';
@@ -75,18 +75,16 @@ const layoutComponents = computed((): LayoutComponentEntry[] => {
 
 const localTree = ref<LayoutComponentEntry[]>([]);
 
+// Sync from parent to localTree only; never emit from here to avoid crash when adding slot sections (e.g. Feature-Angebote)
 watch(
     layoutComponents,
     (val) => {
         const cloned = cloneDeepAndNormalize(val);
-        localTree.value = cloned;
-        const cleaned = JSON.stringify(cloned);
-        const original = JSON.stringify(val);
-        if (cleaned !== original) {
-            emit('reorder', JSON.parse(cleaned));
-        }
+        nextTick(() => {
+            localTree.value = cloned;
+        });
     },
-    { immediate: true, deep: true },
+    { immediate: true, deep: true, flush: 'post' },
 );
 
 function onReorder(): void {

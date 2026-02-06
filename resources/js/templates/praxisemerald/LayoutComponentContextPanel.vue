@@ -9,18 +9,215 @@ import { getEditorForType, getMetaForType } from '@/templates/praxisemerald/page
 import type { PageComponentField } from '@/templates/praxisemerald/page_components/loader';
 import { inject, ref, computed } from 'vue';
 import { ImagePlus, Plus, Trash2, Upload } from 'lucide-vue-next';
-import AnimationPicker from '@/templates/praxisemerald/components/AnimationPicker.vue';
-import IconPicker from '@/templates/praxisemerald/components/IconPicker.vue';
+import AnimationPicker from '@/templates/shared/components/AnimationPicker.vue';
+import IconPicker from '@/templates/shared/components/IconPicker.vue';
 
 const openMediaLibrary = inject<((callback: (url: string) => void) => void) | null>('openMediaLibrary', null);
-
-const pageComponentEditor = computed(() => getEditorForType(props.entry.type));
-const pageComponentMeta = computed(() => getMetaForType(props.entry.type));
 
 const props = defineProps<{
     entry: LayoutComponentEntry;
     site?: { id: number; name: string; slug: string };
+    /** Seitenthema-Farben (pageData.colors) für Bereich-Hintergrund – pro Template unterschiedlich. */
+    colors?: Record<string, string>;
 }>();
+
+const pageComponentEditor = computed(() => getEditorForType(props.entry.type));
+const pageComponentMeta = computed(() => getMetaForType(props.entry.type));
+
+/** Farben aus pageData.colors → CSS-Variablen (kebab-case wie im PageDesigner/previewColors). */
+const SECTION_BG_COLOR_KEYS = [
+    { key: 'primary', var: '--primary', label: 'Primary' },
+    { key: 'primaryLight', var: '--primary-light', label: 'Primary Light' },
+    { key: 'primaryDark', var: '--primary-dark', label: 'Primary Dark' },
+    { key: 'primaryHover', var: '--primary-hover', label: 'Primary Hover' },
+    { key: 'secondary', var: '--secondary', label: 'Secondary' },
+    { key: 'tertiary', var: '--tertiary', label: 'Tertiary' },
+    { key: 'quaternary', var: '--quaternary', label: 'Quaternary' },
+    { key: 'quinary', var: '--quinary', label: 'Quinary' },
+] as const;
+
+const sectionBgOptions = computed(() => {
+    const c = props.colors ?? {};
+    const opts: { value: string; label: string; swatch?: string }[] = [{ value: '', label: 'Keine' }];
+    for (const { key, var: v, label } of SECTION_BG_COLOR_KEYS) {
+        const hex = c[key];
+        if (hex) opts.push({ value: `var(${v})`, label: `${label} (Seite)`, swatch: hex });
+    }
+    opts.push({ value: '__custom__', label: 'Benutzerdefiniert' });
+    return opts;
+});
+
+function getSectionBackgroundSelectValue(d: Record<string, unknown>): string {
+    const bg = d.backgroundColor as string | undefined;
+    if (!bg) return '';
+    const opts = sectionBgOptions.value;
+    const found = opts.find((o) => o.value && o.value !== '__custom__' && o.value === bg);
+    return found ? found.value : '__custom__';
+}
+
+function setSectionBackground(d: Record<string, unknown>, v: string): void {
+    d.backgroundColor = v === '__custom__' ? d.backgroundColor || '#ffffff' : v || undefined;
+}
+
+function showSectionCustomColor(d: Record<string, unknown>): boolean {
+    const bg = d.backgroundColor as string | undefined;
+    if (!bg) return false;
+    return !sectionBgOptions.value.some((o) => o.value && o.value !== '__custom__' && o.value === bg);
+}
+
+function getSectionCustomColorValue(d: Record<string, unknown>): string {
+    const bg = d.backgroundColor as string | undefined;
+    return bg && bg.startsWith('#') ? bg : '#ffffff';
+}
+
+function setSectionCustomColor(d: Record<string, unknown>, v: string): void {
+    if (v && /^#[0-9a-fA-F]{3,8}$/.test(v)) d.backgroundColor = v;
+}
+
+const STANDARD_PADDING_VALUES = ['', '0', '0.5rem', '1rem', '1.5rem', '2rem', '3rem'];
+
+// Track which padding fields have "Benutzerdefiniert" selected
+const customPaddingLeft = ref<Record<string, boolean>>({});
+const customPaddingRight = ref<Record<string, boolean>>({});
+
+function getPaddingSelectValue(entryId: string, paddingValue: string | undefined, side: 'left' | 'right'): string {
+    if (!paddingValue || paddingValue === '__custom__') {
+        const isCustom = side === 'left' ? (customPaddingLeft.value?.[entryId] ?? false) : (customPaddingRight.value?.[entryId] ?? false);
+        return isCustom ? '__custom__' : '';
+    }
+    const isCustom = side === 'left' ? (customPaddingLeft.value?.[entryId] ?? false) : (customPaddingRight.value?.[entryId] ?? false);
+    if (isCustom) return '__custom__';
+    const isNonStandard = !STANDARD_PADDING_VALUES.includes(paddingValue);
+    if (isNonStandard) {
+        // Auto-detect custom value and set flag
+        if (side === 'left') {
+            if (!customPaddingLeft.value) customPaddingLeft.value = {};
+            customPaddingLeft.value[entryId] = true;
+        } else {
+            if (!customPaddingRight.value) customPaddingRight.value = {};
+            customPaddingRight.value[entryId] = true;
+        }
+        return '__custom__';
+    }
+    return paddingValue;
+}
+
+function showPaddingCustomInput(entryId: string, paddingValue: string | undefined, side: 'left' | 'right'): boolean {
+    const isCustom = side === 'left' ? (customPaddingLeft.value?.[entryId] ?? false) : (customPaddingRight.value?.[entryId] ?? false);
+    // If custom flag is set, always show input (even if value is empty)
+    if (isCustom) return true;
+    // If value is __custom__ placeholder, show input
+    if (paddingValue === '__custom__') {
+        if (side === 'left') {
+            if (!customPaddingLeft.value) customPaddingLeft.value = {};
+            customPaddingLeft.value[entryId] = true;
+        } else {
+            if (!customPaddingRight.value) customPaddingRight.value = {};
+            customPaddingRight.value[entryId] = true;
+        }
+        return true;
+    }
+    if (!paddingValue) return false;
+    const isNonStandard = !STANDARD_PADDING_VALUES.includes(paddingValue);
+    if (isNonStandard) {
+        // Auto-detect custom value and set flag
+        if (side === 'left') {
+            if (!customPaddingLeft.value) customPaddingLeft.value = {};
+            customPaddingLeft.value[entryId] = true;
+        } else {
+            if (!customPaddingRight.value) customPaddingRight.value = {};
+            customPaddingRight.value[entryId] = true;
+        }
+        return true;
+    }
+    return false;
+}
+
+function getPaddingCustomValue(paddingValue: string | undefined): string {
+    if (!paddingValue || paddingValue === '__custom__') return '';
+    return !STANDARD_PADDING_VALUES.includes(paddingValue) ? paddingValue : '';
+}
+
+// Responsive helper functions
+function hasResponsiveValues(data: Record<string, unknown>): boolean {
+    const responsiveKeys = [
+        'columnsSm',
+        'columnsMd',
+        'columnsLg',
+        'columnsXl',
+        'gapSm',
+        'gapMd',
+        'gapLg',
+        'gapXl',
+        'directionSm',
+        'directionMd',
+        'directionLg',
+        'directionXl',
+        'justifySm',
+        'justifyMd',
+        'justifyLg',
+        'justifyXl',
+        'alignSm',
+        'alignMd',
+        'alignLg',
+        'alignXl',
+    ];
+    return responsiveKeys.some((key) => data[key] !== undefined);
+}
+
+function enableResponsiveForGrid(data: Record<string, unknown>): void {
+    if (!hasResponsiveValues(data)) {
+        // Set intelligent defaults
+        const baseColumns = (data.columns as string) || 'repeat(2, 1fr)';
+        data.columns = '1fr'; // Mobile: 1 column
+        data.columnsSm = 'repeat(2, 1fr)'; // Tablet: 2 columns
+        data.columnsLg = baseColumns; // Desktop: use original or default to 3
+        if (!data.columnsLg || data.columnsLg === '1fr') {
+            data.columnsLg = 'repeat(3, 1fr)';
+        }
+    }
+}
+
+function enableResponsiveForFlex(data: Record<string, unknown>): void {
+    if (!hasResponsiveValues(data)) {
+        // Set intelligent defaults
+        const baseDirection = (data.direction as string) || 'row';
+        data.direction = 'column'; // Mobile: column
+        data.directionLg = baseDirection === 'row' ? 'row' : 'column'; // Desktop: use original
+    }
+}
+
+function disableResponsive(data: Record<string, unknown>, type: 'grid' | 'flex'): void {
+    if (type === 'grid') {
+        // Keep base columns, remove responsive
+        delete data.columnsSm;
+        delete data.columnsMd;
+        delete data.columnsLg;
+        delete data.columnsXl;
+        delete data.gapSm;
+        delete data.gapMd;
+        delete data.gapLg;
+        delete data.gapXl;
+    } else {
+        // Keep base direction, remove responsive
+        delete data.directionSm;
+        delete data.directionMd;
+        delete data.directionLg;
+        delete data.directionXl;
+        delete data.justifySm;
+        delete data.justifyMd;
+        delete data.justifyLg;
+        delete data.justifyXl;
+        delete data.alignSm;
+        delete data.alignMd;
+        delete data.alignLg;
+        delete data.alignXl;
+        delete data.gapSm;
+        delete data.gapMd;
+        delete data.gapLg;
+        delete data.gapXl;
+    }
+}
 
 function getCsrfToken(): string {
     const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
@@ -701,7 +898,24 @@ function removeCtaLink(i: number) {
                 Inhalt über Blöcke hinzufügen: Ziehen Sie Komponenten in dieses Grid.
             </p>
             <div class="space-y-3">
-                <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                    <input
+                        :id="`grid-responsive-${entry.id}`"
+                        :checked="hasResponsiveValues(entry.data as Record<string, unknown>)"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-input"
+                        @change="(e) => {
+                            const d = entry.data as Record<string, unknown>;
+                            if ((e.target as HTMLInputElement).checked) {
+                                enableResponsiveForGrid(d);
+                            } else {
+                                disableResponsive(d, 'grid');
+                            }
+                        }"
+                    />
+                    <Label :for="`grid-responsive-${entry.id}`">Responsive aktivieren</Label>
+                </div>
+                <div v-if="!hasResponsiveValues(entry.data as Record<string, unknown>)" class="space-y-2">
                     <Label>Spalten (grid-template-columns)</Label>
                     <Select
                         :model-value="(entry.data as Record<string, unknown>).columns ?? 'repeat(2, 1fr)'"
@@ -715,6 +929,48 @@ function removeCtaLink(i: number) {
                         <option value="2fr 1fr 1fr">1 breiter +2</option>
                     </Select>
                 </div>
+                <template v-else>
+                    <div class="space-y-3 rounded border border-border p-3">
+                        <h4 class="text-sm font-medium">Responsive Einstellungen</h4>
+                        <div class="space-y-3">
+                            <div class="space-y-2">
+                                <Label class="text-xs text-muted-foreground">Mobile (&lt; 640px)</Label>
+                                <Select
+                                    :model-value="(entry.data as Record<string, unknown>).columns ?? '1fr'"
+                                    @update:model-value="(v) => ((entry.data as Record<string, unknown>).columns = v)"
+                                >
+                                    <option value="1fr">1 Spalte</option>
+                                    <option value="repeat(2, 1fr)">2 Spalten</option>
+                                </Select>
+                            </div>
+                            <div class="space-y-2">
+                                <Label class="text-xs text-muted-foreground">Tablet (≥ 640px)</Label>
+                                <Select
+                                    :model-value="(entry.data as Record<string, unknown>).columnsSm ?? 'repeat(2, 1fr)'"
+                                    @update:model-value="(v) => ((entry.data as Record<string, unknown>).columnsSm = v)"
+                                >
+                                    <option value="1fr">1 Spalte</option>
+                                    <option value="repeat(2, 1fr)">2 Spalten</option>
+                                    <option value="repeat(3, 1fr)">3 Spalten</option>
+                                </Select>
+                            </div>
+                            <div class="space-y-2">
+                                <Label class="text-xs text-muted-foreground">Desktop (≥ 1024px)</Label>
+                                <Select
+                                    :model-value="(entry.data as Record<string, unknown>).columnsLg ?? 'repeat(3, 1fr)'"
+                                    @update:model-value="(v) => ((entry.data as Record<string, unknown>).columnsLg = v)"
+                                >
+                                    <option value="1fr">1 Spalte</option>
+                                    <option value="repeat(2, 1fr)">2 Spalten</option>
+                                    <option value="repeat(3, 1fr)">3 Spalten</option>
+                                    <option value="repeat(4, 1fr)">4 Spalten</option>
+                                    <option value="1fr 1fr 2fr">2+1 breiter</option>
+                                    <option value="2fr 1fr 1fr">1 breiter +2</option>
+                                </Select>
+                            </div>
+                        </div>
+                    </div>
+                </template>
                 <div class="space-y-2">
                     <Label>Abstand (Gap)</Label>
                     <Select
@@ -728,6 +984,107 @@ function removeCtaLink(i: number) {
                         <option value="2rem">2rem</option>
                     </Select>
                 </div>
+                <div class="flex items-center gap-2">
+                    <input
+                        :id="`grid-padding-${entry.id}`"
+                        v-model="(entry.data as Record<string, unknown>).padding"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-input"
+                    />
+                    <Label :for="`grid-padding-${entry.id}`">Innenabstand (Padding)</Label>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-2">
+                        <Label :for="`grid-padding-left-${entry.id}`">Padding links</Label>
+                        <Select
+                            :id="`grid-padding-left-${entry.id}`"
+                            :model-value="getPaddingSelectValue(entry.id, (entry.data as Record<string, unknown>).paddingLeft as string | undefined, 'left')"
+                            @update:model-value="(v) => {
+                                const d = entry.data as Record<string, unknown>;
+                                if (v === '__custom__') {
+                                    if (!customPaddingLeft.value) customPaddingLeft.value = {};
+                                    customPaddingLeft.value[entry.id] = true;
+                                    // Set a placeholder value that triggers custom input display
+                                    if (!d.paddingLeft || STANDARD_PADDING_VALUES.includes(d.paddingLeft as string)) {
+                                        d.paddingLeft = '__custom__';
+                                    }
+                                } else {
+                                    if (!customPaddingLeft.value) customPaddingLeft.value = {};
+                                    customPaddingLeft.value[entry.id] = false;
+                                    d.paddingLeft = v || undefined;
+                                }
+                            }"
+                        >
+                            <option value="">Standard</option>
+                            <option value="0">0</option>
+                            <option value="0.5rem">0.5rem</option>
+                            <option value="1rem">1rem</option>
+                            <option value="1.5rem">1.5rem</option>
+                            <option value="2rem">2rem</option>
+                            <option value="3rem">3rem</option>
+                            <option value="__custom__">Benutzerdefiniert</option>
+                        </Select>
+                        <Input
+                            v-if="(customPaddingLeft.value?.[entry.id] ?? false) || ((entry.data as Record<string, unknown>).paddingLeft as string | undefined) === '__custom__' || (!STANDARD_PADDING_VALUES.includes((entry.data as Record<string, unknown>).paddingLeft as string) && (entry.data as Record<string, unknown>).paddingLeft)"
+                            :model-value="getPaddingCustomValue((entry.data as Record<string, unknown>).paddingLeft as string | undefined)"
+                            placeholder="z. B. 2.5rem, 10px"
+                            class="font-mono text-sm"
+                            @update:model-value="(v) => {
+                                const d = entry.data as Record<string, unknown>;
+                                d.paddingLeft = v || undefined;
+                                if (v) {
+                                    if (!customPaddingLeft.value) customPaddingLeft.value = {};
+                                    customPaddingLeft.value[entry.id] = true;
+                                }
+                            }"
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <Label :for="`grid-padding-right-${entry.id}`">Padding rechts</Label>
+                        <Select
+                            :id="`grid-padding-right-${entry.id}`"
+                            :model-value="getPaddingSelectValue(entry.id, (entry.data as Record<string, unknown>).paddingRight as string | undefined, 'right')"
+                            @update:model-value="(v) => {
+                                const d = entry.data as Record<string, unknown>;
+                                if (v === '__custom__') {
+                                    if (!customPaddingRight.value) customPaddingRight.value = {};
+                                    customPaddingRight.value[entry.id] = true;
+                                    // Set a placeholder value that triggers custom input display
+                                    if (!d.paddingRight || STANDARD_PADDING_VALUES.includes(d.paddingRight as string)) {
+                                        d.paddingRight = '__custom__';
+                                    }
+                                } else {
+                                    if (!customPaddingRight.value) customPaddingRight.value = {};
+                                    customPaddingRight.value[entry.id] = false;
+                                    d.paddingRight = v || undefined;
+                                }
+                            }"
+                        >
+                            <option value="">Standard</option>
+                            <option value="0">0</option>
+                            <option value="0.5rem">0.5rem</option>
+                            <option value="1rem">1rem</option>
+                            <option value="1.5rem">1.5rem</option>
+                            <option value="2rem">2rem</option>
+                            <option value="3rem">3rem</option>
+                            <option value="__custom__">Benutzerdefiniert</option>
+                        </Select>
+                        <Input
+                            v-if="(customPaddingRight.value?.[entry.id] ?? false) || ((entry.data as Record<string, unknown>).paddingRight as string | undefined) === '__custom__' || (!STANDARD_PADDING_VALUES.includes((entry.data as Record<string, unknown>).paddingRight as string) && (entry.data as Record<string, unknown>).paddingRight)"
+                            :model-value="getPaddingCustomValue((entry.data as Record<string, unknown>).paddingRight as string | undefined)"
+                            placeholder="z. B. 2.5rem, 10px"
+                            class="font-mono text-sm"
+                            @update:model-value="(v) => {
+                                const d = entry.data as Record<string, unknown>;
+                                d.paddingRight = v || undefined;
+                                if (v) {
+                                    if (!customPaddingRight.value) customPaddingRight.value = {};
+                                    customPaddingRight.value[entry.id] = true;
+                                }
+                            }"
+                        />
+                    </div>
+                </div>
             </div>
         </template>
 
@@ -737,7 +1094,24 @@ function removeCtaLink(i: number) {
                 Inhalt über Blöcke hinzufügen: Ziehen Sie Komponenten in diesen Flex-Container.
             </p>
             <div class="space-y-3">
-                <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                    <input
+                        :id="`flex-responsive-${entry.id}`"
+                        :checked="hasResponsiveValues(entry.data as Record<string, unknown>)"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-input"
+                        @change="(e) => {
+                            const d = entry.data as Record<string, unknown>;
+                            if ((e.target as HTMLInputElement).checked) {
+                                enableResponsiveForFlex(d);
+                            } else {
+                                disableResponsive(d, 'flex');
+                            }
+                        }"
+                    />
+                    <Label :for="`flex-responsive-${entry.id}`">Responsive aktivieren</Label>
+                </div>
+                <div v-if="!hasResponsiveValues(entry.data as Record<string, unknown>)" class="space-y-2">
                     <Label>Richtung</Label>
                     <Select
                         :model-value="(entry.data as Record<string, unknown>).direction ?? 'row'"
@@ -747,6 +1121,33 @@ function removeCtaLink(i: number) {
                         <option value="row">Zeile (nebeneinander)</option>
                     </Select>
                 </div>
+                <template v-else>
+                    <div class="space-y-3 rounded border border-border p-3">
+                        <h4 class="text-sm font-medium">Responsive Einstellungen</h4>
+                        <div class="space-y-3">
+                            <div class="space-y-2">
+                                <Label class="text-xs text-muted-foreground">Mobile (&lt; 640px)</Label>
+                                <Select
+                                    :model-value="(entry.data as Record<string, unknown>).direction ?? 'column'"
+                                    @update:model-value="(v) => ((entry.data as Record<string, unknown>).direction = v)"
+                                >
+                                    <option value="column">Spalte (untereinander)</option>
+                                    <option value="row">Zeile (nebeneinander)</option>
+                                </Select>
+                            </div>
+                            <div class="space-y-2">
+                                <Label class="text-xs text-muted-foreground">Desktop (≥ 1024px)</Label>
+                                <Select
+                                    :model-value="(entry.data as Record<string, unknown>).directionLg ?? 'row'"
+                                    @update:model-value="(v) => ((entry.data as Record<string, unknown>).directionLg = v)"
+                                >
+                                    <option value="column">Spalte (untereinander)</option>
+                                    <option value="row">Zeile (nebeneinander)</option>
+                                </Select>
+                            </div>
+                        </div>
+                    </div>
+                </template>
                 <div class="space-y-2">
                     <Label>Abstand (Gap)</Label>
                     <Select
@@ -793,6 +1194,107 @@ function removeCtaLink(i: number) {
                         class="h-4 w-4 rounded border-input"
                     />
                     <Label :for="`flex-wrap-${entry.id}`">Umbrechen (Wrap)</Label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input
+                        :id="`flex-padding-${entry.id}`"
+                        v-model="(entry.data as Record<string, unknown>).padding"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-input"
+                    />
+                    <Label :for="`flex-padding-${entry.id}`">Innenabstand (Padding)</Label>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-2">
+                        <Label :for="`flex-padding-left-${entry.id}`">Padding links</Label>
+                        <Select
+                            :id="`flex-padding-left-${entry.id}`"
+                            :model-value="getPaddingSelectValue(entry.id, (entry.data as Record<string, unknown>).paddingLeft as string | undefined, 'left')"
+                            @update:model-value="(v) => {
+                                const d = entry.data as Record<string, unknown>;
+                                if (v === '__custom__') {
+                                    if (!customPaddingLeft.value) customPaddingLeft.value = {};
+                                    customPaddingLeft.value[entry.id] = true;
+                                    // Set a placeholder value that triggers custom input display
+                                    if (!d.paddingLeft || STANDARD_PADDING_VALUES.includes(d.paddingLeft as string)) {
+                                        d.paddingLeft = '__custom__';
+                                    }
+                                } else {
+                                    if (!customPaddingLeft.value) customPaddingLeft.value = {};
+                                    customPaddingLeft.value[entry.id] = false;
+                                    d.paddingLeft = v || undefined;
+                                }
+                            }"
+                        >
+                            <option value="">Standard</option>
+                            <option value="0">0</option>
+                            <option value="0.5rem">0.5rem</option>
+                            <option value="1rem">1rem</option>
+                            <option value="1.5rem">1.5rem</option>
+                            <option value="2rem">2rem</option>
+                            <option value="3rem">3rem</option>
+                            <option value="__custom__">Benutzerdefiniert</option>
+                        </Select>
+                        <Input
+                            v-if="(customPaddingLeft.value?.[entry.id] ?? false) || ((entry.data as Record<string, unknown>).paddingLeft as string | undefined) === '__custom__' || (!STANDARD_PADDING_VALUES.includes((entry.data as Record<string, unknown>).paddingLeft as string) && (entry.data as Record<string, unknown>).paddingLeft)"
+                            :model-value="getPaddingCustomValue((entry.data as Record<string, unknown>).paddingLeft as string | undefined)"
+                            placeholder="z. B. 2.5rem, 10px"
+                            class="font-mono text-sm"
+                            @update:model-value="(v) => {
+                                const d = entry.data as Record<string, unknown>;
+                                d.paddingLeft = v || undefined;
+                                if (v) {
+                                    if (!customPaddingLeft.value) customPaddingLeft.value = {};
+                                    customPaddingLeft.value[entry.id] = true;
+                                }
+                            }"
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <Label :for="`flex-padding-right-${entry.id}`">Padding rechts</Label>
+                        <Select
+                            :id="`flex-padding-right-${entry.id}`"
+                            :model-value="getPaddingSelectValue(entry.id, (entry.data as Record<string, unknown>).paddingRight as string | undefined, 'right')"
+                            @update:model-value="(v) => {
+                                const d = entry.data as Record<string, unknown>;
+                                if (v === '__custom__') {
+                                    if (!customPaddingRight.value) customPaddingRight.value = {};
+                                    customPaddingRight.value[entry.id] = true;
+                                    // Set a placeholder value that triggers custom input display
+                                    if (!d.paddingRight || STANDARD_PADDING_VALUES.includes(d.paddingRight as string)) {
+                                        d.paddingRight = '__custom__';
+                                    }
+                                } else {
+                                    if (!customPaddingRight.value) customPaddingRight.value = {};
+                                    customPaddingRight.value[entry.id] = false;
+                                    d.paddingRight = v || undefined;
+                                }
+                            }"
+                        >
+                            <option value="">Standard</option>
+                            <option value="0">0</option>
+                            <option value="0.5rem">0.5rem</option>
+                            <option value="1rem">1rem</option>
+                            <option value="1.5rem">1.5rem</option>
+                            <option value="2rem">2rem</option>
+                            <option value="3rem">3rem</option>
+                            <option value="__custom__">Benutzerdefiniert</option>
+                        </Select>
+                        <Input
+                            v-if="(customPaddingRight.value?.[entry.id] ?? false) || ((entry.data as Record<string, unknown>).paddingRight as string | undefined) === '__custom__' || (!STANDARD_PADDING_VALUES.includes((entry.data as Record<string, unknown>).paddingRight as string) && (entry.data as Record<string, unknown>).paddingRight)"
+                            :model-value="getPaddingCustomValue((entry.data as Record<string, unknown>).paddingRight as string | undefined)"
+                            placeholder="z. B. 2.5rem, 10px"
+                            class="font-mono text-sm"
+                            @update:model-value="(v) => {
+                                const d = entry.data as Record<string, unknown>;
+                                d.paddingRight = v || undefined;
+                                if (v) {
+                                    if (!customPaddingRight.value) customPaddingRight.value = {};
+                                    customPaddingRight.value[entry.id] = true;
+                                }
+                            }"
+                        />
+                    </div>
                 </div>
             </div>
         </template>
@@ -878,6 +1380,43 @@ function removeCtaLink(i: number) {
                         class="h-4 w-4 rounded border-input"
                     />
                     <Label :for="`section-padding-${entry.id}`">Innenabstand (Padding)</Label>
+                </div>
+                <div class="space-y-2">
+                    <Label>Hintergrundfarbe</Label>
+                    <Select
+                        :model-value="getSectionBackgroundSelectValue(entry.data as Record<string, unknown>)"
+                        @update:model-value="(v) => setSectionBackground(entry.data as Record<string, unknown>, v)"
+                    >
+                        <option
+                            v-for="opt in sectionBgOptions"
+                            :key="opt.value || 'none'"
+                            :value="opt.value"
+                        >
+                            {{ opt.label }}
+                        </option>
+                    </Select>
+                    <div
+                        v-if="showSectionCustomColor(entry.data as Record<string, unknown>)"
+                        class="flex items-center gap-2"
+                    >
+                        <input
+                            type="color"
+                            :value="getSectionCustomColorValue(entry.data as Record<string, unknown>)"
+                            class="h-9 w-14 cursor-pointer rounded border border-input"
+                            @input="
+                                (e) =>
+                                    ((entry.data as Record<string, unknown>).backgroundColor = (
+                                        e.target as HTMLInputElement
+                                    ).value)
+                            "
+                        />
+                        <Input
+                            :model-value="getSectionCustomColorValue(entry.data as Record<string, unknown>)"
+                            placeholder="#ffffff"
+                            class="min-w-0 flex-1 font-mono text-sm"
+                            @update:model-value="(v) => setSectionCustomColor(entry.data as Record<string, unknown>, v)"
+                        />
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div class="space-y-2">
