@@ -46,7 +46,7 @@ function isActive(href: string): boolean {
         class="border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60"
         :class="isDesignMode ? 'relative z-0' : 'fixed inset-x-0 top-0 z-50'"
     >
-        <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 @sm:px-6">
             <a
                 :href="isDesignMode ? '#' : '/'"
                 class="flex items-center gap-2"
@@ -65,7 +65,7 @@ function isActive(href: string): boolean {
                 </span>
                 <span class="font-semibold">{{ siteName }}</span>
             </a>
-            <div aria-label="Hauptnavigation" class="hidden lg:block">
+            <div aria-label="Hauptnavigation" class="hidden lg:block @lg:block">
                 <ul class="flex items-center gap-4">
                     <li v-for="link in links" :key="link.href">
                         <a
@@ -83,7 +83,7 @@ function isActive(href: string): boolean {
                 </ul>
             </div>
             <div class="flex items-center gap-4">
-                <Button v-if="ctaButtonText" variant="default" size="sm" class="hidden sm:inline-flex">
+                <Button v-if="ctaButtonText" variant="default" size="sm" class="hidden sm:inline-flex @sm:inline-flex">
                     <a
                         :href="isDesignMode ? '#' : ctaButtonHref"
                         @click="isDesignMode && $event.preventDefault()"

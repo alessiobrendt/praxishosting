@@ -21,8 +21,8 @@ const props = defineProps<{ data: Record<string, unknown> }>();
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
-        <dl class="grid grid-cols-1 gap-4 rounded-lg border bg-white p-4 shadow-sm sm:grid-cols-2">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
+        <dl class="grid grid-cols-1 gap-4 rounded-lg border bg-white p-4 shadow-sm sm:grid-cols-2 @sm:grid-cols-2">
             <div v-if="props.data.address">
                 <dt class="flex items-center gap-2 text-sm font-medium text-slate-900">
                     <MapPin class="h-4 w-4" style="color: var(--primary-dark)" aria-hidden="true" />

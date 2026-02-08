@@ -48,7 +48,7 @@ const iconComponent = (): LucideIcon => Share2;
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <h3 v-if="props.data.title" class="mb-3 text-lg font-semibold" style="color: var(--secondary)">
             {{ props.data.title }}
         </h3>

@@ -10,7 +10,7 @@ const text = () => (props.data?.text as string) ?? '';
 </script>
 
 <template>
-    <h2 class="max-w-xs text-center text-xl font-bold leading-snug text-white lg:text-2xl">
+    <h2 class="max-w-xs text-center text-xl font-bold leading-snug text-white lg:text-2xl @lg:text-2xl">
         {{ text() }}
     </h2>
 </template>

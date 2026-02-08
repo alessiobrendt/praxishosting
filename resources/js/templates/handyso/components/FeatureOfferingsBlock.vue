@@ -25,16 +25,16 @@ const iconMap: Record<string, Component> = {
 </script>
 
 <template>
-    <section class="bg-gray-100 py-12 lg:py-16">
-        <div class="mx-auto flex max-w-7xl flex-col gap-8 px-4 sm:px-6 lg:flex-row lg:items-stretch lg:gap-0">
+    <section class="bg-gray-100 py-12 lg:py-16 @lg:py-16">
+        <div class="mx-auto flex max-w-7xl flex-col gap-8 px-4 sm:px-6 @sm:px-6 lg:flex-row @lg:flex-row lg:items-stretch @lg:items-stretch lg:gap-0 @lg:gap-0">
             <div
-                class="flex shrink-0 items-center justify-center rounded-t-2xl bg-[#fd7f2b] px-8 py-10 lg:rounded-l-2xl lg:rounded-tr-none lg:py-16"
+                class="flex shrink-0 items-center justify-center rounded-t-2xl bg-[#fd7f2b] px-8 py-10 lg:rounded-l-2xl @lg:rounded-l-2xl lg:rounded-tr-none @lg:rounded-tr-none lg:py-16 @lg:py-16"
             >
-                <h2 class="max-w-xs text-center text-xl font-bold leading-snug text-white lg:text-2xl">
+                <h2 class="max-w-xs text-center text-xl font-bold leading-snug text-white lg:text-2xl @lg:text-2xl">
                     {{ bannerText }}
                 </h2>
             </div>
-            <div class="grid flex-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
+            <div class="grid flex-1 gap-6 sm:grid-cols-3 @sm:grid-cols-3 lg:grid-cols-3 @lg:grid-cols-3">
                 <div
                     v-for="(feat, i) in features"
                     :key="i"

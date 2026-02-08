@@ -23,7 +23,7 @@ const open = ref(false);
 </script>
 
 <template>
-    <div class="pr-2 lg:hidden">
+    <div class="pr-2 lg:hidden @lg:hidden">
         <button
             type="button"
             class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-white p-2 text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#fd7f2b]"

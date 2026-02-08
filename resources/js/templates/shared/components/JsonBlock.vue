@@ -22,7 +22,7 @@ const hasContent = computed(() => !!html.value || !!text.value);
 <template>
     <section
         v-if="hasContent || Object.keys(data).length > 0"
-        class="mx-auto max-w-6xl px-4 py-6 sm:px-6"
+        class="mx-auto max-w-6xl px-4 py-6 sm:px-6 @sm:px-6"
         :class="className"
     >
         <div v-if="html" class="prose prose-slate max-w-none" v-html="html" />

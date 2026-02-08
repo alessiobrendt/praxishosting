@@ -142,7 +142,7 @@ function onDropZoneDrop(index: number, e: DragEvent): void {
                         <div class="flex flex-col">
                             <div
                                 v-if="insertAtRoot"
-                                class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                                class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
                                 :class="{ 'border-primary bg-primary/10': dropTargetIndex === index }"
                                 @dragover="onDropZoneDragOver(index, $event)"
                                 @dragleave="onDropZoneDragLeave"
@@ -164,7 +164,7 @@ function onDropZoneDrop(index: number, e: DragEvent): void {
                 </draggable>
                 <div
                     v-if="insertAtRoot"
-                    class="min-h-8 shrink-0 flex-1 border-2 border-dashed border-transparent transition-colors"
+                    class="min-h-4 shrink-0 flex-1 border border-dashed border-transparent transition-colors"
                     :class="{ 'border-primary bg-primary/10': dropTargetIndex === localTree.length }"
                     :data-drop-index="localTree.length"
                     @dragover="onDropZoneDragOver(localTree.length, $event)"

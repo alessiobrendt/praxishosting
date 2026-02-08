@@ -213,7 +213,7 @@ const showAddComponentMenu = ref(false);
                 <CardTitle>Farben</CardTitle>
                 <CardDescription>Primärfarben und Hintergründe</CardDescription>
             </CardHeader>
-            <CardContent class="grid gap-4 sm:grid-cols-2">
+            <CardContent class="grid gap-4 sm:grid-cols-2 @sm:grid-cols-2">
                 <div v-for="(_, key) in (props.pageData as SitePageData).colors" :key="String(key)" class="flex flex-col gap-2">
                     <Label :for="`color-${key}`">{{ key }}</Label>
                     <div class="flex gap-2 items-center">
@@ -293,7 +293,7 @@ const showAddComponentMenu = ref(false);
                             </CollapsibleTrigger>
                             <CollapsibleContent class="mt-3 space-y-3 pl-6">
                                 <template v-if="entry.type === 'header'">
-                                    <div class="grid gap-2 sm:grid-cols-2">
+                                    <div class="grid gap-2 sm:grid-cols-2 @sm:grid-cols-2">
                                         <div class="space-y-1"><Label>Praxisname</Label><Input v-model="(entry.data as Record<string, unknown>).siteName" /></div>
                                         <div class="space-y-1">
                                             <Label>Logo URL</Label>
@@ -319,7 +319,7 @@ const showAddComponentMenu = ref(false);
                                     </div>
                                 </template>
                                 <template v-else-if="entry.type === 'footer'">
-                                    <div class="grid gap-2 sm:grid-cols-2">
+                                    <div class="grid gap-2 sm:grid-cols-2 @sm:grid-cols-2">
                                         <div class="space-y-1"><Label>Praxisname</Label><Input v-model="(entry.data as Record<string, unknown>).siteName" /></div>
                                         <div class="space-y-1"><Label>Beschreibung</Label><Input v-model="(entry.data as Record<string, unknown>).description" /></div>
                                         <div class="space-y-1"><Label>Adresse</Label><Input v-model="(entry.data as Record<string, unknown>).address" /></div>
@@ -339,7 +339,7 @@ const showAddComponentMenu = ref(false);
                                     </div>
                                 </template>
                                 <template v-else-if="entry.type === 'hero'">
-                                    <div class="grid gap-2 sm:grid-cols-2">
+                                    <div class="grid gap-2 sm:grid-cols-2 @sm:grid-cols-2">
                                         <div class="space-y-1"><Label>Überschrift</Label><Input v-model="(entry.data as Record<string, unknown>).heading" /></div>
                                         <div class="space-y-1"><Label>Text</Label><Input v-model="(entry.data as Record<string, unknown>).text" /></div>
                                         <div class="space-y-1">
@@ -487,7 +487,7 @@ const showAddComponentMenu = ref(false);
                     <div
                         v-for="(f, i) in (props.pageData as SitePageData).about.features"
                         :key="i"
-                        class="grid gap-2 border-b pb-2 sm:grid-cols-3"
+                        class="grid gap-2 border-b pb-2 sm:grid-cols-3 @sm:grid-cols-3"
                     >
                         <Input v-model="(f as AboutFeature).icon" placeholder="Icon" />
                         <Input v-model="(f as AboutFeature).title" placeholder="Titel" />

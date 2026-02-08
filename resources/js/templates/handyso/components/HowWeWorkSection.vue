@@ -33,8 +33,8 @@ const stepChildren = computed(() => allChildren('howWeWorkStep'));
 </script>
 
 <template>
-    <section class="bg-white py-12 lg:py-16">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6">
+    <section class="bg-white py-12 lg:py-16 @lg:py-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 @sm:px-6">
             <HowWeWorkSubheading
                 v-if="firstChild('howWeWorkSubheading')"
                 :data="firstChild('howWeWorkSubheading')!.data ?? {}"
@@ -50,7 +50,7 @@ const stepChildren = computed(() => allChildren('howWeWorkStep'));
                 :data="firstChild('howWeWorkText')!.data ?? {}"
                 :design-mode="designMode"
             />
-            <div class="mt-10 flex flex-wrap items-stretch gap-6 lg:gap-4">
+            <div class="mt-10 flex flex-wrap items-stretch gap-6 lg:gap-4 @lg:gap-4">
                 <HowWeWorkStep
                     v-for="(child, i) in stepChildren"
                     :key="child.id"

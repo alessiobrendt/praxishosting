@@ -78,7 +78,7 @@ const sectionStyle = computed(() => {
         v-else
         class="section-block min-h-[2rem] w-full"
         :class="{
-            'py-6 sm:py-6': hasPadding,
+            'py-6 sm:py-6 @sm:py-6': hasPadding,
             'mx-auto max-w-6xl': isBoxed,
         }"
         :style="{

@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import type { GridComponentData } from '@/types/layout-components';
-import { generateResponsiveCSS, hasResponsiveValues } from '@/lib/responsive-styles';
+import { inject } from 'vue';
+import { generateResponsiveCSS, generateResponsiveContainerCSS, hasResponsiveValues } from '@/lib/responsive-styles';
+
+const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
 
 const props = withDefaults(
     defineProps<{
@@ -66,17 +69,17 @@ const responsiveColumnsCSS = computed(() => {
     
     const d = gridData.value;
     const selector = `.grid-block-responsive[data-grid-id="${gridId.value}"]`;
-    
-    // Always set base (mobile) - use columns if set, otherwise default to 1fr
     const baseColumns = d.columns || '1fr';
-    
-    return generateResponsiveCSS(selector, 'grid-template-columns', {
+    const config = {
         base: baseColumns,
         sm: d.columnsSm,
         md: d.columnsMd,
         lg: d.columnsLg,
         xl: d.columnsXl,
-    });
+    };
+    return usePreviewContainerQueries
+        ? generateResponsiveContainerCSS(selector, 'grid-template-columns', config)
+        : generateResponsiveCSS(selector, 'grid-template-columns', config);
 });
 
 // Generate responsive CSS for gap
@@ -84,21 +87,20 @@ const responsiveGapCSS = computed(() => {
     if (!hasResponsive.value) return '';
     
     const d = gridData.value;
-    // Only generate gap CSS if there are responsive gap values
     if (!d.gapSm && !d.gapMd && !d.gapLg && !d.gapXl) return '';
     
     const selector = `.grid-block-responsive[data-grid-id="${gridId.value}"]`;
-    
-    // Always set base (mobile) - use gap if set, otherwise default to 1rem
     const baseGap = d.gap || '1rem';
-    
-    return generateResponsiveCSS(selector, 'gap', {
+    const config = {
         base: baseGap,
         sm: d.gapSm,
         md: d.gapMd,
         lg: d.gapLg,
         xl: d.gapXl,
-    });
+    };
+    return usePreviewContainerQueries
+        ? generateResponsiveContainerCSS(selector, 'gap', config)
+        : generateResponsiveCSS(selector, 'gap', config);
 });
 
 // Inject styles into head dynamically

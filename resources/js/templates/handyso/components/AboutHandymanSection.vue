@@ -35,9 +35,9 @@ function allChildren(type: string): LayoutComponentEntry[] {
 </script>
 
 <template>
-    <section class="bg-white py-12 lg:py-16">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6">
-            <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
+    <section class="bg-white py-12 lg:py-16 @lg:py-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 @sm:px-6">
+            <div class="grid gap-8 lg:grid-cols-2 @lg:grid-cols-2 lg:gap-12 @lg:gap-12">
                 <div class="relative flex flex-col gap-4">
                     <AboutImage1
                         v-if="firstChild('aboutImage1')"

@@ -70,21 +70,21 @@ function onSelect(id: string): void {
             <div class="flex min-h-0 flex-col">
                 <div
                     :data-module-id="entry.id"
-                    class="relative flex cursor-pointer outline-none ring-2 ring-transparent transition-[outline-color,box-shadow] hover:ring-primary focus-within:ring-primary"
-                    :class="{ 'ring-2 ring-primary': selectedModuleId === entry.id }"
+                    class="relative flex cursor-pointer outline-none ring-1 ring-transparent transition-[outline-color,box-shadow] hover:ring-primary focus-within:ring-primary"
+                    :class="{ 'ring-1 ring-primary': selectedModuleId === entry.id }"
                     tabindex="0"
                     role="button"
                     @click="onSelect(entry.id)"
                     @keydown.enter.space.prevent="onSelect(entry.id)"
                 >
                     <div
-                        class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-6 cursor-grab items-center justify-center bg-muted/50 text-muted-foreground active:cursor-grabbing"
+                        class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-5 cursor-grab items-center justify-center bg-muted/50 text-muted-foreground active:cursor-grabbing"
                         aria-hidden
                         @click.stop
                     >
-                        <GripVertical class="h-4 w-4" />
+                        <GripVertical class="h-3.5 w-3.5" />
                     </div>
-                    <div class="min-w-0 flex-1 pl-6">
+                    <div class="min-w-0 flex-1 pl-5">
                         <template v-if="getMotionPreset((entry.data as Record<string, unknown>)?.motion as string)">
                             <motion.div
                                 class="min-w-0"

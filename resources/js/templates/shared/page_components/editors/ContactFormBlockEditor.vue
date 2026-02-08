@@ -89,7 +89,7 @@ function generateKey(label: string, index: number): string {
                         <Trash2 class="h-3.5 w-3.5 text-destructive" />
                     </Button>
                 </div>
-                <div class="grid gap-2 sm:grid-cols-2">
+                <div class="grid gap-2 sm:grid-cols-2 @sm:grid-cols-2">
                     <div class="space-y-1">
                         <Label>Bezeichnung</Label>
                         <Input

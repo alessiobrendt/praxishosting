@@ -39,14 +39,14 @@ const stats = () => [
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 @sm:px-6">
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4 @sm:grid-cols-4">
             <div
                 v-for="(stat, i) in stats()"
                 :key="i"
                 class="text-center"
             >
-                <div class="text-2xl font-bold sm:text-3xl" style="color: var(--primary)">
+                <div class="text-2xl font-bold sm:text-3xl @sm:text-3xl" style="color: var(--primary)">
                     {{ stat.value }}
                 </div>
                 <div class="mt-1 text-sm" style="color: var(--tertiary)">

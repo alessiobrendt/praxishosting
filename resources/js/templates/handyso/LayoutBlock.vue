@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, provide, nextTick } from 'vue';
+import { ref, watch, computed, provide, inject, onMounted, onUnmounted } from 'vue';
 import { getLayoutComponent } from '@/templates/handyso/component-map';
 import { acceptsChildren } from '@/templates/handyso/combined-registry';
 import { isSlotContainer } from '@/templates/handyso/component-registry';
@@ -14,6 +14,9 @@ import { motion } from 'motion-v';
 import draggable from 'vuedraggable';
 import { GripVertical } from 'lucide-vue-next';
 import ResizeHandle from '@/templates/praxisemerald/components/ResizeHandle.vue';
+import { generateResponsiveContainerCSS, hasResponsiveValues } from '@/lib/responsive-styles';
+
+const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
 
 function isValidContainerChild(e: unknown): e is LayoutComponentEntry {
     return (
@@ -30,8 +33,10 @@ const props = withDefaults(
         designMode?: boolean;
         selectedModuleId?: string | null;
         insertAtParent?: (parentId: string, index: number, type: string) => void;
+        /** Wenn true, rendert dieser Block keinen eigenen Drag-Handle (wird vom Container-Wrapper bereitgestellt). */
+        embeddingProvidesDragHandle?: boolean;
     }>(),
-    { designMode: false, selectedModuleId: null, insertAtParent: undefined },
+    { designMode: false, selectedModuleId: null, insertAtParent: undefined, embeddingProvidesDragHandle: false },
 );
 
 const emit = defineEmits<{
@@ -127,31 +132,36 @@ function mapAlign(v: SectionAlign | string | undefined): string {
 
 function getSectionFlexStyle(): Record<string, string> {
     const d = props.entry.data ?? {};
-    return {
+    const style: Record<string, string> = {
         display: 'flex',
-        flexDirection: (d.direction as string) === 'row' ? 'row' : 'column',
         flexWrap: (d.wrap as boolean) !== false ? 'wrap' : 'nowrap',
-        gap: (d.gap as string) ?? '1rem',
-        justifyContent: mapJustify(d.justify as SectionJustify),
-        alignItems: mapAlign(d.align as SectionAlign),
     };
+    if (!containerUsesResponsiveQueries.value) {
+        style.flexDirection = (d.direction as string) === 'row' ? 'row' : 'column';
+        style.gap = (d.gap as string) ?? '1rem';
+        style.justifyContent = mapJustify(d.justify as SectionJustify);
+        style.alignItems = mapAlign(d.align as SectionAlign);
+    }
+    return style;
 }
+
+const containerUsesResponsiveQueries = computed(
+    () =>
+        usePreviewContainerQueries &&
+        props.designMode &&
+        acceptsChildren(props.entry.type as LayoutComponentType) &&
+        hasResponsiveValues((props.entry.data ?? {}) as Record<string, unknown>),
+);
 
 function getGridStyle(): Record<string, string> {
     const d = props.entry.data ?? {};
-    const style: Record<string, string> = {
-        display: 'grid',
-        gap: (d.gap as string) ?? '1rem',
-    };
-    if (d.columns) {
-        style.gridTemplateColumns = d.columns as string;
+    const style: Record<string, string> = { display: 'grid' };
+    if (!containerUsesResponsiveQueries.value) {
+        style.gap = (d.gap as string) ?? '1rem';
+        if (d.columns) style.gridTemplateColumns = d.columns as string;
     }
-    if (d.rowGap) {
-        style.rowGap = d.rowGap as string;
-    }
-    if (d.columnGap) {
-        style.columnGap = d.columnGap as string;
-    }
+    if (d.rowGap) style.rowGap = d.rowGap as string;
+    if (d.columnGap) style.columnGap = d.columnGap as string;
     return style;
 }
 
@@ -161,6 +171,102 @@ function getContainerStyle(): Record<string, string> {
     }
     return getSectionFlexStyle();
 }
+
+const layoutContainerStyleEl = ref<HTMLStyleElement | null>(null);
+const layoutContainerCSS = computed(() => {
+    if (!containerUsesResponsiveQueries.value) return '';
+    const d = (props.entry.data ?? {}) as Record<string, unknown>;
+    const selector = `.layout-block-container-responsive[data-layout-container-id="${props.entry.id}"]`;
+    const parts: string[] = [];
+    if (props.entry.type === 'grid') {
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'grid-template-columns', {
+                base: (d.columns as string) || '1fr',
+                sm: d.columnsSm as string,
+                md: d.columnsMd as string,
+                lg: d.columnsLg as string,
+                xl: d.columnsXl as string,
+            }),
+        );
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'gap', {
+                base: (d.gap as string) || '1rem',
+                sm: d.gapSm as string,
+                md: d.gapMd as string,
+                lg: d.gapLg as string,
+                xl: d.gapXl as string,
+            }),
+        );
+    } else if (props.entry.type === 'section' || props.entry.type === 'flex') {
+        const dir = (v: string | undefined) => (v === 'row' ? 'row' : 'column');
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'flex-direction', {
+                base: dir((d.direction as string) || 'column'),
+                sm: d.directionSm ? dir(d.directionSm as string) : undefined,
+                md: d.directionMd ? dir(d.directionMd as string) : undefined,
+                lg: d.directionLg ? dir(d.directionLg as string) : undefined,
+                xl: d.directionXl ? dir(d.directionXl as string) : undefined,
+            }),
+        );
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'gap', {
+                base: (d.gap as string) || '1rem',
+                sm: d.gapSm as string,
+                md: d.gapMd as string,
+                lg: d.gapLg as string,
+                xl: d.gapXl as string,
+            }),
+        );
+        const mapJ = (v: string | undefined) =>
+            ({ start: 'flex-start', center: 'center', end: 'flex-end', 'space-between': 'space-between', 'space-around': 'space-around' }[v ?? 'start'] ?? 'flex-start');
+        const mapA = (v: string | undefined) =>
+            ({ start: 'flex-start', center: 'center', end: 'flex-end', stretch: 'stretch' }[v ?? 'stretch'] ?? 'stretch');
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'justify-content', {
+                base: mapJ(d.justify as string),
+                sm: d.justifySm ? mapJ(d.justifySm as string) : undefined,
+                md: d.justifyMd ? mapJ(d.justifyMd as string) : undefined,
+                lg: d.justifyLg ? mapJ(d.justifyLg as string) : undefined,
+                xl: d.justifyXl ? mapJ(d.justifyXl as string) : undefined,
+            }),
+        );
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'align-items', {
+                base: mapA(d.align as string),
+                sm: d.alignSm ? mapA(d.alignSm as string) : undefined,
+                md: d.alignMd ? mapA(d.alignMd as string) : undefined,
+                lg: d.alignLg ? mapA(d.alignLg as string) : undefined,
+                xl: d.alignXl ? mapA(d.alignXl as string) : undefined,
+            }),
+        );
+    }
+    return parts.filter(Boolean).join('\n');
+});
+
+function injectLayoutContainerStyles(): void {
+    if (!layoutContainerCSS.value) {
+        if (layoutContainerStyleEl.value) {
+            layoutContainerStyleEl.value.remove();
+            layoutContainerStyleEl.value = null;
+        }
+        return;
+    }
+    if (!layoutContainerStyleEl.value) {
+        layoutContainerStyleEl.value = document.createElement('style');
+        layoutContainerStyleEl.value.setAttribute('data-layout-container', props.entry.id);
+        document.head.appendChild(layoutContainerStyleEl.value);
+    }
+    layoutContainerStyleEl.value.textContent = layoutContainerCSS.value;
+}
+
+onMounted(() => injectLayoutContainerStyles());
+onUnmounted(() => {
+    if (layoutContainerStyleEl.value) {
+        layoutContainerStyleEl.value.remove();
+        layoutContainerStyleEl.value = null;
+    }
+});
+watch(layoutContainerCSS, () => injectLayoutContainerStyles());
 
 const containerDropTargetIndex = ref<number | null>(null);
 
@@ -193,21 +299,22 @@ const motionPreset = computed(() =>
     <div
         v-if="designMode"
         :data-module-id="entry.id"
-        class="relative flex cursor-pointer outline-none ring-2 ring-transparent transition-[outline-color,box-shadow] hover:ring-[#fd7f2b] focus-within:ring-[#fd7f2b]"
-        :class="{ 'ring-2 ring-[#fd7f2b]': selectedModuleId === entry.id }"
+        class="relative flex cursor-pointer outline-none ring-1 ring-transparent transition-[outline-color,box-shadow] hover:ring-[#fd7f2b] focus-within:ring-[#fd7f2b]"
+        :class="{ 'ring-1 ring-[#fd7f2b]': selectedModuleId === entry.id }"
         tabindex="0"
         role="button"
         @click.stop="onSelect(entry.id)"
         @keydown.enter.space.prevent="onSelect(entry.id)"
     >
         <div
-            class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-6 cursor-grab items-center justify-center bg-gray-200/80 text-gray-600 active:cursor-grabbing"
+            v-if="!embeddingProvidesDragHandle"
+            class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-5 cursor-grab items-center justify-center bg-gray-200/80 text-gray-600 active:cursor-grabbing"
             aria-hidden
             @click.stop
         >
-            <GripVertical class="h-4 w-4" />
+            <GripVertical class="h-3.5 w-3.5" />
         </div>
-        <div class="min-w-0 flex-1 pl-6">
+        <div class="min-w-0 flex-1" :class="embeddingProvidesDragHandle ? 'pl-0' : 'pl-5'">
         <!-- Slot container: render only the section with entry (reorder in sidebar) -->
         <template v-if="designMode && isSlotContainer(entry.type)">
             <template v-if="motionPreset">
@@ -253,7 +360,7 @@ const motionPreset = computed(() =>
                     >
                         <div
                             v-if="insertAtParent"
-                            class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                            class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
                             :class="{ 'border-[#fd7f2b] bg-[#fd7f2b]/10': containerDropTargetIndex === 0 }"
                             @dragover="onContainerDropZoneDragOver(0, $event)"
                             @dragleave="onContainerDropZoneDragLeave"
@@ -266,7 +373,11 @@ const motionPreset = computed(() =>
                             item-key="id"
                             handle=".block-drag-handle"
                             :group="{ name: 'layout-blocks', pull: true, put: true }"
-                            class="section-children-flex min-h-[4rem] min-w-0 flex-1"
+                            :class="[
+                                'section-children-flex min-h-[2.5rem] min-w-0 flex-1',
+                                containerUsesResponsiveQueries && 'layout-block-container-responsive',
+                            ]"
+                            :data-layout-container-id="containerUsesResponsiveQueries ? entry.id : undefined"
                             :style="getContainerStyle()"
                             ghost-class="opacity-50"
                             :revert-on-spill="true"
@@ -281,7 +392,7 @@ const motionPreset = computed(() =>
                                 >
                                     <div
                                         v-if="insertAtParent"
-                                        class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                                        class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
                                         :class="{ 'border-[#fd7f2b] bg-[#fd7f2b]/10': containerDropTargetIndex === index + 1 }"
                                         @dragover="onContainerDropZoneDragOver(index + 1, $event)"
                                         @dragleave="onContainerDropZoneDragLeave"
@@ -290,22 +401,23 @@ const motionPreset = computed(() =>
                                         <span class="sr-only">Komponente hier einfügen</span>
                                     </div>
                                     <div
-                                        class="section-child relative flex min-h-[3rem] min-w-0 flex-1 flex-row"
+                                        class="section-child relative flex min-h-[2rem] min-w-0 flex-1 flex-row"
                                         :class="{ 'w-full': isGridOrFlexContainer() }"
                                     >
                                         <div
-                                            class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-6 cursor-grab items-center justify-center bg-gray-200/80 text-gray-600 active:cursor-grabbing"
+                                            class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-5 cursor-grab items-center justify-center bg-gray-200/80 text-gray-600 active:cursor-grabbing"
                                             aria-hidden
                                             @click.stop
                                         >
-                                            <GripVertical class="h-4 w-4" />
+                                            <GripVertical class="h-3.5 w-3.5" />
                                         </div>
-                                        <div class="min-w-0 pl-6">
+                                        <div class="min-w-0 pl-5">
                                             <LayoutBlock
                                                 :entry="child"
                                                 :design-mode="designMode"
                                                 :selected-module-id="selectedModuleId"
                                                 :insert-at-parent="insertAtParent"
+                                                embedding-provides-drag-handle
                                                 @select="onSelect"
                                                 @reorder="emit('reorder')"
                                                 @drag-start="emit('dragStart')"
@@ -324,7 +436,7 @@ const motionPreset = computed(() =>
                         </draggable>
                         <div
                             v-if="insertAtParent"
-                            class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                            class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
                             :class="{ 'border-[#fd7f2b] bg-[#fd7f2b]/10': containerDropTargetIndex === containerChildrenFiltered.length }"
                             @dragover="onContainerDropZoneDragOver(containerChildrenFiltered.length, $event)"
                             @dragleave="onContainerDropZoneDragLeave"
@@ -345,7 +457,7 @@ const motionPreset = computed(() =>
             >
                 <div
                     v-if="insertAtParent"
-                    class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                    class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
                     :class="{ 'border-[#fd7f2b] bg-[#fd7f2b]/10': containerDropTargetIndex === 0 }"
                     @dragover="onContainerDropZoneDragOver(0, $event)"
                     @dragleave="onContainerDropZoneDragLeave"
@@ -358,7 +470,11 @@ const motionPreset = computed(() =>
                     item-key="id"
                     handle=".block-drag-handle"
                     :group="{ name: 'layout-blocks', pull: true, put: true }"
-                    class="section-children-flex min-h-[4rem] min-w-0 flex-1"
+                    :class="[
+                        'section-children-flex min-h-[2.5rem] min-w-0 flex-1',
+                        containerUsesResponsiveQueries && 'layout-block-container-responsive',
+                    ]"
+                    :data-layout-container-id="containerUsesResponsiveQueries ? entry.id : undefined"
                     :style="getContainerStyle()"
                     ghost-class="opacity-50"
                     :revert-on-spill="true"
@@ -373,7 +489,7 @@ const motionPreset = computed(() =>
                         >
                             <div
                                 v-if="insertAtParent"
-                                class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                                class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
                                 :class="{ 'border-[#fd7f2b] bg-[#fd7f2b]/10': containerDropTargetIndex === index + 1 }"
                                 @dragover="onContainerDropZoneDragOver(index + 1, $event)"
                                 @dragleave="onContainerDropZoneDragLeave"
@@ -382,22 +498,23 @@ const motionPreset = computed(() =>
                                 <span class="sr-only">Komponente hier einfügen</span>
                             </div>
                             <div
-                                class="section-child relative flex min-h-[3rem] min-w-0 flex-1 flex-row"
+                                class="section-child relative flex min-h-[2rem] min-w-0 flex-1 flex-row"
                                 :class="{ 'w-full': isGridOrFlexContainer() }"
                             >
                                 <div
-                                    class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-6 cursor-grab items-center justify-center bg-gray-200/80 text-gray-600 active:cursor-grabbing"
+                                    class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-5 cursor-grab items-center justify-center bg-gray-200/80 text-gray-600 active:cursor-grabbing"
                                     aria-hidden
                                     @click.stop
                                 >
-                                    <GripVertical class="h-4 w-4" />
+                                    <GripVertical class="h-3.5 w-3.5" />
                                 </div>
-                                <div class="min-w-0 pl-6">
+                                <div class="min-w-0 pl-5">
                                     <LayoutBlock
                                         :entry="child"
                                         :design-mode="designMode"
                                         :selected-module-id="selectedModuleId"
                                         :insert-at-parent="insertAtParent"
+                                        embedding-provides-drag-handle
                                         @select="onSelect"
                                         @reorder="emit('reorder')"
                                         @drag-start="emit('dragStart')"
@@ -416,7 +533,7 @@ const motionPreset = computed(() =>
                 </draggable>
                 <div
                     v-if="insertAtParent"
-                    class="min-h-4 shrink-0 border-2 border-dashed border-transparent transition-colors"
+                    class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
                     :class="{ 'border-[#fd7f2b] bg-[#fd7f2b]/10': containerDropTargetIndex === containerChildrenFiltered.length }"
                     @dragover="onContainerDropZoneDragOver(containerChildrenFiltered.length, $event)"
                     @dragleave="onContainerDropZoneDragLeave"

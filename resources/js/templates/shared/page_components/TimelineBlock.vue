@@ -49,7 +49,7 @@ const items = () => [
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 @sm:px-6">
         <h2 v-if="props.data.title" class="mb-6 text-xl font-semibold" style="color: var(--secondary)">
             {{ props.data.title }}
         </h2>

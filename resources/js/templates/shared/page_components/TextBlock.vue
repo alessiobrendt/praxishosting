@@ -22,7 +22,7 @@ const props = defineProps<{ data: Record<string, unknown> }>();
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <p
             class="text-base text-slate-600 dark:text-slate-400"
             :class="{

@@ -80,7 +80,7 @@ onMounted(checkStatus);
             {{ (data.subscribedMessage as string) ?? 'Sie sind bereits für unseren Newsletter angemeldet.' }}
         </div>
 
-        <form v-else class="flex flex-col gap-2 sm:flex-row sm:items-end" @submit.prevent="handleSubmit">
+        <form v-else class="flex flex-col gap-2 sm:flex-row @sm:flex-row sm:items-end @sm:items-end" @submit.prevent="handleSubmit">
             <input
                 v-model="honeypot"
                 type="text"

@@ -28,12 +28,12 @@ type FeatureIcon = keyof typeof components;
 <template>
     <!-- Hero Section (only when not already rendered via layout_components) -->
     <section v-if="showInlineHero" aria-labelledby="hero-heading" class="relative">
-        <div class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-8 px-4 py-12 sm:px-6 md:grid-cols-2">
+        <div class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-8 px-4 py-12 sm:px-6 @sm:px-6 md:grid-cols-2 @md:grid-cols-2">
             <div>
                 <h1
                     id="hero-heading"
                     :style="{ color: pageData.colors.secondary }"
-                    class="text-3xl font-bold tracking-tight sm:text-4xl"
+                    class="text-3xl font-bold tracking-tight sm:text-4xl @sm:text-4xl"
                 >
                     {{ pageData.hero.heading }}
                 </h1>
@@ -70,8 +70,8 @@ type FeatureIcon = keyof typeof components;
 
     <!-- About Section -->
     <section>
-        <section aria-labelledby="about-heading" class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-            <div class="grid grid-cols-1 items-start gap-8 md:grid-cols-[1.2fr_.8fr]">
+        <section aria-labelledby="about-heading" class="mx-auto max-w-6xl px-4 py-12 sm:px-6 @sm:px-6">
+            <div class="grid grid-cols-1 items-start gap-8 md:grid-cols-[1.2fr_.8fr] @md:grid-cols-[1.2fr_.8fr]">
                 <div>
                     <h2
                         id="about-heading"
@@ -83,7 +83,7 @@ type FeatureIcon = keyof typeof components;
                     <p :style="{ color: pageData.colors.tertiary }" class="mt-4">
                         {{ pageData.about.text }}
                     </p>
-                    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+                    <div class="mt-6 grid gap-4 sm:grid-cols-2 @sm:grid-cols-2">
                         <div
                             v-for="(feature, index) in pageData.about.features"
                             :key="index"
@@ -140,7 +140,7 @@ type FeatureIcon = keyof typeof components;
             :style="{ backgroundColor: pageData.colors.quaternary }"
             class="border-t"
         >
-            <div class="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-12 text-center sm:px-6">
+            <div class="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-12 text-center sm:px-6 @sm:px-6">
                 <h2
                     id="cta-heading"
                     :style="{ color: pageData.colors.secondary }"

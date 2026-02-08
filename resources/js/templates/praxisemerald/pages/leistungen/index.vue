@@ -53,13 +53,13 @@ const groups = [
 </script>
 
 <template>
-    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 @sm:px-6">
         <HeaderAnimation
             title="Unsere Leistungen"
             subtitle="Umfassende medizinische Versorgung für Ihre Gesundheit"
         />
 
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 @md:grid-cols-2">
             <motion.div
                 v-for="(g, i) in groups"
                 :key="g.title"

@@ -30,8 +30,8 @@ function allChildren(type: string): LayoutComponentEntry[] {
 </script>
 
 <template>
-    <section class="relative overflow-hidden bg-gray-100 py-12 lg:py-16">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6">
+    <section class="relative overflow-hidden bg-gray-100 py-12 lg:py-16 @lg:py-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 @sm:px-6">
             <WhyChooseUsSubheading
                 v-if="firstChild('whyChooseUsSubheading')"
                 :data="firstChild('whyChooseUsSubheading')!.data ?? {}"
@@ -42,7 +42,7 @@ function allChildren(type: string): LayoutComponentEntry[] {
                 :data="firstChild('whyChooseUsHeadline')!.data ?? {}"
                 :design-mode="designMode"
             />
-            <div class="mt-8 grid gap-6 sm:grid-cols-2">
+            <div class="mt-8 grid gap-6 sm:grid-cols-2 @sm:grid-cols-2">
                 <WhyChooseUsBenefit
                     v-for="child in allChildren('whyChooseUsBenefit')"
                     :key="child.id"
@@ -52,7 +52,7 @@ function allChildren(type: string): LayoutComponentEntry[] {
             </div>
         </div>
         <div
-            class="absolute left-0 top-1/2 hidden -translate-y-1/2 opacity-10 lg:block"
+            class="absolute left-0 top-1/2 hidden -translate-y-1/2 opacity-10 lg:block @lg:block"
             aria-hidden
         >
             <div class="h-48 w-32 rounded bg-[#fd7f2b]" />

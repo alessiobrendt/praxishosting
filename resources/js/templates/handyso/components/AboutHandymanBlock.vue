@@ -25,9 +25,9 @@ const buttonHref = computed(() => (props.data.buttonHref as string) ?? '#');
 </script>
 
 <template>
-    <section class="bg-white py-12 lg:py-16">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6">
-            <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
+    <section class="bg-white py-12 lg:py-16 @lg:py-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 @sm:px-6">
+            <div class="grid gap-8 lg:grid-cols-2 @lg:grid-cols-2 lg:gap-12 @lg:gap-12">
                 <div class="relative flex flex-col gap-4">
                     <div class="relative aspect-[4/3] overflow-hidden rounded-lg">
                         <img
@@ -65,7 +65,7 @@ const buttonHref = computed(() => (props.data.buttonHref as string) ?? '#');
                     >
                         {{ subheading }}
                     </span>
-                    <h2 class="mt-3 text-2xl font-bold text-gray-900 sm:text-3xl">
+                    <h2 class="mt-3 text-2xl font-bold text-gray-900 sm:text-3xl @sm:text-3xl">
                         {{ heading }}
                     </h2>
                     <p class="mt-4 text-gray-600">

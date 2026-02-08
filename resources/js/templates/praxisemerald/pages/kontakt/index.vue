@@ -7,13 +7,13 @@ import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
 </script>
 
 <template>
-    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 @sm:px-6">
         <HeaderAnimation
             title="Kontaktieren Sie uns"
             subtitle="Wir sind für Sie da. Senden Sie uns eine Nachricht oder besuchen Sie uns."
         />
 
-        <div class="grid grid-cols-1 gap-8 md:grid-cols-[1fr_.8fr]">
+        <div class="grid grid-cols-1 gap-8 md:grid-cols-[1fr_.8fr] @md:grid-cols-[1fr_.8fr]">
             <div class="space-y-6">
                 <motion.div
                     :initial="{ opacity: 0, y: 30 }"
@@ -22,7 +22,7 @@ import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
                     :transition="{ duration: 0.8, ease: 'easeOut', delay: 0 }"
                     class="rounded-lg border bg-white p-4 shadow-sm"
                 >
-                    <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 @sm:grid-cols-2">
                         <motion.div
                             :initial="{ opacity: 0, x: -30 }"
                             :while-in-view="{ opacity: 1, x: 0 }"

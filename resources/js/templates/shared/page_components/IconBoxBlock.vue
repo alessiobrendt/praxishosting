@@ -30,7 +30,7 @@ const iconComponent = () => {
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <div class="flex items-start gap-3 rounded-lg border bg-white p-4 shadow-sm">
             <component
                 :is="iconComponent()"

@@ -69,7 +69,7 @@ function getFieldError(key: string): string | undefined {
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <p v-if="data?.note" class="mb-4 text-sm text-slate-600">
             {{ (data.note as string) ?? '' }}
         </p>

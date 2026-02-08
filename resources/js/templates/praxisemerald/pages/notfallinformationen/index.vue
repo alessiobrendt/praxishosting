@@ -30,7 +30,7 @@ const notfallInfos = [
 </script>
 
 <template>
-    <section class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <section class="mx-auto max-w-3xl px-4 py-12 sm:px-6 @sm:px-6">
         <HeaderAnimation
             title="Notfallinformationen"
             subtitle="Bei akuten, lebensbedrohlichen Beschwerden zögern Sie nicht, den Rettungsdienst zu rufen."

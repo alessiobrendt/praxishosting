@@ -24,7 +24,7 @@ const currentYear = new Date().getFullYear();
 
 <template>
     <footer class="mt-16 border-t bg-slate-50">
-        <div class="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-10 sm:grid-cols-3 sm:px-6">
+        <div class="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-10 sm:grid-cols-3 @sm:grid-cols-3 sm:px-6 @sm:px-6">
             <div>
                 <h3 class="text-sm font-semibold text-slate-900">{{ siteName }}</h3>
                 <p class="mt-2 text-sm text-slate-700">
@@ -83,7 +83,7 @@ const currentYear = new Date().getFullYear();
             </div>
         </div>
         <div class="border-t">
-            <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+            <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 @sm:px-6">
                 <p class="text-xs text-slate-600">© {{ currentYear }} {{ copyrightText }}</p>
                 <p v-if="creditLine" class="text-xs text-slate-600">{{ creditLine }}</p>
             </div>

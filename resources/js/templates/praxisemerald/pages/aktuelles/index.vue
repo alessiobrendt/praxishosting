@@ -25,13 +25,13 @@ const posts = [
 </script>
 
 <template>
-    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 @sm:px-6">
         <HeaderAnimation
             title="Aktuelles"
             subtitle="Neuigkeiten und wichtige Informationen aus unserer Praxis."
         />
 
-        <ul class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <ul class="grid grid-cols-1 gap-6 md:grid-cols-2 @md:grid-cols-2 lg:grid-cols-3 @lg:grid-cols-3">
             <motion.li
                 v-for="(p, i) in posts"
                 :key="p.title"

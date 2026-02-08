@@ -29,7 +29,7 @@ function toggle(i: number) {
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <div class="flex flex-col gap-4">
             <div
                 v-for="(faq, i) in items()"

@@ -18,7 +18,7 @@ const embedUrl = () => String(props.data.embedUrl ?? '').trim();
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <div v-if="embedUrl()" class="overflow-hidden rounded-md border">
             <iframe
                 :src="embedUrl()"

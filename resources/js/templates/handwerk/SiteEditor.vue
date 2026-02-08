@@ -146,7 +146,7 @@ async function uploadHeroImage(file: File): Promise<void> {
                 <CardTitle>Farben</CardTitle>
                 <CardDescription>Primärfarben und Hintergründe für das Handwerk-Template</CardDescription>
             </CardHeader>
-            <CardContent class="grid gap-4 sm:grid-cols-2">
+            <CardContent class="grid gap-4 sm:grid-cols-2 @sm:grid-cols-2">
                 <div v-for="(_, key) in colors" :key="String(key)" class="flex flex-col gap-2">
                     <Label :for="`color-${key}`">{{ key }}</Label>
                     <div class="flex items-center gap-2">
@@ -246,7 +246,7 @@ async function uploadHeroImage(file: File): Promise<void> {
                 <div
                     v-for="(service, i) in servicesList"
                     :key="i"
-                    class="grid gap-2 border-b pb-3 sm:grid-cols-2"
+                    class="grid gap-2 border-b pb-3 sm:grid-cols-2 @sm:grid-cols-2"
                 >
                     <Input v-model="service.title" placeholder="Titel" />
                     <div class="flex gap-2">
@@ -301,7 +301,7 @@ async function uploadHeroImage(file: File): Promise<void> {
                         rows="2"
                     />
                 </div>
-                <div class="grid gap-2 sm:grid-cols-2">
+                <div class="grid gap-2 sm:grid-cols-2 @sm:grid-cols-2">
                     <div class="space-y-2">
                         <Label>Telefon</Label>
                         <Input v-model="contactData.phone" />
@@ -315,7 +315,7 @@ async function uploadHeroImage(file: File): Promise<void> {
                     <Label>Adresse</Label>
                     <Input v-model="contactData.address" />
                 </div>
-                <div class="grid gap-2 sm:grid-cols-2">
+                <div class="grid gap-2 sm:grid-cols-2 @sm:grid-cols-2">
                     <div class="space-y-2">
                         <Label>Button-Text</Label>
                         <Input v-model="contactData.buttonText" placeholder="z. B. Jetzt anfragen" />

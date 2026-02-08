@@ -41,13 +41,13 @@ const infos = [
 </script>
 
 <template>
-    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 @sm:px-6">
         <HeaderAnimation
             title="Patienteninformationen"
             subtitle="Wichtige Hinweise für Ihren Besuch in unserer Praxis."
         />
 
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 @md:grid-cols-2">
             <div class="space-y-4">
                 <motion.div
                     v-for="(info, i) in infos"

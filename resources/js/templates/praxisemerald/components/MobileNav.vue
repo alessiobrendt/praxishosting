@@ -20,7 +20,7 @@ const open = ref(false);
 </script>
 
 <template>
-    <div class="pr-2 lg:hidden">
+    <div class="pr-2 lg:hidden @lg:hidden">
         <button
             type="button"
             class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"

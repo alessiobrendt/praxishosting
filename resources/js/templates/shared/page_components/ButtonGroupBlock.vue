@@ -42,7 +42,7 @@ const btnClass = (variant: unknown) => {
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <div class="flex flex-wrap gap-3">
             <a
                 :href="designMode ? '#' : String(props.data.href1 ?? '#')"

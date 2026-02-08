@@ -35,7 +35,7 @@ const parsedItems = computed(() => {
 </script>
 
 <template>
-    <nav class="mx-auto max-w-6xl px-4 py-2 sm:px-6" aria-label="Breadcrumb">
+    <nav class="mx-auto max-w-6xl px-4 py-2 sm:px-6 @sm:px-6" aria-label="Breadcrumb">
         <ol class="flex flex-wrap items-center gap-1 text-sm" style="color: var(--tertiary)">
             <template v-for="(item, i) in parsedItems" :key="i">
                 <li v-if="i > 0" class="flex items-center">

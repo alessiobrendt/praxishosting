@@ -26,7 +26,7 @@ const iconMap: Record<string, typeof Facebook> = {
 
 <template>
     <div class="bg-[#010b1a] text-white">
-        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-2 sm:px-6">
+        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-2 sm:px-6 @sm:px-6">
             <div class="flex flex-wrap items-center gap-6 text-sm">
                 <a
                     v-if="email"

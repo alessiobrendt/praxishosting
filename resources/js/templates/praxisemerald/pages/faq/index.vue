@@ -24,7 +24,7 @@ const faqs = [
 </script>
 
 <template>
-    <section class="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-12 sm:px-6">
+    <section class="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-12 sm:px-6 @sm:px-6">
         <HeaderAnimation
             title="Häufige Fragen"
             subtitle="Antworten auf die meistgestellten Fragen unserer Patienten."

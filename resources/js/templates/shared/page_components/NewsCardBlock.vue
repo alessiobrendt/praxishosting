@@ -23,8 +23,8 @@ const items = () => (Array.isArray(props.data.items) ? props.data.items : []) as
 </script>
 
 <template>
-    <section class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
-        <ul class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <section class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
+        <ul class="grid grid-cols-1 gap-6 md:grid-cols-2 @md:grid-cols-2 lg:grid-cols-3 @lg:grid-cols-3">
             <li
                 v-for="(p, i) in items()"
                 :key="i"

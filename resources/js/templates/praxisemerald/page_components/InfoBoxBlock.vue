@@ -29,7 +29,7 @@ const boxClass = () => {
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <div
             class="rounded-lg border-l-4 p-4"
             :class="boxClass()"

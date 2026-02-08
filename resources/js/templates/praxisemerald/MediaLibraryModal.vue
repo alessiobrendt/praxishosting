@@ -107,7 +107,7 @@ function choose(url: string) {
                 </div>
                 <div
                     v-else
-                    class="grid grid-cols-3 sm:grid-cols-4 gap-2 overflow-y-auto min-h-0"
+                    class="grid grid-cols-3 sm:grid-cols-4 @sm:grid-cols-4 gap-2 overflow-y-auto min-h-0"
                 >
                     <button
                         v-for="url in urls"

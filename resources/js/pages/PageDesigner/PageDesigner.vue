@@ -511,10 +511,20 @@ const previewColors = computed(() => {
     };
 });
 
+/** Pro Template-Slug gecacht, damit nicht bei jedem Computed-Lauf ein neues defineAsyncComponent entsteht (vermeidet "Cannot read properties of null (reading 'component')"). */
+const layoutComponentCache = new Map<string, ReturnType<typeof defineAsyncComponent>>();
+
 const layoutComponent = computed(() => {
     const e = templateEntry.value;
     if (!e?.Layout) return null;
-    return defineAsyncComponent(e.Layout as () => Promise<{ default: import('vue').Component }>);
+    const slug = isTemplateMode.value ? props.template?.slug : props.site?.template?.slug;
+    const key = slug ?? '__default__';
+    let comp = layoutComponentCache.get(key);
+    if (!comp) {
+        comp = defineAsyncComponent(e.Layout as () => Promise<{ default: import('vue').Component }>);
+        layoutComponentCache.set(key, comp);
+    }
+    return comp;
 });
 
 function getCsrfToken(): string {
@@ -580,12 +590,17 @@ function onMediaLibraryClose(): void {
 }
 
 provide('openMediaLibrary', openMediaLibrary);
+/** Wenn true, nutzen Grid/Flex Container Queries statt Media Queries – Breakpoints folgen der Vorschau-Container-Breite. */
+provide('usePreviewContainerQueries', true);
 
 type PreviewViewport = 'desktop' | 'tablet' | 'mobile';
 
 const previewViewport = ref<PreviewViewport>('desktop');
 const previewFullscreen = ref(false);
 
+/**
+ * Desktop: min-width 1280px; Tablet/Mobile: max-width, damit Container Queries im Vorschau-Wrapper die Breite liefern.
+ */
 const previewWrapperClass = computed(() => {
     switch (previewViewport.value) {
         case 'tablet':
@@ -593,7 +608,7 @@ const previewWrapperClass = computed(() => {
         case 'mobile':
             return 'max-w-[375px]';
         default:
-            return 'w-full px-4';
+            return 'min-w-[1280px] w-full px-4';
     }
 });
 
@@ -1003,6 +1018,7 @@ onUnmounted(() => {
     window.removeEventListener('keydown', onKeydown);
     if (debounceTimer) clearTimeout(debounceTimer);
     if (historyDebounceTimer) clearTimeout(historyDebounceTimer);
+    layoutComponentCache.clear();
 });
 </script>
 
@@ -1274,9 +1290,14 @@ onUnmounted(() => {
                         </Button>
                     </div>
                     <div
-                        class="relative w-full overflow-auto rounded-lg border-2 border-border bg-muted shadow-xl transition-[max-width] light"
+                        class="relative w-full overflow-auto rounded-lg border-2 border-border bg-muted shadow-xl transition-[max-width] light page-designer-preview-container @container"
                         :class="[previewWrapperClass, previewFullscreen && 'rounded-none border-0 shadow-none min-h-full']"
-                        :style="{ ...previewColors, transform: 'translateZ(0)' }"
+                        :style="{
+                            ...previewColors,
+                            transform: 'translateZ(0)',
+                            containerType: 'inline-size',
+                            containerName: 'page-designer-preview',
+                        }"
                     >
                         <component
                             v-if="layoutComponent && registry"

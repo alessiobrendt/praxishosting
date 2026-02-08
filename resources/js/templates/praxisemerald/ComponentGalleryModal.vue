@@ -141,7 +141,7 @@ function onSelect(type: LayoutComponentType | string) {
                         :value="section.category"
                         class="mt-0"
                     >
-                        <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                        <div class="grid gap-4 sm:grid-cols-2 @sm:grid-cols-2 md:grid-cols-3 @md:grid-cols-3 lg:grid-cols-4 @lg:grid-cols-4">
                             <button
                                 v-for="reg in section.components"
                                 :key="reg.type"

@@ -17,9 +17,9 @@ const props = defineProps<{ data: Record<string, unknown> }>();
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 @sm:px-6">
         <div class="text-center">
-            <div class="text-4xl font-bold sm:text-5xl" style="color: var(--primary)">
+            <div class="text-4xl font-bold sm:text-5xl @sm:text-5xl" style="color: var(--primary)">
                 {{ props.data.value }}
             </div>
             <div class="mt-2 text-lg" style="color: var(--tertiary)">

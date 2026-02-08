@@ -33,9 +33,9 @@ const props = withDefaults(
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <div class="grid gap-6 sm:grid-cols-2 sm:items-center">
-            <div :class="props.data.imagePosition === 'right' ? 'sm:order-2' : 'sm:order-1'">
+    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 @sm:px-6">
+        <div class="grid gap-6 sm:grid-cols-2 @sm:grid-cols-2 sm:items-center @sm:items-center">
+            <div :class="props.data.imagePosition === 'right' ? 'sm:order-2 @sm:order-2' : 'sm:order-1 @sm:order-1'">
                 <img
                     v-if="props.data.imageSrc"
                     :src="String(props.data.imageSrc)"
@@ -46,7 +46,7 @@ const props = withDefaults(
                     Bild hinzufügen
                 </div>
             </div>
-            <div :class="props.data.imagePosition === 'right' ? 'sm:order-1' : 'sm:order-2'">
+            <div :class="props.data.imagePosition === 'right' ? 'sm:order-1 @sm:order-1' : 'sm:order-2 @sm:order-2'">
                 <h2 v-if="props.data.heading" class="text-xl font-semibold" style="color: var(--secondary)">
                     {{ props.data.heading }}
                 </h2>

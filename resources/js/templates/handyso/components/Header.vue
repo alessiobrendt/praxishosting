@@ -49,7 +49,7 @@ function isActive(href: string): boolean {
         class="border-b border-gray-200 bg-white"
         :class="isDesignMode ? 'relative z-0' : 'sticky top-0 z-50'"
     >
-        <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 @sm:px-6">
             <a
                 :href="isDesignMode ? '#' : '/'"
                 class="flex items-center gap-2"
@@ -71,7 +71,7 @@ function isActive(href: string): boolean {
                 <span class="text-xl font-bold tracking-tight text-gray-900">{{ siteName }}</span>
                 <span class="h-2 w-2 rounded-full bg-[#fd7f2b]" />
             </a>
-            <nav aria-label="Hauptnavigation" class="hidden items-center gap-8 lg:flex">
+            <nav aria-label="Hauptnavigation" class="hidden items-center gap-8 lg:flex @lg:flex">
                 <a
                     v-for="link in links"
                     :key="link.href"
@@ -87,7 +87,7 @@ function isActive(href: string): boolean {
                 <a
                     v-if="ctaButtonText"
                     :href="isDesignMode ? '#' : ctaButtonHref"
-                    class="hidden rounded bg-[#fd7f2b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#e67220] sm:inline-block"
+                    class="hidden rounded bg-[#fd7f2b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#e67220] sm:inline-block @sm:inline-block"
                     @click="isDesignMode && $event.preventDefault()"
                 >
                     {{ ctaButtonText }}

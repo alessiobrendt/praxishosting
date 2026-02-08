@@ -27,7 +27,7 @@ const items = computed(() => {
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <ol v-if="props.data.style === 'numbered'" class="list-decimal list-inside space-y-1 text-base" style="color: var(--tertiary)">
             <li v-for="(item, i) in items" :key="i">{{ item }}</li>
         </ol>

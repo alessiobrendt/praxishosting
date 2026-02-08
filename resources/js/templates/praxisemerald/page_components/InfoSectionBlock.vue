@@ -37,8 +37,8 @@ function parseContent(content: string): string[] {
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 @md:grid-cols-2">
             <div class="space-y-4">
                 <div
                     v-for="(info, i) in items()"

@@ -31,9 +31,9 @@ const items = () => (Array.isArray(props.data.items) ? props.data.items : []) as
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <ul
-            class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:repeat(var(--cols),minmax(0,1fr))]"
+            class="grid gap-6 grid-cols-1 sm:grid-cols-2 @sm:grid-cols-2 lg:[grid-template-columns @lg:[grid-template-columns:repeat(var(--cols),minmax(0,1fr))]"
             :style="{ '--cols': cols }"
         >
             <li

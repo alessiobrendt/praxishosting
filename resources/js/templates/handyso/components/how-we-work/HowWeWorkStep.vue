@@ -27,7 +27,7 @@ const desc = () => (props.data?.desc as string) ?? '';
             </span>
             <ChevronRight
                 v-if="showArrow"
-                class="hidden h-5 w-5 shrink-0 text-gray-300 lg:block"
+                class="hidden h-5 w-5 shrink-0 text-gray-300 lg:block @lg:block"
                 aria-hidden
             />
         </div>

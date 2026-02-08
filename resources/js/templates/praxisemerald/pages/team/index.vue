@@ -31,13 +31,13 @@ const team = [
 </script>
 
 <template>
-    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 @sm:px-6">
         <HeaderAnimation
             title="Unser Team"
             subtitle="Lernen Sie die Menschen hinter der Praxis kennen."
         />
 
-        <ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 @sm:grid-cols-2 lg:grid-cols-3 @lg:grid-cols-3">
             <motion.li
                 v-for="(m, i) in team"
                 :key="m.name"

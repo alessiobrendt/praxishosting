@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
+import { computed, inject, ref, onMounted, onUnmounted, watch } from 'vue';
 import type {
     FlexContainerComponentData,
     SectionJustify,
     SectionAlign,
 } from '@/types/layout-components';
-import { generateResponsiveCSS, hasResponsiveValues } from '@/lib/responsive-styles';
+import { generateResponsiveCSS, generateResponsiveContainerCSS, hasResponsiveValues } from '@/lib/responsive-styles';
+
+const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
 
 const props = withDefaults(
     defineProps<{
@@ -90,16 +92,17 @@ const responsiveDirectionCSS = computed(() => {
         return dir === 'row' ? 'row' : 'column';
     };
     
-    // Always set base (mobile) - use direction if set, otherwise default to column
     const baseDirection = directionMap(d.direction || 'column');
-    
-    return generateResponsiveCSS(selector, 'flex-direction', {
+    const config = {
         base: baseDirection,
         sm: d.directionSm ? directionMap(d.directionSm) : undefined,
         md: d.directionMd ? directionMap(d.directionMd) : undefined,
         lg: d.directionLg ? directionMap(d.directionLg) : undefined,
         xl: d.directionXl ? directionMap(d.directionXl) : undefined,
-    });
+    };
+    return usePreviewContainerQueries
+        ? generateResponsiveContainerCSS(selector, 'flex-direction', config)
+        : generateResponsiveCSS(selector, 'flex-direction', config);
 });
 
 // Generate responsive CSS for gap
@@ -111,17 +114,17 @@ const responsiveGapCSS = computed(() => {
     if (!d.gapSm && !d.gapMd && !d.gapLg && !d.gapXl) return '';
     
     const selector = `.flex-container-block-responsive[data-flex-id="${flexId.value}"]`;
-    
-    // Always set base (mobile) - use gap if set, otherwise default to 1rem
     const baseGap = d.gap || '1rem';
-    
-    return generateResponsiveCSS(selector, 'gap', {
+    const config = {
         base: baseGap,
         sm: d.gapSm,
         md: d.gapMd,
         lg: d.gapLg,
         xl: d.gapXl,
-    });
+    };
+    return usePreviewContainerQueries
+        ? generateResponsiveContainerCSS(selector, 'gap', config)
+        : generateResponsiveCSS(selector, 'gap', config);
 });
 
 // Generate responsive CSS for justify
@@ -132,17 +135,17 @@ const responsiveJustifyCSS = computed(() => {
     if (!d.justifySm && !d.justifyMd && !d.justifyLg && !d.justifyXl) return '';
     
     const selector = `.flex-container-block-responsive[data-flex-id="${flexId.value}"]`;
-    
-    // Always set base (mobile) - use justify if set, otherwise default to flex-start
     const baseJustify = mapJustify(d.justify || 'start');
-    
-    return generateResponsiveCSS(selector, 'justify-content', {
+    const config = {
         base: baseJustify,
         sm: d.justifySm ? mapJustify(d.justifySm) : undefined,
         md: d.justifyMd ? mapJustify(d.justifyMd) : undefined,
         lg: d.justifyLg ? mapJustify(d.justifyLg) : undefined,
         xl: d.justifyXl ? mapJustify(d.justifyXl) : undefined,
-    });
+    };
+    return usePreviewContainerQueries
+        ? generateResponsiveContainerCSS(selector, 'justify-content', config)
+        : generateResponsiveCSS(selector, 'justify-content', config);
 });
 
 // Generate responsive CSS for align
@@ -153,17 +156,17 @@ const responsiveAlignCSS = computed(() => {
     if (!d.alignSm && !d.alignMd && !d.alignLg && !d.alignXl) return '';
     
     const selector = `.flex-container-block-responsive[data-flex-id="${flexId.value}"]`;
-    
-    // Always set base (mobile) - use align if set, otherwise default to stretch
     const baseAlign = mapAlign(d.align || 'stretch');
-    
-    return generateResponsiveCSS(selector, 'align-items', {
+    const config = {
         base: baseAlign,
         sm: d.alignSm ? mapAlign(d.alignSm) : undefined,
         md: d.alignMd ? mapAlign(d.alignMd) : undefined,
         lg: d.alignLg ? mapAlign(d.alignLg) : undefined,
         xl: d.alignXl ? mapAlign(d.alignXl) : undefined,
-    });
+    };
+    return usePreviewContainerQueries
+        ? generateResponsiveContainerCSS(selector, 'align-items', config)
+        : generateResponsiveCSS(selector, 'align-items', config);
 });
 
 // Inject styles into head dynamically

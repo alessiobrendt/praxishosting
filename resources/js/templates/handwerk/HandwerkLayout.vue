@@ -13,14 +13,14 @@ defineProps<{
             class="sticky top-0 z-10 border-b-2 shadow-md"
             :style="{ backgroundColor: colors.primaryDark ?? '#134e4a', borderColor: colors.primary ?? '#0d9488' }"
         >
-            <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+            <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 @sm:px-6">
                 <a
                     href="#"
                     class="text-lg font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
                 >
                     {{ (generalInformation?.name as string) ?? site.name }}
                 </a>
-                <nav class="flex items-center gap-4 sm:gap-6" aria-label="Hauptnavigation">
+                <nav class="flex items-center gap-4 sm:gap-6 @sm:gap-6" aria-label="Hauptnavigation">
                     <a
                         href="#hero"
                         class="text-sm font-semibold uppercase tracking-wide text-white/90 transition-colors hover:text-white"
@@ -58,8 +58,8 @@ defineProps<{
             class="border-t-2 py-6"
             :style="{ borderColor: colors.primary, backgroundColor: colors.secondary ?? '#0f172a' }"
         >
-            <div class="mx-auto max-w-5xl px-4 sm:px-6">
-                <div class="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
+            <div class="mx-auto max-w-5xl px-4 sm:px-6 @sm:px-6">
+                <div class="flex flex-col items-center justify-between gap-3 text-center sm:flex-row @sm:flex-row sm:text-left @sm:text-left">
                     <p class="text-xs uppercase tracking-widest text-white/80">
                         &copy; {{ new Date().getFullYear() }}
                         {{ (generalInformation?.name as string) ?? site.name }}

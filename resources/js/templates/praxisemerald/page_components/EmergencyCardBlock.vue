@@ -32,7 +32,7 @@ function iconComponent(name: string) {
 </script>
  
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6">
         <div class="space-y-4">
             <a
                 v-for="(info, i) in items()"

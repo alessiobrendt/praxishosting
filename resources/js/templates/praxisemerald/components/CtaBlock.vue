@@ -19,7 +19,7 @@ const image = computed(() => props.data.image ?? { src: '', alt: '' });
         class="border-t px-4 py-12"
         style="background-color: var(--quaternary)"
     >
-        <div class="mx-auto flex max-w-6xl flex-col items-center gap-6 text-center sm:px-6">
+        <div class="mx-auto flex max-w-6xl flex-col items-center gap-6 text-center sm:px-6 @sm:px-6">
             <h2
                 id="cta-block-heading"
                 class="text-2xl font-semibold"

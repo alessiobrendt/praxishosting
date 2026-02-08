@@ -21,13 +21,13 @@ const heroImage = () => (hero?.image as { src?: string; alt?: string }) ?? { src
     <!-- Hero: full-width band with primary background -->
     <section id="hero" aria-labelledby="hero-heading" class="relative overflow-hidden">
         <div
-            class="relative mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-4 py-16 sm:px-6 md:grid-cols-2"
+            class="relative mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-4 py-16 sm:px-6 @sm:px-6 md:grid-cols-2 @md:grid-cols-2"
             :style="{ backgroundColor: colors.primary ?? '#0d9488' }"
         >
             <div class="relative z-10 text-white">
                 <h1
                     id="hero-heading"
-                    class="text-3xl font-extrabold uppercase tracking-tight sm:text-4xl md:text-5xl"
+                    class="text-3xl font-extrabold uppercase tracking-tight sm:text-4xl @sm:text-4xl md:text-5xl @md:text-5xl"
                 >
                     {{ heroHeading() }}
                 </h1>
@@ -62,7 +62,7 @@ const heroImage = () => (hero?.image as { src?: string; alt?: string }) ?? { src
 
     <!-- Services: list with left accent border -->
     <section id="leistungen" aria-labelledby="services-heading" class="border-t-2 border-stone-200 bg-white py-14">
-        <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <div class="mx-auto max-w-5xl px-4 sm:px-6 @sm:px-6">
             <h2
                 id="services-heading"
                 class="text-2xl font-bold uppercase tracking-tight"
@@ -96,7 +96,7 @@ const heroImage = () => (hero?.image as { src?: string; alt?: string }) ?? { src
 
     <!-- About: block with background band -->
     <section id="ueber-uns" aria-labelledby="about-heading" class="py-14" :style="{ backgroundColor: colors.primaryLight ?? '#ccfbf1' }">
-        <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <div class="mx-auto max-w-5xl px-4 sm:px-6 @sm:px-6">
             <h2
                 id="about-heading"
                 class="text-2xl font-bold uppercase tracking-tight"
@@ -116,7 +116,7 @@ const heroImage = () => (hero?.image as { src?: string; alt?: string }) ?? { src
         aria-labelledby="contact-heading"
         class="border-t-2 border-stone-200 bg-stone-100 py-14"
     >
-        <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <div class="mx-auto max-w-5xl px-4 sm:px-6 @sm:px-6">
             <div
                 class="rounded-xl border-2 p-8 shadow-lg"
                 :style="{ borderColor: colors.primary, backgroundColor: 'white' }"

@@ -23,7 +23,7 @@ type FeatureIcon = keyof typeof iconMap;
 </script>
 
 <template>
-    <section aria-labelledby="about-block-heading" class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <section aria-labelledby="about-block-heading" class="mx-auto max-w-6xl px-4 py-12 sm:px-6 @sm:px-6">
         <h2
             id="about-block-heading"
             class="text-2xl font-semibold"
@@ -34,7 +34,7 @@ type FeatureIcon = keyof typeof iconMap;
         <p class="mt-4" style="color: var(--tertiary)">
             {{ text }}
         </p>
-        <div class="mt-6 grid gap-4 sm:grid-cols-2">
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 @sm:grid-cols-2">
             <div
                 v-for="(feature, index) in features"
                 :key="index"

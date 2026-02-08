@@ -16,11 +16,11 @@ const image = computed(() => props.data.image ?? { src: '', alt: '' });
 
 <template>
     <section aria-labelledby="hero-heading" class="relative">
-        <div class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-8 px-4 py-12 sm:px-6 md:grid-cols-2">
+        <div class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-8 px-4 py-12 sm:px-6 @sm:px-6 md:grid-cols-2 @md:grid-cols-2">
             <div>
                 <h1
                     id="hero-heading"
-                    class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl"
+                    class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl @sm:text-4xl"
                 >
                     {{ heading }}
                 </h1>

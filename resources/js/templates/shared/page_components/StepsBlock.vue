@@ -41,11 +41,11 @@ const steps = () => [
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 @sm:px-6">
         <h2 v-if="props.data.title" class="mb-6 text-xl font-semibold" style="color: var(--secondary)">
             {{ props.data.title }}
         </h2>
-        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="grid gap-6 sm:grid-cols-2 @sm:grid-cols-2 lg:grid-cols-4 @lg:grid-cols-4">
             <div
                 v-for="(step, i) in steps()"
                 :key="i"

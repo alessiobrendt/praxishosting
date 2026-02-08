@@ -19,7 +19,7 @@ const props = defineProps<{ data: Record<string, unknown> }>();
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6" :class="{ 'text-center': props.data.align === 'center', 'text-right': props.data.align === 'right' }">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 @sm:px-6" :class="{ 'text-center': props.data.align === 'center', 'text-right': props.data.align === 'right' }">
         <component
             :is="props.data.level === 'h1' ? 'h1' : props.data.level === 'h3' ? 'h3' : 'h2'"
             class="font-semibold"

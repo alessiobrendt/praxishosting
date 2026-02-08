@@ -26,21 +26,21 @@ const steps = computed(
 </script>
 
 <template>
-    <section class="bg-white py-12 lg:py-16">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6">
+    <section class="bg-white py-12 lg:py-16 @lg:py-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 @sm:px-6">
             <span
                 v-if="subheading"
                 class="inline-block bg-[#fd7f2b] px-3 py-1 text-sm font-medium text-white"
             >
                 {{ subheading }}
             </span>
-            <h2 class="mt-3 text-2xl font-bold text-gray-900 sm:text-3xl">
+            <h2 class="mt-3 text-2xl font-bold text-gray-900 sm:text-3xl @sm:text-3xl">
                 {{ heading }}
             </h2>
             <p class="mt-4 max-w-2xl text-gray-600">
                 {{ text }}
             </p>
-            <div class="mt-10 flex flex-wrap items-stretch gap-6 lg:gap-4">
+            <div class="mt-10 flex flex-wrap items-stretch gap-6 lg:gap-4 @lg:gap-4">
                 <template v-for="(step, i) in steps" :key="i">
                     <div class="flex flex-1 min-w-[200px] flex-col">
                         <div class="flex items-center gap-2">
@@ -51,7 +51,7 @@ const steps = computed(
                             </span>
                             <ChevronRight
                                 v-if="i < steps.length - 1"
-                                class="hidden h-5 w-5 shrink-0 text-gray-300 lg:block"
+                                class="hidden h-5 w-5 shrink-0 text-gray-300 lg:block @lg:block"
                                 aria-hidden
                             />
                         </div>
