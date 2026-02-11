@@ -21,7 +21,7 @@ const boxClass = () => {
         case 'warning':
             return 'border-amber-500/50 bg-amber-50 dark:bg-amber-950/30';
         case 'tip':
-            return 'border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/30';
+            return 'border-primary/50 bg-primary/10 dark:bg-primary/20';
         default:
             return 'border-blue-500/50 bg-blue-50 dark:bg-blue-950/30';
     }

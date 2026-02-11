@@ -22,6 +22,7 @@ import {
     Settings,
     Shield,
     PackageCheck,
+    GitBranch,
 } from 'lucide-vue-next';
 import { index as supportIndex } from '@/routes/support';
 import modules from '@/routes/modules';
@@ -54,6 +55,7 @@ const sidebarItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
         { title: 'Dashboard', href: dashboard().url, icon: LayoutGrid },
         { title: 'Meine Sites', href: sitesIndex().url, icon: Globe },
+        { title: 'Workflow Builder', href: '/workflow-builder', icon: GitBranch },
         { title: 'Meine Rechnungen', href: billingIndex().url, icon: FileText },
         supportItem,
     ];

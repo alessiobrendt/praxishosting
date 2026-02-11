@@ -38,7 +38,7 @@ function iconComponent(name: string) {
                 v-for="(info, i) in items()"
                 :key="i"
                 :href="info.href || '#'"
-                class="flex flex-col gap-2 rounded-lg border bg-white p-4 shadow-sm transition hover:border-emerald-600"
+                class="flex flex-col gap-2 rounded-lg border bg-white p-4 shadow-sm transition hover:border-primary"
             >
                 <div class="flex items-center justify-between">
                     <component :is="iconComponent(info.icon)" class="h-5 w-5 shrink-0" style="color: var(--primary-dark)" aria-hidden="true" />

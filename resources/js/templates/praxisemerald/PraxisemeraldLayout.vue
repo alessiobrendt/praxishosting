@@ -17,8 +17,18 @@ const props = withDefaults(
         selectedModuleId?: string | null;
         insertAtRoot?: (index: number, type: string) => void;
         insertAtParent?: (parentId: string, index: number, type: string) => void;
+        /** Global button style from Design tab (variant, radius, size). */
+        globalButtonStyle?: { variant?: string; radius?: string; size?: string };
     }>(),
-    { generalInformation: () => ({}), designMode: false, onSelect: undefined, selectedModuleId: null, insertAtRoot: undefined, insertAtParent: undefined },
+    {
+        generalInformation: () => ({}),
+        designMode: false,
+        onSelect: undefined,
+        selectedModuleId: null,
+        insertAtRoot: undefined,
+        insertAtParent: undefined,
+        globalButtonStyle: () => ({}),
+    },
 );
 
 const emit = defineEmits<{
@@ -99,6 +109,10 @@ function onReorder(): void {
 provide('designMode', computed(() => props.designMode ?? false));
 provide('site', computed(() => props.site));
 provide('generalInformation', computed(() => props.generalInformation ?? {}));
+provide(
+    'globalButtonStyle',
+    computed(() => props.globalButtonStyle ?? {}),
+);
 
 const dropTargetIndex = ref<number | null>(null);
 

@@ -23,7 +23,7 @@ const open = ref(false);
     <div class="pr-2 lg:hidden @lg:hidden">
         <button
             type="button"
-            class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary"
             aria-label="Menü öffnen"
             @click="open = !open"
         >
@@ -53,7 +53,7 @@ const open = ref(false);
                 <div class="relative flex h-full flex-col">
                     <button
                         type="button"
-                        class="absolute right-4 top-4 z-50 inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                        class="absolute right-4 top-4 z-50 inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary"
                         aria-label="Menü schließen"
                         @click="open = false"
                     >
@@ -69,7 +69,7 @@ const open = ref(false);
                         aria-label="Zur Startseite"
                         @click="open = false"
                     >
-                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600 text-white">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
                             <img
                                 v-if="logoUrl"
                                 :src="logoUrl"
@@ -87,7 +87,7 @@ const open = ref(false);
                         <li v-for="link in links" :key="link.href">
                             <a
                                 :href="designMode ? '#' : link.href"
-                                class="block rounded px-3 py-2 text-base font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700"
+                                class="block rounded px-3 py-2 text-base font-medium text-slate-700 hover:bg-primary/10 hover:text-primary"
                                 @click="designMode ? $event.preventDefault() : (open = false)"
                             >
                                 {{ link.label }}

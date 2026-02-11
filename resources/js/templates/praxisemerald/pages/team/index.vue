@@ -57,7 +57,7 @@ const team = [
                     />
                 </div>
                 <h2 class="mt-4 text-lg font-semibold text-slate-900">{{ m.name }}</h2>
-                <p class="text-sm text-emerald-700">{{ m.role }}</p>
+                <p class="text-sm text-primary">{{ m.role }}</p>
                 <p class="mt-2 text-sm text-slate-700">{{ m.bio }}</p>
             </motion.li>
         </ul>

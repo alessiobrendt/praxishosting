@@ -53,7 +53,7 @@ const posts = [
                     <p class="text-xs text-slate-500">{{ new Date(p.date).toLocaleDateString('de-DE') }}</p>
                     <h2 class="mt-1 text-lg font-semibold text-slate-900">{{ p.title }}</h2>
                     <p class="mt-1 text-sm text-slate-700">{{ p.excerpt }}</p>
-                    <a href="#" class="mt-3 inline-block text-sm font-medium text-emerald-700 hover:underline">
+                    <a href="#" class="mt-3 inline-block text-sm font-medium text-primary hover:underline">
                         Mehr lesen
                     </a>
                 </div>

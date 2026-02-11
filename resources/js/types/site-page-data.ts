@@ -85,8 +85,25 @@ export interface CustomPageDefinition {
     order: number;
 }
 
+/** Global font settings (Design tab). Stored as CSS font-family or Tailwind font key. */
+export interface GlobalFonts {
+    heading?: string;
+    body?: string;
+}
+
+/** Global button/form style defaults (Design tab). */
+export interface GlobalButtonStyle {
+    variant?: string;
+    radius?: string;
+    size?: string;
+}
+
 export interface SitePageData {
     colors: SitePageDataColors;
+    /** Global font choices (heading, body). Optional. */
+    global_fonts?: GlobalFonts;
+    /** Global button/form defaults. Optional. */
+    global_button_style?: GlobalButtonStyle;
     hero: HeroData;
     about: AboutData;
     hours: HoursData;

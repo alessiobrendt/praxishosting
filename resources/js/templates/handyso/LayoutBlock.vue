@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, provide, inject, onMounted, onUnmounted } from 'vue';
+import { ref, watch, computed, provide, inject, onMounted, onUnmounted, nextTick } from 'vue';
 import { getLayoutComponent } from '@/templates/handyso/component-map';
 import { acceptsChildren } from '@/templates/handyso/combined-registry';
 import { isSlotContainer } from '@/templates/handyso/component-registry';
@@ -12,11 +12,27 @@ import type {
 import type { LayoutComponentType } from '@/types/layout-components';
 import { motion } from 'motion-v';
 import draggable from 'vuedraggable';
-import { GripVertical } from 'lucide-vue-next';
+import { GripVertical, MoreHorizontal, Copy, Trash2, ClipboardPaste } from 'lucide-vue-next';
 import ResizeHandle from '@/templates/praxisemerald/components/ResizeHandle.vue';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { generateResponsiveContainerCSS, hasResponsiveValues } from '@/lib/responsive-styles';
 
 const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
+
+type BlockContextActions = {
+    duplicate: (id: string) => void;
+    remove: (id: string) => void;
+    copy: (id: string) => void;
+    paste: (afterId: string) => void;
+    getCanPaste: () => boolean;
+};
+const blockContextActions = inject<{ value: BlockContextActions } | null>('blockContextActions', null);
 
 function isValidContainerChild(e: unknown): e is LayoutComponentEntry {
     return (
@@ -314,6 +330,48 @@ const motionPreset = computed(() =>
         >
             <GripVertical class="h-3.5 w-3.5" />
         </div>
+        <DropdownMenu v-if="blockContextActions?.value" v-slot>
+            <DropdownMenuTrigger as-child>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    class="absolute right-0 top-0 z-10 h-7 w-7 shrink-0 rounded-sm opacity-70 hover:opacity-100"
+                    aria-label="Block-Menü"
+                    @click.stop
+                >
+                    <MoreHorizontal class="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="min-w-[10rem]">
+                <DropdownMenuItem
+                    @select="blockContextActions.value.duplicate(entry.id)"
+                >
+                    <Copy class="mr-2 h-4 w-4" />
+                    Duplizieren
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    @select="blockContextActions.value.copy(entry.id)"
+                >
+                    <Copy class="mr-2 h-4 w-4" />
+                    Kopieren
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    :disabled="!blockContextActions.value.getCanPaste()"
+                    @select="blockContextActions.value.paste(entry.id)"
+                >
+                    <ClipboardPaste class="mr-2 h-4 w-4" />
+                    Einfügen
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    variant="destructive"
+                    @select="blockContextActions.value.remove(entry.id)"
+                >
+                    <Trash2 class="mr-2 h-4 w-4" />
+                    Löschen
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
         <div class="min-w-0 flex-1" :class="embeddingProvidesDragHandle ? 'pl-0' : 'pl-5'">
         <!-- Slot container: render only the section with entry (reorder in sidebar) -->
         <template v-if="designMode && isSlotContainer(entry.type)">

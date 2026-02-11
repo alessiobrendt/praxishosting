@@ -71,7 +71,7 @@ const groups = [
                 class="rounded-lg border bg-white p-5 shadow-sm"
             >
                 <div class="mb-3 flex items-center gap-2">
-                    <component :is="g.icon" class="h-5 w-5 text-emerald-700" aria-hidden="true" />
+                    <component :is="g.icon" class="h-5 w-5 text-primary" aria-hidden="true" />
                     <h2 class="text-lg font-semibold text-slate-900">{{ g.title }}</h2>
                 </div>
                 <ul class="list-inside list-disc space-y-1 text-slate-700">

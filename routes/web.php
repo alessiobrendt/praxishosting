@@ -32,6 +32,7 @@ use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SiteRenderController;
 use App\Http\Controllers\SiteSubscriptionController;
 use App\Http\Controllers\SupportController;
+use App\Http\Controllers\WorkflowController;
 use App\Http\Middleware\DisableCacheForSiteRender;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -96,6 +97,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('modules/newsletter/sites/{site}/posts', [ModuleController::class, 'storePost'])->name('modules.newsletter.posts.store');
     Route::get('modules/contact', [ModuleController::class, 'contact'])->name('modules.contact.index');
     Route::get('modules/contact/sites/{site}', [ModuleController::class, 'contactSubmissions'])->name('modules.contact.submissions');
+
+    Route::get('workflow-builder', [WorkflowController::class, 'index'])->name('workflow-builder.index');
+    Route::get('workflow-builder/api/list', [WorkflowController::class, 'list'])->name('workflow-builder.list');
+    Route::post('workflow-builder/api/save', [WorkflowController::class, 'store'])->name('workflow-builder.store');
+    Route::get('workflow-builder/api/load/{id}', [WorkflowController::class, 'show'])->name('workflow-builder.show');
 
     Route::get('support', [SupportController::class, 'index'])->name('support.index');
     Route::get('support/create', [SupportController::class, 'create'])->name('support.create');

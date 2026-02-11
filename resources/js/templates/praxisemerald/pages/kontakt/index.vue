@@ -30,7 +30,7 @@ import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
                             :transition="{ duration: 0.6, ease: 'easeOut', delay: 0 }"
                         >
                             <dt class="flex items-center gap-2 text-sm font-medium text-slate-900">
-                                <MapPin class="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                                <MapPin class="h-4 w-4 text-primary" aria-hidden="true" />
                                 Adresse
                             </dt>
                             <dd class="mt-1 text-sm text-slate-700">Musterstraße 1, 12345 Musterstadt</dd>
@@ -42,7 +42,7 @@ import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
                             :transition="{ duration: 0.6, ease: 'easeOut', delay: 0.07 }"
                         >
                             <dt class="flex items-center gap-2 text-sm font-medium text-slate-900">
-                                <Phone class="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                                <Phone class="h-4 w-4 text-primary" aria-hidden="true" />
                                 Telefon
                             </dt>
                             <dd class="mt-1 text-sm">
@@ -56,7 +56,7 @@ import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
                             :transition="{ duration: 0.6, ease: 'easeOut', delay: 0.14 }"
                         >
                             <dt class="flex items-center gap-2 text-sm font-medium text-slate-900">
-                                <Mail class="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                                <Mail class="h-4 w-4 text-primary" aria-hidden="true" />
                                 E-Mail
                             </dt>
                             <dd class="mt-1 text-sm">
@@ -72,7 +72,7 @@ import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
                             :transition="{ duration: 0.6, ease: 'easeOut', delay: 0.21 }"
                         >
                             <dt class="flex items-center gap-2 text-sm font-medium text-slate-900">
-                                <Clock class="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                                <Clock class="h-4 w-4 text-primary" aria-hidden="true" />
                                 Öffnungszeiten
                             </dt>
                             <dd class="mt-1 text-sm text-slate-700">Mo–Fr 08:00–12:00, Di/Do 15:00–18:00</dd>

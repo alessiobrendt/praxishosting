@@ -32,11 +32,11 @@ const currentYear = new Date().getFullYear();
                 </p>
                 <div class="mt-4 space-y-2 text-sm text-slate-700">
                     <p v-if="address" class="flex items-center gap-2">
-                        <MapPin class="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                        <MapPin class="h-4 w-4 text-primary" aria-hidden="true" />
                         {{ address }}
                     </p>
                     <p v-if="phone" class="flex items-center gap-2">
-                        <Phone class="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                        <Phone class="h-4 w-4 text-primary" aria-hidden="true" />
                         <a
                             :href="designMode ? '#' : `tel:${phone}`"
                             class="hover:underline"
@@ -44,7 +44,7 @@ const currentYear = new Date().getFullYear();
                         >{{ phone }}</a>
                     </p>
                     <p v-if="email" class="flex items-center gap-2">
-                        <Mail class="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                        <Mail class="h-4 w-4 text-primary" aria-hidden="true" />
                         <a
                             :href="designMode ? '#' : `mailto:${email}`"
                             class="hover:underline"
@@ -52,7 +52,7 @@ const currentYear = new Date().getFullYear();
                         >{{ email }}</a>
                     </p>
                     <p v-if="openingLine" class="flex items-center gap-2">
-                        <Clock class="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                        <Clock class="h-4 w-4 text-primary" aria-hidden="true" />
                         {{ openingLine }}
                     </p>
                 </div>

@@ -53,7 +53,7 @@ function isActive(href: string): boolean {
                 aria-label="Zur Startseite"
                 @click="isDesignMode && $event.preventDefault()"
             >
-                <span class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600 text-white">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
                     <img
                         :src="logoUrl"
                         :alt="logoAlt"
@@ -71,10 +71,10 @@ function isActive(href: string): boolean {
                         <a
                             :href="isDesignMode ? '#' : link.href"
                             :class="{
-                                'text-emerald-600': isActive(link.href),
+                                'text-primary': isActive(link.href),
                                 'text-slate-700': !isActive(link.href),
                             }"
-                            class="rounded px-2 py-1 text-sm font-medium transition-colors hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                            class="rounded px-2 py-1 text-sm font-medium transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             @click="isDesignMode && $event.preventDefault()"
                         >
                             {{ link.label }}

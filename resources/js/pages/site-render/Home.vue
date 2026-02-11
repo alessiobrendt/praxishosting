@@ -23,6 +23,32 @@ const props = defineProps<Props>();
 const pageData = computed(() => props.pageData ?? {});
 const colors = computed(() => props.colors ?? {});
 
+const globalFonts = computed(() => (pageData.value.global_fonts as { heading?: string; body?: string } | undefined) ?? {});
+const globalButtonStyle = computed(
+    () => (pageData.value.global_button_style as { variant?: string; radius?: string; size?: string } | undefined) ?? {},
+);
+
+const rootStyle = computed(() => {
+    const c = colors.value;
+    const fonts = globalFonts.value;
+    const btn = globalButtonStyle.value;
+    return {
+        '--primary': c.primary,
+        '--primary-hover': c.primaryHover,
+        '--primary-light': c.primaryLight,
+        '--primary-dark': c.primaryDark,
+        '--secondary': c.secondary,
+        '--tertiary': c.tertiary,
+        '--quaternary': c.quaternary,
+        '--quinary': c.quinary,
+        '--font-heading': fonts.heading || 'inherit',
+        '--font-body': fonts.body || 'inherit',
+        '--button-variant': btn.variant || 'default',
+        '--button-radius': btn.radius || 'md',
+        '--button-size': btn.size || 'default',
+    };
+});
+
 const templateEntry = computed(() => getTemplateEntry(props.templateSlug));
 
 const layoutComponent = computed(() => {
@@ -38,16 +64,7 @@ const layoutComponent = computed(() => {
 <template>
     <div
         class="min-h-screen bg-background site-render"
-        :style="{
-            '--primary': colors.primary,
-            '--primary-hover': colors.primaryHover,
-            '--primary-light': colors.primaryLight,
-            '--primary-dark': colors.primaryDark,
-            '--secondary': colors.secondary,
-            '--tertiary': colors.tertiary,
-            '--quaternary': colors.quaternary,
-            '--quinary': colors.quinary,
-        }"
+        :style="rootStyle"
     >
         <Head :title="site.name" />
 
@@ -59,6 +76,7 @@ const layoutComponent = computed(() => {
                 :general-information="generalInformation"
                 :site="site"
                 :design-mode="designMode"
+                :global-button-style="globalButtonStyle"
             />
         </template>
         <template v-else>

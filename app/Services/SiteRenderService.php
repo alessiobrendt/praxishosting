@@ -33,23 +33,16 @@ class SiteRenderService
 
         $templateSlug = $site->template->slug ?? null;
         $templateDefaultColors = config("template-colors.{$templateSlug}", config('template-colors.default', []));
-        $stalePrimary = config('template-colors.default.primary', '#059669');
 
         $colors = $templateDefaultColors;
 
         $fromSource = $draftColors ?? $site->custom_colors;
         if (! empty($fromSource) && is_array($fromSource)) {
-            if (($fromSource['primary'] ?? null) === $stalePrimary) {
-                $fromSource = array_diff_key($fromSource, array_flip(['primary', 'primaryHover', 'primaryLight', 'primaryDark']));
-            }
             $colors = array_merge($colors, $fromSource);
         }
 
         $fromPage = isset($pageData['colors']) && is_array($pageData['colors']) ? $pageData['colors'] : [];
         if (! empty($fromPage)) {
-            if (($fromPage['primary'] ?? null) === $stalePrimary) {
-                $fromPage = array_diff_key($fromPage, array_flip(['primary', 'primaryHover', 'primaryLight', 'primaryDark']));
-            }
             $colors = array_merge($colors, $fromPage);
         }
 

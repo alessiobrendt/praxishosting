@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import Button from '@/templates/praxisemerald/components/ui/Button.vue';
+import InlineTextEditor from '@/templates/shared/components/InlineTextEditor.vue';
 import type { HeroComponentData } from '@/types/layout-components';
 
 const props = withDefaults(
@@ -8,25 +9,42 @@ const props = withDefaults(
     { designMode: false },
 );
 
+const layoutEntry = inject<{ value: { id: string } } | null>('layoutEntry', null);
+const selectedModuleId = inject<{ value: string | null } | null>('selectedModuleId', null);
+const isSelected = computed(() => !!layoutEntry?.value && layoutEntry.value.id === selectedModuleId?.value);
+
 const heading = computed(() => props.data.heading ?? '');
 const text = computed(() => props.data.text ?? '');
 const buttons = computed(() => props.data.buttons ?? []);
 const image = computed(() => props.data.image ?? { src: '', alt: '' });
+
+function setHeading(v: string): void {
+    (props.data as Record<string, unknown>).heading = v;
+}
 </script>
 
 <template>
     <section aria-labelledby="hero-heading" class="relative">
         <div class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-8 px-4 py-12 sm:px-6 @sm:px-6 md:grid-cols-2 @md:grid-cols-2">
             <div>
-                <h1
+                <InlineTextEditor
                     id="hero-heading"
+                    :model-value="heading"
+                    :design-mode="designMode"
+                    :is-selected="isSelected"
+                    tag="h1"
                     class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl @sm:text-4xl"
-                >
-                    {{ heading }}
-                </h1>
-                <p class="mt-4 text-slate-700">
-                    {{ text }}
-                </p>
+                    @update:model-value="setHeading"
+                />
+                <InlineTextEditor
+                    :model-value="text"
+                    :design-mode="designMode"
+                    :is-selected="isSelected"
+                    tag="p"
+                    class="mt-4 text-slate-700"
+                    placeholder="Beschreibungstext…"
+                    @update:model-value="(v) => ((props.data as Record<string, unknown>).text = v)"
+                />
                 <div class="mt-6 flex flex-wrap gap-3">
                     <div v-for="(btn, idx) in buttons" :key="idx">
                         <Button :variant="(btn.variant as 'default' | 'outline') ?? 'default'">
