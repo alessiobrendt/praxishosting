@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,8 +19,9 @@ import {
     TableCell,
 } from '@/components/ui/table';
 import { dashboard } from '@/routes';
+import billing from '@/routes/billing';
 import type { BreadcrumbItem } from '@/types';
-import { ExternalLink } from 'lucide-vue-next';
+import { ExternalLink, Sparkles } from 'lucide-vue-next';
 
 type Invoice = {
     id: number;
@@ -37,13 +38,27 @@ type PaymentMethodSummary = {
     last4: string;
 };
 
+type AiTokenPackage = {
+    amount: number;
+    label: string;
+};
+
 type Props = {
     invoices: Invoice[];
     billingPortalUrl: string;
     paymentMethodSummary: PaymentMethodSummary | null;
+    aiTokenBalance: number;
+    aiTokenPackages: AiTokenPackage[];
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+function checkoutAiTokens(amount: number): void {
+    router.post(billing.aiTokens.checkout.url(), { token_amount: amount }, {
+        preserveScroll: true,
+        preserveState: true,
+    });
+}
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -111,6 +126,32 @@ const breadcrumbs: BreadcrumbItem[] = [
                         </TableBody>
                     </Table>
                     <p v-else class="text-muted text-sm">Noch keine Rechnungen vorhanden.</p>
+                </CardContent>
+            </Card>
+
+            <!-- AI Tokens -->
+            <Card v-if="props.aiTokenPackages?.length">
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Sparkles class="h-5 w-5" />
+                        AI Tokens
+                    </CardTitle>
+                    <CardDescription>
+                        Aktueller Stand: {{ props.aiTokenBalance }} Tokens. Für KI-SEO und KI-Author im Page Designer.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div class="flex flex-wrap gap-2">
+                        <Button
+                            v-for="pkg in props.aiTokenPackages"
+                            :key="pkg.amount"
+                            variant="outline"
+                            size="sm"
+                            @click="checkoutAiTokens(pkg.amount)"
+                        >
+                            {{ pkg.label }}
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 

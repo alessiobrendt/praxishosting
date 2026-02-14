@@ -205,6 +205,7 @@ watch([hasResponsive, responsiveFlexCSS], () => {
 <template>
     <div
         v-if="designMode"
+        :id="(sectionData.anchor as string) || undefined"
         :class="[
             'section-block-design min-h-[2rem] w-full rounded border-2 border-dashed border-primary/50 bg-primary/5 py-2',
             hasResponsive && 'section-block-responsive',
@@ -226,6 +227,7 @@ watch([hasResponsive, responsiveFlexCSS], () => {
     </div>
     <section
         v-else
+        :id="(sectionData.anchor as string) || undefined"
         :class="[
             'section-block min-h-[2rem] w-full',
             hasResponsive && 'section-block-responsive',

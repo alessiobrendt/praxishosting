@@ -154,6 +154,8 @@ export interface SectionComponentData extends ResponsiveBlockData {
      * oder Hex/RGB für benutzerdefinierte Farbe.
      */
     backgroundColor?: string;
+    /** Optionaler Anker für Sprunglinks (z. B. #meine-section). */
+    anchor?: string;
 }
 
 export interface GridComponentData extends ResponsiveBlockData {

@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { cn } from '@/lib/utils';
 import { AlertCircle, CheckCircle2, Info, AlertTriangle, X } from 'lucide-vue-next';
 
-type AlertVariant = 'info' | 'success' | 'warning' | 'error';
+type AlertVariant = 'info' | 'success' | 'warning' | 'error' | 'destructive';
 
 interface Props {
     variant?: AlertVariant;
@@ -20,7 +20,7 @@ const emit = defineEmits<{
     (e: 'dismiss'): void;
 }>();
 
-const variantConfig: Record<AlertVariant, { bg: string; border: string; text: string; icon: any }> = {
+const variantConfig: Record<Exclude<AlertVariant, 'destructive'>, { bg: string; border: string; text: string; icon: any }> = {
     info: {
         bg: 'bg-blue-50 dark:bg-blue-900/20',
         border: 'border-blue-200 dark:border-blue-800',
@@ -47,7 +47,7 @@ const variantConfig: Record<AlertVariant, { bg: string; border: string; text: st
     },
 };
 
-const config = computed(() => variantConfig[props.variant]);
+const config = computed(() => variantConfig[props.variant === 'destructive' ? 'error' : props.variant]);
 const Icon = computed(() => config.value.icon);
 
 const alertClasses = computed(() =>

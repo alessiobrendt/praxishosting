@@ -170,6 +170,26 @@ class User extends Authenticatable
     }
 
     /**
+     * AI token balance.
+     *
+     * @return HasOne<AiTokenBalance>
+     */
+    public function aiTokenBalance(): HasOne
+    {
+        return $this->hasOne(AiTokenBalance::class);
+    }
+
+    /**
+     * AI token transactions.
+     *
+     * @return HasMany<AiTokenTransaction>
+     */
+    public function aiTokenTransactions(): HasMany
+    {
+        return $this->hasMany(AiTokenTransaction::class);
+    }
+
+    /**
      * Support tickets created by this user (as customer).
      *
      * @return HasMany<Ticket>

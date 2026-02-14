@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Site;
 use App\Services\SitePageDataResolver;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -67,8 +68,16 @@ class SiteDesignerController extends Controller
         ]);
 
         $clientUpdatedAt = $validated['updated_at'] ?? null;
-        if ($clientUpdatedAt !== null && $site->updated_at?->toIso8601String() !== $clientUpdatedAt) {
-            return response()->json(['message' => 'Conflict: site was modified elsewhere'], 409);
+        if ($clientUpdatedAt !== null && $site->updated_at !== null) {
+            try {
+                $clientTs = Carbon::parse($clientUpdatedAt)->timestamp;
+                $serverTs = $site->updated_at->timestamp;
+                if (abs($clientTs - $serverTs) > 1) {
+                    return response()->json(['message' => 'Conflict: site was modified elsewhere'], 409);
+                }
+            } catch (\Throwable) {
+                return response()->json(['message' => 'Conflict: site was modified elsewhere'], 409);
+            }
         }
 
         $customPageData = $validated['custom_page_data'] ?? null;

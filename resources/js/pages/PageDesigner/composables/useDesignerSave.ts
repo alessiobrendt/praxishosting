@@ -19,6 +19,7 @@ export type DesignerSaveContext = {
 
 export function useDesignerSave(ctx: DesignerSaveContext) {
     const saveInProgress = ref(false);
+    const publishConflict = ref(false);
 
     function saveToTemplate(): void {
         if (!ctx.getTemplate() || !ctx.isTemplateMode()) return;
@@ -73,9 +74,11 @@ export function useDesignerSave(ctx: DesignerSaveContext) {
                 if (res.ok) {
                     const data = await res.json();
                     ctx.setUpdatedAt?.(data?.updated_at ?? null);
+                    publishConflict.value = false;
                     notify.success('Gespeichert.');
                     ctx.pushPreviewDraft();
                 } else if (res.status === 409) {
+                    publishConflict.value = true;
                     notify.error('Konflikt: Die Seite wurde woanders geändert. Bitte laden Sie neu.');
                 } else {
                     notify.error('Fehler beim Speichern.');
@@ -89,6 +92,7 @@ export function useDesignerSave(ctx: DesignerSaveContext) {
 
     return {
         saveInProgress,
+        publishConflict,
         saveToSite,
         saveToTemplate,
     };

@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AddCustomerAiTokensRequest;
 use App\Http\Requests\Admin\AddCustomerBalanceRequest;
 use App\Http\Requests\Admin\StoreCustomerNoteRequest;
 use App\Http\Requests\Admin\UpdateCustomerRequest;
 use App\Models\AdminActivityLog;
+use App\Models\AiTokenBalance;
+use App\Models\AiTokenTransaction;
 use App\Models\BalanceTransaction;
 use App\Models\CustomerBalance;
 use App\Models\CustomerNote;
@@ -77,6 +80,8 @@ class CustomerController extends Controller
             'customerBalance',
             'balanceTransactions' => fn ($q) => $q->latest()->limit(20),
             'customerNotes' => fn ($q) => $q->with('admin:id,name')->latest()->limit(50),
+            'aiTokenBalance',
+            'aiTokenTransactions' => fn ($q) => $q->latest()->limit(5),
         ]);
 
         $customerArray = $customer->toArray();
@@ -97,6 +102,14 @@ class CustomerController extends Controller
                 }
             }
         }
+        $aiTokenBalance = AiTokenBalance::where('user_id', $customer->id)->first();
+        $aiTokenTransactions = AiTokenTransaction::where('user_id', $customer->id)
+            ->latest()
+            ->limit(5)
+            ->get()
+            ->map(fn ($tx) => array_merge($tx->toArray(), [
+                'created_at' => $tx->created_at->format('d.m.Y H:i'),
+            ]));
 
         $activityLog = AdminActivityLog::query()
             ->where('model_type', User::class)
@@ -112,6 +125,8 @@ class CustomerController extends Controller
         return Inertia::render('admin/customers/Show', [
             'customer' => $customerArray,
             'activityLog' => $activityLog,
+            'aiTokenBalance' => $aiTokenBalance?->balance ?? 0,
+            'aiTokenTransactions' => $aiTokenTransactions,
         ]);
     }
 
@@ -138,5 +153,18 @@ class CustomerController extends Controller
         AdminActivityLog::log($request->user()->id, 'customer_balance_added', User::class, $customer->id, null, ['amount' => $amount, 'description' => $description]);
 
         return redirect()->route('admin.customers.show', $customer)->with('success', 'Guthaben aufgeladen.');
+    }
+
+    public function storeAiTokens(AddCustomerAiTokensRequest $request, User $customer): RedirectResponse
+    {
+        $amount = (int) $request->validated('amount');
+        $description = $request->validated('description');
+
+        app(\App\Services\AiTokenService::class)->addFromAdmin($customer, $amount, $description, $request->user());
+
+        $action = $amount >= 0 ? 'hinzugefügt' : 'abgezogen';
+        $msg = sprintf('AI-Tokens %s (%d).', $action, abs($amount));
+
+        return redirect()->route('admin.customers.show', $customer)->with('success', $msg);
     }
 }

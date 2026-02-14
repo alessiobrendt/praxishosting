@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Listeners\AddAiTokensFromStripeWebhook;
 use App\Listeners\CreateLocalInvoiceFromStripeWebhook;
 use App\Listeners\LogStripeWebhookReceived;
 use App\Listeners\SendPaymentFailedNotification;
@@ -64,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
         ModuleRegistry::register('newsletter', NewsletterModuleHandler::class);
 
         Event::listen(WebhookReceived::class, LogStripeWebhookReceived::class);
+        Event::listen(WebhookReceived::class, AddAiTokensFromStripeWebhook::class);
         Event::listen(WebhookReceived::class, SyncSiteSubscriptionFromStripeWebhook::class);
         Event::listen(WebhookReceived::class, CreateLocalInvoiceFromStripeWebhook::class);
         Event::listen(WebhookReceived::class, SendPaymentFailedNotification::class);

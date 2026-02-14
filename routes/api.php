@@ -1,9 +1,16 @@
 <?php
 
+use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\ModuleSubmissionController;
 use App\Models\Domain;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+Route::middleware(['web', 'auth', 'throttle:10,1'])->prefix('ai')->group(function () {
+    Route::post('seo-suggestions', [AiController::class, 'seoSuggestions'])->name('api.ai.seo-suggestions');
+    Route::post('generate-text', [AiController::class, 'generateText'])->name('api.ai.generate-text');
+    Route::get('balance', [AiController::class, 'balance'])->name('api.ai.balance');
+});
 
 Route::middleware(['web', 'throttle:module-submit'])->group(function () {
     Route::post('sites/{site}/modules/submit', [ModuleSubmissionController::class, 'submit'])

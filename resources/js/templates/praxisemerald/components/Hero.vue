@@ -22,6 +22,10 @@ const image = computed(() => props.data.image ?? { src: '', alt: '' });
 function setHeading(v: string): void {
     (props.data as Record<string, unknown>).heading = v;
 }
+
+function setText(v: string): void {
+    (props.data as Record<string, unknown>).text = v;
+}
 </script>
 
 <template>
@@ -48,6 +52,7 @@ function setHeading(v: string): void {
                     class="mt-4 text-slate-700"
                     placeholder="Beschreibungstext…"
                     html
+                    @update:model-value="setText"
                 />
                 <div
                     v-else

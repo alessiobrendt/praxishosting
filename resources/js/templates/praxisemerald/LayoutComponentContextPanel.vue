@@ -12,6 +12,8 @@ import { inject, ref, computed } from 'vue';
 import { ImagePlus, Plus, Trash2, Upload } from 'lucide-vue-next';
 import AnimationPicker from '@/templates/shared/components/AnimationPicker.vue';
 import IconPicker from '@/templates/shared/components/IconPicker.vue';
+import LinkPicker from '@/components/LinkPicker.vue';
+import { usePageAnchors } from '@/composables/usePageAnchors';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
     hasResponsiveValues as hasResponsiveValuesFromLib,
@@ -20,6 +22,31 @@ import {
 } from '@/lib/responsive-styles';
 
 const openMediaLibrary = inject<((callback: (url: string) => void) => void) | null>('openMediaLibrary', null);
+const designer = inject<{
+    getPageLabel: (slug: string) => string;
+    currentPageSlug: string;
+    sitePagesList: { slug: string; name: string }[];
+    templatePagesList: { slug: string; name: string }[];
+    isTemplateMode: boolean;
+    layoutComponents: LayoutComponentEntry[];
+    getLayoutForPage: (slug: string) => LayoutComponentEntry[];
+} | null>('designer', null);
+
+const linkPickerPages = computed(
+    () =>
+        designer?.isTemplateMode
+            ? (designer.templatePagesList ?? []).map((p) => ({ slug: p.slug, name: p.name }))
+            : (designer?.sitePagesList ?? []).map((p) => ({ slug: p.slug, name: p.name })),
+);
+
+const linkPickerAnchors = computed(() =>
+    usePageAnchors(designer?.layoutComponents ?? []),
+);
+
+function getAnchorsForPage(slug: string) {
+    const layout = designer?.getLayoutForPage?.(slug) ?? [];
+    return usePageAnchors(layout);
+}
 
 function hasResponsiveValues(data: Record<string, unknown>): boolean {
     return hasResponsiveValuesFromLib(data);
@@ -455,6 +482,9 @@ function removeCtaLink(i: number) {
                         :model-value="String((entry.data as Record<string, unknown>)[field.key] ?? '')"
                         placeholder="Inhalt eingeben…"
                         class="w-full"
+                        :show-ai-toolbar="!!openMediaLibrary"
+                        :page-name="designer ? designer.getPageLabel(designer.currentPageSlug) : null"
+                        :block-type="entry.type"
                         @update:model-value="(v) => ((entry.data as Record<string, unknown>)[field.key] = v)"
                     />
                     <textarea
@@ -541,7 +571,21 @@ function removeCtaLink(i: number) {
             </div>
             <div class="space-y-2">
                 <Label>CTA Button Link</Label>
-                <Input v-model="(entry.data as Record<string, unknown>).ctaButtonHref" />
+                <LinkPicker
+                    v-if="designer"
+                    :model-value="String((entry.data as Record<string, unknown>).ctaButtonHref ?? '')"
+                    :pages="linkPickerPages"
+                    :anchors="linkPickerAnchors"
+                    :get-anchors-for-page="getAnchorsForPage"
+                    :get-page-label="designer?.getPageLabel"
+                    placeholder="URL eingeben…"
+                    @update:model-value="(v) => ((entry.data as Record<string, unknown>).ctaButtonHref = v)"
+                />
+                <Input
+                    v-else
+                    v-model="(entry.data as Record<string, unknown>).ctaButtonHref"
+                    placeholder="URL"
+                />
             </div>
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
@@ -555,11 +599,23 @@ function removeCtaLink(i: number) {
                     <div
                         v-for="(link, i) in ensureLinks(entry.data as Record<string, unknown>)"
                         :key="i"
-                        class="flex gap-2"
+                        class="flex items-start gap-2"
                     >
-                        <Input v-model="link.label" placeholder="Label" class="min-w-0 flex-1" />
-                        <Input v-model="link.href" placeholder="URL" class="min-w-0 flex-1" />
-                        <Button type="button" variant="ghost" size="icon" class="h-8 w-8 shrink-0" @click="removeNavLink(i)">
+                        <Input v-model="link.label" placeholder="Label" class="h-9 min-w-0 flex-1 text-sm" />
+                        <div class="min-w-[140px] flex-1">
+                            <LinkPicker
+                                v-if="designer"
+                                :model-value="String(link.href ?? '')"
+                                :pages="linkPickerPages"
+                                :anchors="linkPickerAnchors"
+                                :get-anchors-for-page="getAnchorsForPage"
+                                :get-page-label="designer?.getPageLabel"
+                                placeholder="URL"
+                                @update:model-value="(v) => (link.href = v)"
+                            />
+                            <Input v-else v-model="link.href" placeholder="URL" class="h-9 w-full text-sm" />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" class="h-9 w-9 shrink-0" @click="removeNavLink(i)">
                             <Trash2 class="h-3.5 w-3.5 text-destructive" />
                         </Button>
                     </div>
@@ -613,11 +669,23 @@ function removeCtaLink(i: number) {
                     <div
                         v-for="(link, i) in ensureLinksSeiten(entry.data as Record<string, unknown>)"
                         :key="'seiten-' + i"
-                        class="flex gap-2"
+                        class="flex items-start gap-2"
                     >
-                        <Input v-model="link.label" placeholder="Label" class="min-w-0 flex-1" />
-                        <Input v-model="link.href" placeholder="URL" class="min-w-0 flex-1" />
-                        <Button type="button" variant="ghost" size="icon" class="h-8 w-8 shrink-0" @click="removeLinkSeite(i)">
+                        <Input v-model="link.label" placeholder="Label" class="h-9 min-w-0 flex-1 text-sm" />
+                        <div class="min-w-[140px] flex-1">
+                            <LinkPicker
+                                v-if="designer"
+                                :model-value="String(link.href ?? '')"
+                                :pages="linkPickerPages"
+                                :anchors="linkPickerAnchors"
+                                :get-anchors-for-page="getAnchorsForPage"
+                                :get-page-label="designer?.getPageLabel"
+                                placeholder="URL"
+                                @update:model-value="(v) => (link.href = v)"
+                            />
+                            <Input v-else v-model="link.href" placeholder="URL" class="h-9 w-full text-sm" />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" class="h-9 w-9 shrink-0" @click="removeLinkSeite(i)">
                             <Trash2 class="h-3.5 w-3.5 text-destructive" />
                         </Button>
                     </div>
@@ -635,11 +703,23 @@ function removeCtaLink(i: number) {
                     <div
                         v-for="(link, i) in ensureLinksRechtliches(entry.data as Record<string, unknown>)"
                         :key="'recht-' + i"
-                        class="flex gap-2"
+                        class="flex items-start gap-2"
                     >
-                        <Input v-model="link.label" placeholder="Label" class="min-w-0 flex-1" />
-                        <Input v-model="link.href" placeholder="URL" class="min-w-0 flex-1" />
-                        <Button type="button" variant="ghost" size="icon" class="h-8 w-8 shrink-0" @click="removeLinkRechtlich(i)">
+                        <Input v-model="link.label" placeholder="Label" class="h-9 min-w-0 flex-1 text-sm" />
+                        <div class="min-w-[140px] flex-1">
+                            <LinkPicker
+                                v-if="designer"
+                                :model-value="String(link.href ?? '')"
+                                :pages="linkPickerPages"
+                                :anchors="linkPickerAnchors"
+                                :get-anchors-for-page="getAnchorsForPage"
+                                :get-page-label="designer?.getPageLabel"
+                                placeholder="URL"
+                                @update:model-value="(v) => (link.href = v)"
+                            />
+                            <Input v-else v-model="link.href" placeholder="URL" class="h-9 w-full text-sm" />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" class="h-9 w-9 shrink-0" @click="removeLinkRechtlich(i)">
                             <Trash2 class="h-3.5 w-3.5 text-destructive" />
                         </Button>
                     </div>
@@ -659,6 +739,9 @@ function removeCtaLink(i: number) {
                     :model-value="String((entry.data as Record<string, unknown>).text ?? '')"
                     placeholder="Text eingeben…"
                     min-height="80px"
+                    :show-ai-toolbar="!!openMediaLibrary"
+                    :page-name="designer ? designer.getPageLabel(designer.currentPageSlug) : null"
+                    :block-type="entry.type"
                     @update:model-value="(v) => ((entry.data as Record<string, unknown>).text = v)"
                 />
             </div>
@@ -728,7 +811,17 @@ function removeCtaLink(i: number) {
                                 <Trash2 class="h-3.5 w-3.5 text-destructive" />
                             </Button>
                         </div>
-                        <Input v-model="btn.href" placeholder="Link URL" class="text-sm" />
+                        <LinkPicker
+                            v-if="designer"
+                            :model-value="String(btn.href ?? '')"
+                            :pages="linkPickerPages"
+                            :anchors="linkPickerAnchors"
+                            :get-anchors-for-page="getAnchorsForPage"
+                            :get-page-label="designer?.getPageLabel"
+                            placeholder="Link URL"
+                            @update:model-value="(v) => (btn.href = v)"
+                        />
+                        <Input v-else v-model="btn.href" placeholder="Link URL" class="text-sm" />
                         <Input v-model="btn.variant" placeholder="Variant (default, outline)" class="text-sm" />
                     </div>
                 </div>
@@ -749,11 +842,23 @@ function removeCtaLink(i: number) {
                     <div
                         v-for="(link, i) in ensureLinks(entry.data as Record<string, unknown>)"
                         :key="i"
-                        class="flex gap-2"
+                        class="flex items-start gap-2"
                     >
-                        <Input v-model="link.label" placeholder="Label" class="min-w-0 flex-1" />
-                        <Input v-model="link.href" placeholder="URL" class="min-w-0 flex-1" />
-                        <Button type="button" variant="ghost" size="icon" class="h-8 w-8 shrink-0" @click="removeNavLink(i)">
+                        <Input v-model="link.label" placeholder="Label" class="h-9 min-w-0 flex-1 text-sm" />
+                        <div class="min-w-[140px] flex-1">
+                            <LinkPicker
+                                v-if="designer"
+                                :model-value="String(link.href ?? '')"
+                                :pages="linkPickerPages"
+                                :anchors="linkPickerAnchors"
+                                :get-anchors-for-page="getAnchorsForPage"
+                                :get-page-label="designer?.getPageLabel"
+                                placeholder="URL"
+                                @update:model-value="(v) => (link.href = v)"
+                            />
+                            <Input v-else v-model="link.href" placeholder="URL" class="h-9 w-full text-sm" />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" class="h-9 w-9 shrink-0" @click="removeNavLink(i)">
                             <Trash2 class="h-3.5 w-3.5 text-destructive" />
                         </Button>
                     </div>
@@ -773,6 +878,9 @@ function removeCtaLink(i: number) {
                     :model-value="String((entry.data as Record<string, unknown>).text ?? '')"
                     placeholder="Text eingeben…"
                     min-height="60px"
+                    :show-ai-toolbar="!!openMediaLibrary"
+                    :page-name="designer ? designer.getPageLabel(designer.currentPageSlug) : null"
+                    :block-type="entry.type"
                     @update:model-value="(v) => ((entry.data as Record<string, unknown>).text = v)"
                 />
             </div>
@@ -853,6 +961,9 @@ function removeCtaLink(i: number) {
                     :model-value="String((entry.data as Record<string, unknown>).text ?? '')"
                     placeholder="Text eingeben…"
                     min-height="60px"
+                    :show-ai-toolbar="!!openMediaLibrary"
+                    :page-name="designer ? designer.getPageLabel(designer.currentPageSlug) : null"
+                    :block-type="entry.type"
                     @update:model-value="(v) => ((entry.data as Record<string, unknown>).text = v)"
                 />
             </div>
@@ -914,12 +1025,31 @@ function removeCtaLink(i: number) {
                     <div
                         v-for="(link, i) in ensureCtaLinks(entry.data as Record<string, unknown>)"
                         :key="i"
-                        class="flex gap-2"
+                        class="flex flex-wrap items-start gap-2 rounded border p-2"
                     >
-                        <Input v-model="link.text" placeholder="Text" class="min-w-0 flex-1" />
-                        <Input v-model="link.href" placeholder="URL" class="min-w-0 flex-1" />
-                        <Input v-model="link.variant" placeholder="primary / secondary" class="w-24" />
-                        <Button type="button" variant="ghost" size="icon" class="h-8 w-8 shrink-0" @click="removeCtaLink(i)">
+                        <Input v-model="link.text" placeholder="Text" class="h-9 min-w-[100px] flex-1 text-sm" />
+                        <Select
+                            :model-value="link.variant ?? 'primary'"
+                            class="h-9 w-24 shrink-0 text-sm"
+                            @update:model-value="(v) => (link.variant = v)"
+                        >
+                            <option value="primary">Primär</option>
+                            <option value="secondary">Sekundär</option>
+                        </Select>
+                        <div class="min-w-[140px] flex-1">
+                            <LinkPicker
+                                v-if="designer"
+                                :model-value="String(link.href ?? '')"
+                                :pages="linkPickerPages"
+                                :anchors="linkPickerAnchors"
+                                :get-anchors-for-page="getAnchorsForPage"
+                                :get-page-label="designer?.getPageLabel"
+                                placeholder="Link"
+                                @update:model-value="(v) => (link.href = v)"
+                            />
+                            <Input v-else v-model="link.href" placeholder="URL" class="h-9 w-full text-sm" />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" class="h-9 w-9 shrink-0" @click="removeCtaLink(i)">
                             <Trash2 class="h-3.5 w-3.5 text-destructive" />
                         </Button>
                     </div>
@@ -1519,7 +1649,24 @@ function removeCtaLink(i: number) {
 
         <!-- Section (Bereich / Container) -->
         <template v-else-if="entry.type === 'section'">
-            <p class="text-muted-foreground text-sm">
+            <div class="space-y-2">
+                <Label>Anker (für Sprunglinks)</Label>
+                <Input
+                    :model-value="String((entry.data as Record<string, unknown>).anchor ?? '')"
+                    placeholder="z. B. meine-section"
+                    class="font-mono text-sm"
+                    @update:model-value="
+                        (v) => {
+                            const val = (v as string).trim();
+                            (entry.data as Record<string, unknown>).anchor = val || undefined;
+                        }
+                    "
+                />
+                <p class="text-muted-foreground text-xs">
+                    Optional. Erlaubt Links wie #meine-section zu diesem Bereich.
+                </p>
+            </div>
+            <p class="text-muted-foreground mt-4 text-sm">
                 Inhalt über Blöcke hinzufügen: Ziehen Sie Komponenten aus der Seitenstruktur oder aus der Vorschau in diesen Bereich.
             </p>
             <Tabs default-tab="desktop" class="mt-2">

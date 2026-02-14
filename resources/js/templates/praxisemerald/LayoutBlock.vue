@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Copy, Trash2, ClipboardPaste } from 'lucide-vue-next';
 import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
 import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
+import DesignBlock from '@/templates/praxisemerald/DesignBlock.vue';
 import { getMotionPreset } from '@/templates/praxisemerald/motion-presets';
 import type {
     LayoutComponentEntry,
@@ -311,6 +312,13 @@ function onContainerDropZoneDrop(index: number, e: DragEvent): void {
 const motionPreset = computed(() =>
     getMotionPreset((props.entry.data as Record<string, unknown>)?.motion as string),
 );
+
+const DESIGN_BLOCK_TYPES = ['hero', 'cta', 'about', 'hours'] as const;
+const useDesignBlock = computed(
+    () =>
+        props.designMode &&
+        DESIGN_BLOCK_TYPES.includes(props.entry.type as (typeof DESIGN_BLOCK_TYPES)[number]),
+);
 </script>
 
 <template>
@@ -585,7 +593,14 @@ const motionPreset = computed(() =>
                     :animate="motionPreset.animate"
                     :transition="motionPreset.transition"
                 >
+                    <DesignBlock
+                        v-if="useDesignBlock"
+                        :entry="entry"
+                        :design-mode="designMode"
+                        class="min-w-0 flex-1"
+                    />
                     <component
+                        v-else
                         :is="getLayoutComponent(entry.type)"
                         v-if="getLayoutComponent(entry.type)"
                         :data="entry.data ?? {}"
@@ -613,33 +628,41 @@ const motionPreset = computed(() =>
                     </component>
                 </motion.div>
             </template>
-            <component
-                v-else
-                :is="getLayoutComponent(entry.type)"
-                v-if="getLayoutComponent(entry.type)"
-                :data="entry.data ?? {}"
-                :design-mode="designMode"
-                class="min-w-0 flex-1"
-            >
-                <template v-if="childEntries().length > 0">
-                    <div
-                        v-for="child in childEntries()"
-                        :key="child.id"
-                        class="section-child min-w-0"
-                        :style="getChildFlexStyle(child)"
-                    >
-                        <LayoutBlock
-                            :entry="child"
-                            :design-mode="designMode"
-                            :selected-module-id="selectedModuleId"
-                            :insert-at-parent="insertAtParent"
-                            @select="onSelect"
-                            @reorder="emit('reorder')"
-                            @drag-start="emit('dragStart')"
-                        />
-                    </div>
-                </template>
-            </component>
+            <template v-else>
+                <DesignBlock
+                    v-if="useDesignBlock"
+                    :entry="entry"
+                    :design-mode="designMode"
+                    class="min-w-0 flex-1"
+                />
+                <component
+                    v-else
+                    :is="getLayoutComponent(entry.type)"
+                    v-if="getLayoutComponent(entry.type)"
+                    :data="entry.data ?? {}"
+                    :design-mode="designMode"
+                    class="min-w-0 flex-1"
+                >
+                    <template v-if="childEntries().length > 0">
+                        <div
+                            v-for="child in childEntries()"
+                            :key="child.id"
+                            class="section-child min-w-0"
+                            :style="getChildFlexStyle(child)"
+                        >
+                            <LayoutBlock
+                                :entry="child"
+                                :design-mode="designMode"
+                                :selected-module-id="selectedModuleId"
+                                :insert-at-parent="insertAtParent"
+                                @select="onSelect"
+                                @reorder="emit('reorder')"
+                                @drag-start="emit('dragStart')"
+                            />
+                        </div>
+                    </template>
+                </component>
+            </template>
         </template>
         </div>
     </div>

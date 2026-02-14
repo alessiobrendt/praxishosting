@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, computed, inject } from 'vue';
+import FloatingTextToolbar from '@/pages/PageDesigner/components/FloatingTextToolbar.vue';
 
 const props = withDefaults(
     defineProps<{
@@ -12,14 +13,18 @@ const props = withDefaults(
         placeholder?: string;
         html?: boolean;
         class?: string;
+        pageName?: string | null;
+        blockType?: string | null;
     }>(),
     { designMode: false, isSelected: false, tag: 'span', placeholder: '', html: false },
 );
 
 const updateBlockField = inject<(entryId: string, fieldKey: string, value: string) => void>('updateBlockField', null);
+const refreshAiBalance = inject<() => Promise<void>>('refreshAiBalance', async () => {});
 
 const editable = ref<HTMLElement | null>(null);
 const isEditing = ref(false);
+const isFocused = ref(false);
 
 const canEdit = computed(() => props.designMode && (props.isSelected || isEditing.value));
 
@@ -28,6 +33,7 @@ function startEdit(): void {
     isEditing.value = true;
     nextTick(() => {
         editable.value?.focus();
+        isFocused.value = true;
         if (editable.value && document.getSelection()) {
             const range = document.createRange();
             range.selectNodeContents(editable.value);
@@ -38,6 +44,7 @@ function startEdit(): void {
 }
 
 function onBlur(): void {
+    isFocused.value = false;
     if (!editable.value) return;
     const val = props.html ? editable.value.innerHTML : (editable.value.textContent ?? '').trim();
     if (updateBlockField) {
@@ -51,6 +58,12 @@ function onKeydown(e: KeyboardEvent): void {
     if (e.key === 'Escape') {
         (e.target as HTMLElement).blur();
     }
+}
+
+function onTextReplaced(): void {
+    if (!editable.value || !updateBlockField) return;
+    const val = props.html ? editable.value.innerHTML : (editable.value.textContent ?? '').trim();
+    updateBlockField(props.entryId, props.fieldKey, val);
 }
 
 const emit = defineEmits<{
@@ -102,15 +115,25 @@ watch(canEdit, (active) => {
     >
         {{ modelValue || placeholder }}
     </component>
-    <component
-        :is="tag"
-        v-else
-        ref="editable"
-        contenteditable="true"
-        role="textbox"
-        :class="[props.class, html ? 'prose prose-sm max-w-none' : '', 'min-w-0 rounded px-0.5 py-0 outline-none ring-1 ring-primary/50 focus:ring-primary']"
-        :data-placeholder="placeholder"
-        @blur="onBlur"
-        @keydown="onKeydown"
-    />
+    <div v-else class="relative">
+        <component
+            ref="editable"
+            :is="tag"
+            contenteditable="true"
+            role="textbox"
+            :class="[props.class, html ? 'prose prose-sm max-w-none' : '', 'min-w-0 rounded px-0.5 py-0 outline-none ring-1 ring-primary/50 focus:ring-primary']"
+            :data-placeholder="placeholder"
+            @blur="onBlur"
+            @keydown="onKeydown"
+        />
+        <FloatingTextToolbar
+            v-if="designMode"
+            :editable-ref="editable"
+            :is-focused="isFocused"
+            :page-name="pageName"
+            :block-type="blockType"
+            :refresh-balance="refreshAiBalance"
+            @replace-text="onTextReplaced"
+        />
+    </div>
 </template>

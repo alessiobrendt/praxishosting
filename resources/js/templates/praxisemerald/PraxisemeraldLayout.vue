@@ -51,7 +51,7 @@ function cloneDeepAndNormalize(entries: LayoutComponentEntry[]): LayoutComponent
         const cloned: LayoutComponentEntry = {
             id: e.id,
             type: e.type,
-            data: { ...(e.data ?? {}) },
+            data: e.data ?? {},
         };
         if (acceptsChildren(e.type as LayoutComponentType)) {
             const raw = e.children;

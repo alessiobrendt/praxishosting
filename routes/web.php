@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\TicketCategoryController;
 use App\Http\Controllers\Admin\TicketController;
 use App\Http\Controllers\Admin\TicketPriorityController;
 use App\Http\Controllers\Admin\VoucherController;
+use App\Http\Controllers\AiTokenController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingPortalController;
 use App\Http\Controllers\CheckoutController;
@@ -73,6 +74,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('invoices/{invoice}/xml', [CustomerInvoiceController::class, 'downloadXml'])->name('invoices.xml');
     Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
     Route::get('billing/portal', [BillingPortalController::class, 'redirect'])->name('billing.portal');
+    Route::post('billing/ai-tokens/checkout', [AiTokenController::class, 'checkout'])
+        ->middleware('billing.profile')
+        ->name('billing.ai-tokens.checkout');
 
     Route::get('sites/{site}/design', [SiteController::class, 'design'])->name('sites.design');
     Route::get('sites/{site}/preview/{pageSlug?}', [SiteRenderController::class, 'preview'])
@@ -186,6 +190,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
     Route::post('customers/{customer}/notes', [CustomerController::class, 'storeNote'])->name('customers.notes.store');
     Route::post('customers/{customer}/balance', [CustomerController::class, 'storeBalance'])->name('customers.balance.store');
+    Route::post('customers/{customer}/ai-tokens', [CustomerController::class, 'storeAiTokens'])->name('customers.ai-tokens.store');
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');

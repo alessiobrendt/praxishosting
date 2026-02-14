@@ -31,6 +31,9 @@ import {
 } from '@/lib/layout-tree';
 import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
 import PraxisemeraldLayoutComponentContextPanel from '@/templates/praxisemerald/LayoutComponentContextPanel.vue';
+import { useSelectedBlockRect } from '@/pages/PageDesigner/composables/useSelectedBlockRect';
+import { useDesignerMode } from '@/pages/PageDesigner/composables/useDesignerMode';
+import { useDesignerOnboarding } from '@/pages/PageDesigner/composables/useDesignerOnboarding';
 
 export type TemplatePageFromSite = {
     id: number;
@@ -352,6 +355,18 @@ export function useDesignerStore(props: DesignerProps) {
     const sitePagesList = pages.sitePagesList;
     const templatePagesList = pages.templatePagesList;
 
+    function getLayoutForPage(slug: string): LayoutComponentEntry[] {
+        if (isTemplateMode.value) {
+            const page = templatePagesLocal.value.find((p) => p.slug === slug);
+            const layout = (page?.data as { layout_components?: LayoutComponentEntry[] } | undefined)
+                ?.layout_components;
+            return Array.isArray(layout) ? layout : [];
+        }
+        const merged = mergePageDataForSlug(slug, fullCustomPageData.value);
+        const layout = (merged as { layout_components?: LayoutComponentEntry[] }).layout_components;
+        return Array.isArray(layout) ? layout : [];
+    }
+
     function syncLayoutComponentsToFullCustom(layout: LayoutComponentEntry[]): void {
         if (isTemplateMode.value) {
             (pageData.value as Record<string, unknown>).layout_components = layout;
@@ -442,7 +457,6 @@ export function useDesignerStore(props: DesignerProps) {
     const previewColors = colors.previewColors;
     const previewStyles = fonts.previewStyles;
 
-    const rightPanelRef = ref<HTMLElement | null>(null);
     const mediaLibraryOpen = ref(false);
     const componentGalleryOpen = ref(false);
     const mediaLibraryCallback = ref<((url: string) => void) | null>(null);
@@ -901,20 +915,21 @@ export function useDesignerStore(props: DesignerProps) {
         { immediate: true },
     );
 
-    watch(selectedModuleId, (id) => {
-        if (!id) return;
-        nextTick(() => {
-            rightPanelRef.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-            nextTick(() => {
-                const firstFocusable = rightPanelRef.value?.querySelector<
-                    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-                >(
-                    'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled]), [contenteditable="true"]',
-                );
-                firstFocusable?.focus({ preventScroll: true });
-            });
-        });
-    });
+    const { selectedBlockRect, updateRect: updateSelectedBlockRect, TOOLBAR_OFFSET } =
+        useSelectedBlockRect(selectedModuleId);
+    const { designerMode } = useDesignerMode();
+    const {
+        onboardingCompleted,
+        onboardingOpen,
+        onboardingStep,
+        totalSteps: onboardingTotalSteps,
+        markCompleted: markOnboardingCompleted,
+        startTour: startOnboardingTour,
+        closeTour: closeOnboardingTour,
+        nextStep: onboardingNextStep,
+        prevStep: onboardingPrevStep,
+        setStep: onboardingSetStep,
+    } = useDesignerOnboarding();
 
     let historyDebounceTimer: ReturnType<typeof setTimeout> | null = null;
     watch(
@@ -950,7 +965,20 @@ export function useDesignerStore(props: DesignerProps) {
         previewStyles,
         layoutComponent,
         layoutComponentCache,
-        rightPanelRef,
+        selectedBlockRect,
+        updateSelectedBlockRect,
+        TOOLBAR_OFFSET,
+        designerMode,
+        onboardingCompleted,
+        onboardingOpen,
+        onboardingStep,
+        onboardingTotalSteps,
+        markOnboardingCompleted,
+        startOnboardingTour,
+        closeOnboardingTour,
+        onboardingNextStep,
+        onboardingPrevStep,
+        onboardingSetStep,
         addPageModalOpen,
         newPageName,
         newPageSlug,
@@ -1008,6 +1036,7 @@ export function useDesignerStore(props: DesignerProps) {
         onBlockCopy,
         onBlockPaste,
         addComponent,
+        getLayoutForPage,
         getPageLabel,
         isCustomPage,
         getPageSourceBadge,
@@ -1061,6 +1090,7 @@ export function useDesignerStore(props: DesignerProps) {
         draftSavedAt: draft.draftSavedAt,
         clearDraftDebounce: draft.clearDebounce,
         saveInProgress: save.saveInProgress,
+        publishConflict: save.publishConflict,
         saveToSite: save.saveToSite,
         saveToTemplate: save.saveToTemplate,
         getCsrfToken,

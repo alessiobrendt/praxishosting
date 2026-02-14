@@ -19,6 +19,7 @@ defineProps<{ designer: DesignerStore }>();
             <div
                 v-show="!designer.previewFullscreen"
                 class="flex items-center gap-1 rounded-md border border-border bg-card/80 p-1 shadow-sm"
+                data-tour="preview-viewport"
             >
                 <Button
                     type="button"
@@ -65,6 +66,7 @@ defineProps<{ designer: DesignerStore }>();
             </div>
             <div
                 class="relative w-full overflow-auto rounded-lg border-2 border-border bg-muted shadow-xl transition-[max-width] light page-designer-preview-container site-render @container"
+                data-tour="preview-container"
                 :class="[designer.previewWrapperClass, designer.previewFullscreen && 'min-h-full rounded-none border-0 shadow-none']"
                 :style="{
                     ...designer.previewStyles,

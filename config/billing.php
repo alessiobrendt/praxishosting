@@ -62,6 +62,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | AI Token Packages (Stripe Price IDs)
+    |--------------------------------------------------------------------------
+    |
+    | One-time payment Stripe Price IDs for AI token packages.
+    | Create products in Stripe Dashboard, e.g. "AI Tokens 500" (5€), etc.
+    |
+    */
+
+    'ai_token_packages' => [
+        500 => env('STRIPE_AI_TOKENS_500_PRICE_ID'),
+        2000 => env('STRIPE_AI_TOKENS_2000_PRICE_ID'),
+        10000 => env('STRIPE_AI_TOKENS_10000_PRICE_ID'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Invoice / Company (Rechnungssteller)
     |--------------------------------------------------------------------------
     |

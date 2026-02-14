@@ -15,7 +15,7 @@ import { index as customersIndex } from '@/routes/admin/customers';
 import { show as sitesShow } from '@/routes/sites';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { ExternalLink, Pencil } from 'lucide-vue-next';
+import { ExternalLink, Pencil, Sparkles } from 'lucide-vue-next';
 
 type Site = {
     id: number;
@@ -66,9 +66,19 @@ type ActivityLogEntry = {
     user?: { id: number; name: string };
 };
 
+type AiTokenTransaction = {
+    id: number;
+    amount: number;
+    type: string;
+    description: string | null;
+    created_at: string;
+};
+
 type Props = {
     customer: Customer;
     activityLog?: ActivityLogEntry[];
+    aiTokenBalance: number;
+    aiTokenTransactions: AiTokenTransaction[];
 };
 
 const props = defineProps<Props>();
@@ -86,6 +96,11 @@ const noteForm = useForm({
     body: '',
 });
 
+const aiTokensForm = useForm({
+    amount: '',
+    description: 'Admin-Anpassung',
+});
+
 const submitBalance = () => {
     balanceForm.post(`/admin/customers/${props.customer.id}/balance`, {
         preserveScroll: true,
@@ -97,6 +112,13 @@ const submitNote = () => {
     noteForm.post(`/admin/customers/${props.customer.id}/notes`, {
         preserveScroll: true,
         onSuccess: () => noteForm.reset('body'),
+    });
+};
+
+const submitAiTokens = () => {
+    aiTokensForm.post(`/admin/customers/${props.customer.id}/ai-tokens`, {
+        preserveScroll: true,
+        onSuccess: () => aiTokensForm.reset('amount', 'description'),
     });
 };
 
@@ -266,6 +288,72 @@ onMounted(() => {
                                     <TableCell>{{ tx.created_at }}</TableCell>
                                     <TableCell>{{ tx.type }}</TableCell>
                                     <TableCell :class="parseFloat(tx.amount) >= 0 ? 'text-green-600' : 'text-red-600'">{{ tx.amount }} €</TableCell>
+                                    <TableCell>{{ tx.description ?? '–' }}</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Sparkles class="h-5 w-5" />
+                        AI Tokens
+                    </CardTitle>
+                    <CardDescription>
+                        Aktueller Token-Stand und manuelle Anpassung (hinzufügen oder abziehen)
+                    </CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                    <div>
+                        <Text variant="small" muted>Aktueller Token-Stand:</Text>
+                        <Text class="ml-2 font-medium">{{ aiTokenBalance }}</Text>
+                    </div>
+                    <form @submit.prevent="submitAiTokens" class="space-y-3">
+                        <div class="space-y-2">
+                            <Label for="ai_tokens_amount">Anzahl (+ hinzufügen, − abziehen)</Label>
+                            <Input
+                                id="ai_tokens_amount"
+                                v-model="aiTokensForm.amount"
+                                type="number"
+                                step="1"
+                                placeholder="z.B. 500 oder -100"
+                                :aria-invalid="!!aiTokensForm.errors.amount"
+                            />
+                            <InputError :message="aiTokensForm.errors.amount" />
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="ai_tokens_description">Beschreibung</Label>
+                            <Input
+                                id="ai_tokens_description"
+                                v-model="aiTokensForm.description"
+                                placeholder="Admin-Anpassung"
+                                :aria-invalid="!!aiTokensForm.errors.description"
+                            />
+                            <InputError :message="aiTokensForm.errors.description" />
+                        </div>
+                        <Button type="submit" :disabled="aiTokensForm.processing">Tokens anpassen</Button>
+                    </form>
+                    <div v-if="aiTokenTransactions?.length">
+                        <Text variant="small" muted class="block mt-4">Letzte Transaktionen</Text>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Datum</TableHead>
+                                    <TableHead>Typ</TableHead>
+                                    <TableHead>Betrag</TableHead>
+                                    <TableHead>Beschreibung</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow v-for="tx in aiTokenTransactions" :key="tx.id">
+                                    <TableCell>{{ tx.created_at }}</TableCell>
+                                    <TableCell>{{ tx.type }}</TableCell>
+                                    <TableCell :class="tx.amount >= 0 ? 'text-green-600' : 'text-red-600'">
+                                        {{ tx.amount >= 0 ? '+' : '' }}{{ tx.amount }}
+                                    </TableCell>
                                     <TableCell>{{ tx.description ?? '–' }}</TableCell>
                                 </TableRow>
                             </TableBody>

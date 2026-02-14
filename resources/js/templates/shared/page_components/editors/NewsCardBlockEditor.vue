@@ -2,9 +2,31 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import LinkPicker from '@/components/LinkPicker.vue';
+import { usePageAnchors } from '@/composables/usePageAnchors';
 import type { LayoutComponentEntry } from '@/types/layout-components';
 import { Plus, Trash2 } from 'lucide-vue-next';
-import { inject } from 'vue';
+import { computed, inject } from 'vue';
+
+const designer = inject<{
+    getPageLabel: (slug: string) => string;
+    sitePagesList: { slug: string; name: string }[];
+    templatePagesList: { slug: string; name: string }[];
+    isTemplateMode: boolean;
+    layoutComponents: LayoutComponentEntry[];
+    getLayoutForPage: (slug: string) => LayoutComponentEntry[];
+} | null>('designer', null);
+
+const linkPickerPages = computed(
+    () =>
+        designer?.isTemplateMode
+            ? (designer.templatePagesList ?? []).map((p) => ({ slug: p.slug, name: p.name }))
+            : (designer?.sitePagesList ?? []).map((p) => ({ slug: p.slug, name: p.name })),
+);
+const linkPickerAnchors = computed(() => usePageAnchors(designer?.layoutComponents ?? []));
+function getAnchorsForPage(slug: string) {
+    return usePageAnchors(designer?.getLayoutForPage?.(slug) ?? []);
+}
 
 const props = defineProps<{
     entry: LayoutComponentEntry;
@@ -81,7 +103,17 @@ function removeItem(i: number) {
                         </Button>
                     </div>
                     <Label>Link</Label>
-                    <Input v-model="item.href" placeholder="URL" class="w-full" />
+                    <LinkPicker
+                        v-if="designer"
+                        :model-value="String(item.href ?? '')"
+                        :pages="linkPickerPages"
+                        :anchors="linkPickerAnchors"
+                        :get-anchors-for-page="getAnchorsForPage"
+                        :get-page-label="designer?.getPageLabel"
+                        placeholder="URL"
+                        @update:model-value="(v) => (item.href = v)"
+                    />
+                    <Input v-else v-model="item.href" placeholder="URL" class="w-full" />
                 </div>
             </div>
         </div>

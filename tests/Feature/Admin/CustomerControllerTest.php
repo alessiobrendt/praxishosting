@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AiTokenBalance;
 use App\Models\User;
 
 test('guests cannot access admin customers', function () {
@@ -83,4 +84,39 @@ test('admin users can store customer note', function () {
         'admin_id' => $admin->id,
         'body' => 'Test notiz für Kunden.',
     ]);
+});
+
+test('admin users can add AI tokens to customer', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $customer = User::factory()->create();
+    $this->actingAs($admin);
+
+    $response = $this->post(route('admin.customers.ai-tokens.store', $customer), [
+        'amount' => 500,
+        'description' => 'Goodwill-Tokens',
+    ]);
+    $response->assertRedirect(route('admin.customers.show', $customer));
+    $balance = AiTokenBalance::where('user_id', $customer->id)->first();
+    expect($balance)->not->toBeNull()->and($balance->balance)->toBe(500);
+    $this->assertDatabaseHas('ai_token_transactions', [
+        'user_id' => $customer->id,
+        'amount' => 500,
+        'type' => 'admin_adjustment',
+        'description' => 'Goodwill-Tokens',
+    ]);
+});
+
+test('admin users can subtract AI tokens from customer', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $customer = User::factory()->create();
+    AiTokenBalance::create(['user_id' => $customer->id, 'balance' => 1000]);
+    $this->actingAs($admin);
+
+    $response = $this->post(route('admin.customers.ai-tokens.store', $customer), [
+        'amount' => -200,
+        'description' => 'Korrektur',
+    ]);
+    $response->assertRedirect(route('admin.customers.show', $customer));
+    $balance = AiTokenBalance::where('user_id', $customer->id)->first();
+    expect($balance->balance)->toBe(800);
 });

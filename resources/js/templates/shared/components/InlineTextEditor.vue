@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from 'vue';
+import { ref, watch, nextTick, computed, inject } from 'vue';
+import FloatingTextToolbar from '@/pages/PageDesigner/components/FloatingTextToolbar.vue';
 
 const props = withDefaults(
     defineProps<{
@@ -14,6 +15,8 @@ const props = withDefaults(
         /** When true, modelValue is HTML and we use v-html / innerHTML. */
         html?: boolean;
         class?: string;
+        pageName?: string | null;
+        blockType?: string | null;
     }>(),
     { designMode: false, isSelected: false, tag: 'span', placeholder: '', html: false },
 );
@@ -23,7 +26,9 @@ const emit = defineEmits<{
 }>();
 
 const editable = ref<HTMLDivElement | null>(null);
+const refreshAiBalance = inject<() => Promise<void>>('refreshAiBalance', async () => {});
 const isEditing = ref(false);
+const isFocused = ref(false);
 
 const canEdit = computed(() => props.designMode && (props.isSelected || isEditing.value));
 
@@ -32,6 +37,7 @@ function startEdit(): void {
     isEditing.value = true;
     nextTick(() => {
         editable.value?.focus();
+        isFocused.value = true;
         if (editable.value && document.getSelection()) {
             const range = document.createRange();
             range.selectNodeContents(editable.value);
@@ -42,6 +48,7 @@ function startEdit(): void {
 }
 
 function onBlur(): void {
+    isFocused.value = false;
     if (!editable.value) return;
     const val = props.html ? editable.value.innerHTML : (editable.value.textContent ?? '').trim();
     emit('update:modelValue', val);
@@ -49,6 +56,11 @@ function onBlur(): void {
 }
 
 function onInput(): void {
+    if (!editable.value) return;
+    emit('update:modelValue', props.html ? editable.value.innerHTML : (editable.value.textContent ?? ''));
+}
+
+function onTextReplaced(): void {
     if (!editable.value) return;
     emit('update:modelValue', props.html ? editable.value.innerHTML : (editable.value.textContent ?? ''));
 }
@@ -98,15 +110,25 @@ watch(canEdit, (active) => {
     >
         {{ modelValue || placeholder }}
     </component>
-    <component
-        :is="tag"
-        v-else
-        ref="editable"
-        contenteditable="true"
-        role="textbox"
-        :class="[props.class, html ? 'prose prose-sm max-w-none' : '', 'min-w-0 rounded px-0.5 py-0 outline-none ring-1 ring-primary/50 focus:ring-primary']"
-        :data-placeholder="placeholder"
-        @blur="onBlur"
-        @input="onInput"
-    />
+    <div v-else class="relative">
+        <component
+            ref="editable"
+            :is="tag"
+            contenteditable="true"
+            role="textbox"
+            :class="[props.class, html ? 'prose prose-sm max-w-none' : '', 'min-w-0 rounded px-0.5 py-0 outline-none ring-1 ring-primary/50 focus:ring-primary']"
+            :data-placeholder="placeholder"
+            @blur="onBlur"
+            @input="onInput"
+        />
+        <FloatingTextToolbar
+            v-if="designMode"
+            :editable-ref="editable"
+            :is-focused="isFocused"
+            :page-name="pageName"
+            :block-type="blockType"
+            :refresh-balance="refreshAiBalance"
+            @replace-text="onTextReplaced"
+        />
+    </div>
 </template>

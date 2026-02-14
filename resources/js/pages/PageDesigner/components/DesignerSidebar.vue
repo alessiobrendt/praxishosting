@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inject, ref, nextTick } from 'vue';
+import { Link } from '@inertiajs/vue3';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -8,6 +10,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { TooltipContent, TooltipRoot, TooltipTrigger } from '@/components/ui/tooltip';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
@@ -15,6 +19,8 @@ import SectionList from '@/pages/PageDesigner/SectionList.vue';
 import SidebarTreeFlat from '@/pages/PageDesigner/SidebarTreeFlat.vue';
 import { COLOR_KEYS, COLOR_PALETTE_PRESETS } from '@/pages/PageDesigner/colorPalettePresets';
 import type { DesignerStore } from '@/pages/PageDesigner/stores/useDesignerStore';
+import { useAiSeo } from '@/pages/PageDesigner/composables/useAiSeo';
+import billing from '@/routes/billing';
 import {
     ArrowLeft,
     ChevronLeft,
@@ -31,9 +37,30 @@ import {
     MoreVertical,
     Search,
     Settings,
+    Sparkles,
 } from 'lucide-vue-next';
 
-defineProps<{ designer: DesignerStore }>();
+const props = defineProps<{ designer: DesignerStore }>();
+const refreshAiBalance = inject<() => Promise<void>>('refreshAiBalance', async () => {});
+
+const aiSeoError = ref<string | null>(null);
+
+const { loading: aiSeoLoading, optimizeSeo } = useAiSeo(props.designer, {
+    refreshBalance: refreshAiBalance,
+    onError: (err) => {
+        nextTick(() => {
+            aiSeoError.value = err.message;
+        });
+    },
+    onSuccess: () => {
+        aiSeoError.value = null;
+    },
+});
+
+function onOptimizeSeo(): void {
+    aiSeoError.value = null;
+    optimizeSeo();
+}
 </script>
 
 <template>
@@ -60,75 +87,104 @@ defineProps<{ designer: DesignerStore }>();
                 </Button>
             </div>
             <nav class="flex flex-1 flex-col gap-0.5 px-1 py-2" aria-label="Sidebar">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    class="h-9 w-9"
-                    :class="designer.leftSidebarTab === 'struktur' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
-                    title="Struktur"
-                    @click="designer.leftSidebarTab = 'struktur'; designer.leftSidebarContentOpen = true"
-                >
-                    <Menu class="h-4 w-4" />
-                </Button>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    class="h-9 w-9"
-                    :class="designer.leftSidebarTab === 'seiten' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
-                    title="Seiten"
-                    @click="designer.leftSidebarTab = 'seiten'; designer.leftSidebarContentOpen = true"
-                >
-                    <FileStack class="h-4 w-4" />
-                </Button>
-                <Button
-                    v-if="designer.props.site && !designer.isTemplateMode"
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    class="h-9 w-9"
-                    :class="designer.leftSidebarTab === 'seo' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
-                    title="SEO"
-                    @click="designer.leftSidebarTab = 'seo'; designer.leftSidebarContentOpen = true"
-                >
-                    <Search class="h-4 w-4" />
-                </Button>
-                <Button
-                    v-if="designer.props.site"
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    class="h-9 w-9"
-                    :class="designer.leftSidebarTab === 'medien' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
-                    title="Medien"
-                    @click="designer.leftSidebarTab = 'medien'; designer.leftSidebarContentOpen = true"
-                >
-                    <ImageIcon class="h-4 w-4" />
-                </Button>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    class="h-9 w-9"
-                    :class="designer.leftSidebarTab === 'design' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
-                    title="Design"
-                    @click="designer.leftSidebarTab = 'design'; designer.leftSidebarContentOpen = true"
-                >
-                    <Palette class="h-4 w-4" />
-                </Button>
-                <Button
-                    v-if="designer.props.site && !designer.isTemplateMode"
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    class="h-9 w-9"
-                    :class="designer.leftSidebarTab === 'einstellungen' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
-                    title="Einstellungen"
-                    @click="designer.leftSidebarTab = 'einstellungen'; designer.leftSidebarContentOpen = true"
-                >
-                    <Settings class="h-4 w-4" />
-                </Button>
+                <TooltipRoot>
+                    <TooltipTrigger as-child>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="h-9 w-9"
+                            :class="designer.leftSidebarTab === 'struktur' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
+                            title="Struktur"
+                            data-tour="sidebar-struktur"
+                            @click="designer.leftSidebarTab = 'struktur'; designer.leftSidebarContentOpen = true"
+                        >
+                            <Menu class="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Struktur</TooltipContent>
+                </TooltipRoot>
+                <TooltipRoot>
+                    <TooltipTrigger as-child>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="h-9 w-9"
+                            :class="designer.leftSidebarTab === 'seiten' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
+                            title="Seiten"
+                            @click="designer.leftSidebarTab = 'seiten'; designer.leftSidebarContentOpen = true"
+                        >
+                            <FileStack class="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Seiten</TooltipContent>
+                </TooltipRoot>
+                <TooltipRoot v-if="designer.props.site && !designer.isTemplateMode">
+                    <TooltipTrigger as-child>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="h-9 w-9"
+                            :class="designer.leftSidebarTab === 'seo' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
+                            title="SEO"
+                            @click="designer.leftSidebarTab = 'seo'; designer.leftSidebarContentOpen = true"
+                        >
+                            <Search class="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">SEO</TooltipContent>
+                </TooltipRoot>
+                <TooltipRoot v-if="designer.props.site">
+                    <TooltipTrigger as-child>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="h-9 w-9"
+                            :class="designer.leftSidebarTab === 'medien' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
+                            title="Medien"
+                            @click="designer.leftSidebarTab = 'medien'; designer.leftSidebarContentOpen = true"
+                        >
+                            <ImageIcon class="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Medien</TooltipContent>
+                </TooltipRoot>
+                <TooltipRoot>
+                    <TooltipTrigger as-child>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="h-9 w-9"
+                            :class="designer.leftSidebarTab === 'design' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
+                            title="Design"
+                            data-tour="sidebar-design"
+                            @click="designer.leftSidebarTab = 'design'; designer.leftSidebarContentOpen = true"
+                        >
+                            <Palette class="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Design</TooltipContent>
+                </TooltipRoot>
+                <TooltipRoot v-if="designer.props.site && !designer.isTemplateMode">
+                    <TooltipTrigger as-child>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="h-9 w-9"
+                            :class="designer.leftSidebarTab === 'einstellungen' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
+                            title="Einstellungen"
+                            @click="designer.leftSidebarTab = 'einstellungen'; designer.leftSidebarContentOpen = true"
+                        >
+                            <Settings class="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Einstellungen</TooltipContent>
+                </TooltipRoot>
             </nav>
         </div>
         <Transition name="sidebar-panel">
@@ -450,6 +506,29 @@ defineProps<{ designer: DesignerStore }>();
                                         placeholder="Bild-URL für Twitter (optional)"
                                         @blur="(e) => designer.setPageSeo(designer.currentPageSlug, { twitter_image: (e.target as HTMLInputElement).value })"
                                     >
+                                </div>
+                                <div class="space-y-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        class="w-full gap-2"
+                                        :disabled="aiSeoLoading"
+                                        @click="onOptimizeSeo"
+                                    >
+                                        <Sparkles v-if="!aiSeoLoading" class="h-3.5 w-3.5" />
+                                        <span v-else class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                        Mit KI optimieren
+                                    </Button>
+                                    <Alert v-if="aiSeoError" variant="destructive" class="py-2">
+                                        <AlertTitle class="text-xs">Fehler</AlertTitle>
+                                        <AlertDescription class="text-xs">
+                                            {{ aiSeoError }}
+                                            <Link v-if="aiSeoError?.includes('Token')" :href="billing.index.url()" class="ml-1 underline">
+                                                Tokens aufladen
+                                            </Link>
+                                        </AlertDescription>
+                                    </Alert>
                                 </div>
                             </CardContent>
                         </Card>
