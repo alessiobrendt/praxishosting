@@ -98,31 +98,67 @@ export function generateResponsiveContainerCSS(
     return rules.join('\n');
 }
 
+const LEGACY_RESPONSIVE_KEYS = [
+    'columnsSm',
+    'columnsMd',
+    'columnsLg',
+    'columnsXl',
+    'gapSm',
+    'gapMd',
+    'gapLg',
+    'gapXl',
+    'directionSm',
+    'directionMd',
+    'directionLg',
+    'directionXl',
+    'justifySm',
+    'justifyMd',
+    'justifyLg',
+    'justifyXl',
+    'alignSm',
+    'alignMd',
+    'alignLg',
+    'alignXl',
+] as const;
+
 /**
  * Checks if a component has any responsive values set.
+ * Supports both legacy inline keys (columnsSm, etc.) and the new responsive.tablet/mobile format.
  */
 export function hasResponsiveValues(data: Record<string, unknown>): boolean {
-    const responsiveKeys = [
-        'columnsSm',
-        'columnsMd',
-        'columnsLg',
-        'columnsXl',
-        'gapSm',
-        'gapMd',
-        'gapLg',
-        'gapXl',
-        'directionSm',
-        'directionMd',
-        'directionLg',
-        'directionXl',
-        'justifySm',
-        'justifyMd',
-        'justifyLg',
-        'justifyXl',
-        'alignSm',
-        'alignMd',
-        'alignLg',
-        'alignXl',
-    ];
-    return responsiveKeys.some((key) => data[key] !== undefined);
+    if (data.responsive && typeof data.responsive === 'object') {
+        const r = data.responsive as Record<string, unknown>;
+        if (Object.keys(r.tablet ?? {}).length > 0 || Object.keys(r.mobile ?? {}).length > 0) {
+            return true;
+        }
+    }
+    return LEGACY_RESPONSIVE_KEYS.some((key) => data[key] !== undefined);
+}
+
+export type ResponsiveBreakpoint = 'desktop' | 'tablet' | 'mobile';
+
+/**
+ * Returns effective block data for a given breakpoint.
+ * Base data = desktop. responsive.tablet = overrides for tablet (md 768px).
+ * responsive.mobile = overrides for mobile (< 768px).
+ */
+export function getEffectiveDataAtBreakpoint(
+    data: Record<string, unknown>,
+    breakpoint: ResponsiveBreakpoint
+): Record<string, unknown> {
+    const { responsive, ...base } = data;
+    if (!responsive || typeof responsive !== 'object') {
+        return { ...base };
+    }
+    const r = responsive as { tablet?: Record<string, unknown>; mobile?: Record<string, unknown> };
+    switch (breakpoint) {
+        case 'desktop':
+            return { ...base };
+        case 'tablet':
+            return { ...base, ...(r.tablet ?? {}) };
+        case 'mobile':
+            return { ...base, ...(r.mobile ?? {}) };
+        default:
+            return { ...base };
+    }
 }

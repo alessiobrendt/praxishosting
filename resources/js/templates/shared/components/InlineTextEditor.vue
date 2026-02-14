@@ -11,9 +11,11 @@ const props = withDefaults(
         tag?: string;
         /** Optional placeholder when empty. */
         placeholder?: string;
+        /** When true, modelValue is HTML and we use v-html / innerHTML. */
+        html?: boolean;
         class?: string;
     }>(),
-    { designMode: false, isSelected: false, tag: 'span', placeholder: '' },
+    { designMode: false, isSelected: false, tag: 'span', placeholder: '', html: false },
 );
 
 const emit = defineEmits<{
@@ -41,21 +43,25 @@ function startEdit(): void {
 
 function onBlur(): void {
     if (!editable.value) return;
-    const text = (editable.value.textContent ?? '').trim();
-    emit('update:modelValue', text);
+    const val = props.html ? editable.value.innerHTML : (editable.value.textContent ?? '').trim();
+    emit('update:modelValue', val);
     isEditing.value = false;
 }
 
 function onInput(): void {
     if (!editable.value) return;
-    emit('update:modelValue', editable.value.textContent ?? '');
+    emit('update:modelValue', props.html ? editable.value.innerHTML : (editable.value.textContent ?? ''));
 }
 
 watch(
     () => props.modelValue,
     (val) => {
         if (editable.value && document.activeElement !== editable.value) {
-            editable.value.textContent = val ?? '';
+            if (props.html) {
+                editable.value.innerHTML = val ?? '';
+            } else {
+                editable.value.textContent = val ?? '';
+            }
         }
     },
     { immediate: true },
@@ -64,7 +70,13 @@ watch(
 watch(canEdit, (active) => {
     if (active) {
         nextTick(() => {
-            if (editable.value) editable.value.textContent = props.modelValue ?? '';
+            if (editable.value) {
+                if (props.html) {
+                    editable.value.innerHTML = props.modelValue ?? '';
+                } else {
+                    editable.value.textContent = props.modelValue ?? '';
+                }
+            }
         });
     }
 });
@@ -73,7 +85,14 @@ watch(canEdit, (active) => {
 <template>
     <component
         :is="tag"
-        v-if="!canEdit"
+        v-if="!canEdit && html"
+        :class="[props.class, 'prose prose-sm max-w-none', designMode && 'cursor-text rounded px-0.5 py-0 hover:bg-primary/10']"
+        v-html="modelValue || placeholder || '\u200B'"
+        @click="startEdit"
+    />
+    <component
+        :is="tag"
+        v-else-if="!canEdit"
         :class="[props.class, designMode && 'cursor-text rounded px-0.5 py-0 hover:bg-primary/10']"
         @click="startEdit"
     >
@@ -85,7 +104,7 @@ watch(canEdit, (active) => {
         ref="editable"
         contenteditable="true"
         role="textbox"
-        :class="[props.class, 'min-w-0 rounded px-0.5 py-0 outline-none ring-1 ring-primary/50 focus:ring-primary']"
+        :class="[props.class, html ? 'prose prose-sm max-w-none' : '', 'min-w-0 rounded px-0.5 py-0 outline-none ring-1 ring-primary/50 focus:ring-primary']"
         :data-placeholder="placeholder"
         @blur="onBlur"
         @input="onInput"

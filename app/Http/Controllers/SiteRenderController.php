@@ -35,13 +35,18 @@ class SiteRenderController extends Controller
         }
         $data = $this->siteRenderService->resolveRenderData($site, null, null, $normalizedSlug);
 
+        $canonicalUrl = $normalizedSlug === 'index'
+            ? route('site-render.show', $site->slug)
+            : route('site-render.show', ['site' => $site->slug, 'pageSlug' => $normalizedSlug]);
+
         return Inertia::render('site-render/Home', [
-            'site' => $site->only(['uuid', 'name', 'slug']),
+            'site' => array_merge($site->only(['uuid', 'name', 'slug']), ['favicon_url' => $site->favicon_url]),
             'templateSlug' => $site->template->slug,
             'pageData' => $data['pageData'],
             'colors' => $data['colors'],
             'generalInformation' => $data['generalInformation'],
             'pageSlug' => $normalizedSlug,
+            'canonicalUrl' => $canonicalUrl,
         ]);
     }
 
@@ -68,15 +73,19 @@ class SiteRenderController extends Controller
         $normalizedSlug = $requestedSlug ?? 'index';
 
         $designMode = $request->boolean('design_mode');
+        $canonicalUrl = $normalizedSlug === 'index'
+            ? route('sites.preview', $site)
+            : route('sites.preview', ['site' => $site, 'pageSlug' => $normalizedSlug]);
 
         return Inertia::render('site-render/Home', [
-            'site' => $site->only(['uuid', 'name', 'slug']),
+            'site' => array_merge($site->only(['uuid', 'name', 'slug']), ['favicon_url' => $site->favicon_url]),
             'templateSlug' => $site->template->slug,
             'pageData' => $data['pageData'],
             'colors' => $data['colors'],
             'generalInformation' => $data['generalInformation'],
             'designMode' => $designMode,
             'pageSlug' => $normalizedSlug,
+            'canonicalUrl' => $canonicalUrl,
         ]);
     }
 

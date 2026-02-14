@@ -2,7 +2,12 @@
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import type { GridComponentData } from '@/types/layout-components';
 import { inject } from 'vue';
-import { generateResponsiveCSS, generateResponsiveContainerCSS, hasResponsiveValues } from '@/lib/responsive-styles';
+import {
+    generateResponsiveCSS,
+    generateResponsiveContainerCSS,
+    hasResponsiveValues,
+    getEffectiveDataAtBreakpoint,
+} from '@/lib/responsive-styles';
 
 const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
 
@@ -66,17 +71,30 @@ const gridStyle = computed(() => {
 // Generate responsive CSS for columns
 const responsiveColumnsCSS = computed(() => {
     if (!hasResponsive.value) return '';
-    
-    const d = gridData.value;
+
+    const d = props.data as Record<string, unknown>;
     const selector = `.grid-block-responsive[data-grid-id="${gridId.value}"]`;
-    const baseColumns = d.columns || '1fr';
-    const config = {
-        base: baseColumns,
-        sm: d.columnsSm,
-        md: d.columnsMd,
-        lg: d.columnsLg,
-        xl: d.columnsXl,
-    };
+    const usesNewFormat = !!(d.responsive && typeof d.responsive === 'object');
+
+    let config: { base?: string; sm?: string; md?: string; lg?: string; xl?: string };
+    if (usesNewFormat) {
+        const mobile = getEffectiveDataAtBreakpoint(d, 'mobile').columns as string | undefined;
+        const tablet = getEffectiveDataAtBreakpoint(d, 'tablet').columns as string | undefined;
+        const desktop = getEffectiveDataAtBreakpoint(d, 'desktop').columns as string | undefined;
+        config = {
+            base: mobile || '1fr',
+            md: tablet,
+            lg: desktop || (d.columns as string) || 'repeat(2, 1fr)',
+        };
+    } else {
+        config = {
+            base: (d.columns as string) || '1fr',
+            sm: d.columnsSm as string | undefined,
+            md: d.columnsMd as string | undefined,
+            lg: d.columnsLg as string | undefined,
+            xl: d.columnsXl as string | undefined,
+        };
+    }
     return usePreviewContainerQueries
         ? generateResponsiveContainerCSS(selector, 'grid-template-columns', config)
         : generateResponsiveCSS(selector, 'grid-template-columns', config);
@@ -85,19 +103,33 @@ const responsiveColumnsCSS = computed(() => {
 // Generate responsive CSS for gap
 const responsiveGapCSS = computed(() => {
     if (!hasResponsive.value) return '';
-    
-    const d = gridData.value;
-    if (!d.gapSm && !d.gapMd && !d.gapLg && !d.gapXl) return '';
-    
+
+    const d = props.data as Record<string, unknown>;
     const selector = `.grid-block-responsive[data-grid-id="${gridId.value}"]`;
-    const baseGap = d.gap || '1rem';
-    const config = {
-        base: baseGap,
-        sm: d.gapSm,
-        md: d.gapMd,
-        lg: d.gapLg,
-        xl: d.gapXl,
-    };
+    const usesNewFormat = !!(d.responsive && typeof d.responsive === 'object');
+
+    let config: { base?: string; sm?: string; md?: string; lg?: string; xl?: string };
+    if (usesNewFormat) {
+        const mobile = getEffectiveDataAtBreakpoint(d, 'mobile').gap as string | undefined;
+        const tablet = getEffectiveDataAtBreakpoint(d, 'tablet').gap as string | undefined;
+        const desktop = getEffectiveDataAtBreakpoint(d, 'desktop').gap as string | undefined;
+        const baseGap = (d.gap as string) || '1rem';
+        config = {
+            base: mobile ?? baseGap,
+            md: tablet,
+            lg: desktop ?? baseGap,
+        };
+    } else {
+        const gd = gridData.value;
+        if (!gd.gapSm && !gd.gapMd && !gd.gapLg && !gd.gapXl) return '';
+        config = {
+            base: gd.gap || '1rem',
+            sm: gd.gapSm,
+            md: gd.gapMd,
+            lg: gd.gapLg,
+            xl: gd.gapXl,
+        };
+    }
     return usePreviewContainerQueries
         ? generateResponsiveContainerCSS(selector, 'gap', config)
         : generateResponsiveCSS(selector, 'gap', config);

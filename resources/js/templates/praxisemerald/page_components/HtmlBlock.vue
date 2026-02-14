@@ -6,7 +6,7 @@ export const meta = {
     category: 'Sonstiges',
     defaultData: { html: '<p>Eigenes HTML hier.</p>' },
     fields: [
-        { key: 'html', label: 'HTML', type: 'textarea' as const },
+        { key: 'html', label: 'HTML', type: 'richtext' as const },
     ],
 };
 </script>

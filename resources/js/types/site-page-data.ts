@@ -73,9 +73,26 @@ export interface PageContent {
     layout_components?: LayoutComponentEntry[];
 }
 
+/** Per-page SEO metadata. */
+export interface PageSeo {
+    meta_title?: string;
+    meta_description?: string;
+    og_title?: string;
+    og_description?: string;
+    og_image?: string;
+    canonical_url?: string;
+    favicon_url?: string;
+    robots?: string;
+    twitter_card?: string;
+    twitter_title?: string;
+    twitter_description?: string;
+    twitter_image?: string;
+}
+
 /** Per-page metadata (e.g. active). index must never be inactive. */
 export interface PageMeta {
     active?: boolean;
+    seo?: PageSeo;
 }
 
 /** Custom page definition (customer-added page). */

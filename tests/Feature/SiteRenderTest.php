@@ -96,6 +96,7 @@ test('public can view site by slug', function () {
         'template_id' => $template->id,
         'slug' => 'my-practice',
         'status' => 'active',
+        'favicon_url' => 'https://example.com/favicon.ico',
     ]);
 
     $response = $this->get(route('site-render.show', $site->slug));
@@ -105,7 +106,9 @@ test('public can view site by slug', function () {
         ->has('site')
         ->has('pageData')
         ->has('templateSlug')
+        ->has('canonicalUrl')
         ->where('pageData.hero.heading', 'Test')
+        ->where('site.favicon_url', 'https://example.com/favicon.ico')
     );
 });
 

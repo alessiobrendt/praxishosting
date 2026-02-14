@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\SitePageDataResolver;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,10 +28,12 @@ class Site extends Model
         'domain_type',
         'domain',
         'custom_colors',
+        'favicon_url',
         'custom_page_data',
         'status',
         'is_legacy',
         'has_page_designer',
+        'use_normalized_pages',
         'published_version_id',
         'draft_version_id',
     ];
@@ -44,7 +48,27 @@ class Site extends Model
             'custom_page_data' => 'array',
             'is_legacy' => 'boolean',
             'has_page_designer' => 'boolean',
+            'use_normalized_pages' => 'boolean',
         ];
+    }
+
+    /**
+     * Resolve custom_page_data: when use_normalized_pages, build from site_pages/site_blocks.
+     */
+    protected function customPageData(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value): ?array {
+                if ($this->use_normalized_pages ?? false) {
+                    return app(SitePageDataResolver::class)->buildFromRelational($this);
+                }
+                if ($value === null) {
+                    return null;
+                }
+
+                return is_string($value) ? json_decode($value, true) : $value;
+            },
+        );
     }
 
     public function user(): BelongsTo
@@ -164,9 +188,65 @@ class Site extends Model
         return $this->hasMany(NewsletterPost::class);
     }
 
+    /**
+     * Normalized pages for this site (when using site_pages instead of custom_page_data JSON).
+     *
+     * @return HasMany<SitePage>
+     */
+    public function sitePages(): HasMany
+    {
+        return $this->hasMany(SitePage::class);
+    }
+
+    /**
+     * Normalized blocks for this site (when using site_blocks instead of custom_page_data JSON).
+     *
+     * @return HasMany<SiteBlock>
+     */
+    public function siteBlocks(): HasMany
+    {
+        return $this->hasMany(SiteBlock::class);
+    }
+
+    /**
+     * Media files for this site (images, etc.).
+     *
+     * @return HasMany<SiteMedia>
+     */
+    public function siteMedia(): HasMany
+    {
+        return $this->hasMany(SiteMedia::class);
+    }
+
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    /**
+     * Create a version snapshot (used by SiteObserver and SiteDesignerController).
+     *
+     * @return \App\Models\SiteVersion
+     */
+    public function createVersionSnapshot(int $userId)
+    {
+        $latestVersion = $this->versions()->latest('version_number')->first();
+        $versionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
+
+        $version = SiteVersion::create([
+            'site_id' => $this->id,
+            'version_number' => $versionNumber,
+            'name' => "Version {$versionNumber}",
+            'description' => 'Automatisch erstellt',
+            'custom_page_data' => $this->custom_page_data,
+            'custom_colors' => $this->custom_colors,
+            'is_published' => false,
+            'created_by' => $userId,
+        ]);
+
+        $this->update(['draft_version_id' => $version->id]);
+
+        return $version;
     }
 
     protected static function booted(): void

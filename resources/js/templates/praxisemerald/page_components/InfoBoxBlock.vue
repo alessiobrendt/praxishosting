@@ -8,7 +8,7 @@ export const meta = {
     fields: [
         { key: 'type', label: 'Typ', type: 'select' as const, options: ['info', 'warning', 'tip'] },
         { key: 'title', label: 'Titel', type: 'text' as const },
-        { key: 'text', label: 'Text', type: 'textarea' as const },
+        { key: 'text', label: 'Text', type: 'richtext' as const },
     ],
 };
 </script>
@@ -37,9 +37,11 @@ const boxClass = () => {
             <h4 v-if="props.data.title" class="font-semibold" style="color: var(--secondary)">
                 {{ props.data.title }}
             </h4>
-            <p class="mt-1 text-sm" style="color: var(--tertiary)">
-                {{ props.data.text || 'Text hier eingeben…' }}
-            </p>
+            <div
+                class="mt-1 text-sm prose prose-sm max-w-none"
+                style="color: var(--tertiary)"
+                v-html="props.data.text ? String(props.data.text) : '<p class=\'text-muted-foreground\'>Text hier eingeben…</p>'"
+            />
         </div>
     </div>
 </template>

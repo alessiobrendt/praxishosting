@@ -50,6 +50,10 @@ class SiteRenderService
             $pageData['layout_components'] = $this->buildLayoutComponentsFromLegacy($pageData);
         }
 
+        $pagesMeta = $source['pages_meta'] ?? [];
+        $pageMeta = is_array($pagesMeta[$pageSlug] ?? null) ? $pagesMeta[$pageSlug] : [];
+        $pageData['seo'] = $pageMeta['seo'] ?? [];
+
         $generalInformation = $templatePageData['site'] ?? [];
         if (isset($templatePageData['branding'])) {
             $generalInformation['branding'] = $templatePageData['branding'];

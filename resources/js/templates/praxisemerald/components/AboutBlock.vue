@@ -31,9 +31,11 @@ type FeatureIcon = keyof typeof iconMap;
         >
             {{ heading }}
         </h2>
-        <p class="mt-4" style="color: var(--tertiary)">
-            {{ text }}
-        </p>
+        <div
+            class="mt-4 prose prose-sm max-w-none"
+            style="color: var(--tertiary)"
+            v-html="text || '<p class=\'text-muted-foreground\'>Text hier eingeben…</p>'"
+        />
         <div class="mt-6 grid gap-4 sm:grid-cols-2 @sm:grid-cols-2">
             <div
                 v-for="(feature, index) in features"

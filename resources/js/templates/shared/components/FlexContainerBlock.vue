@@ -5,7 +5,12 @@ import type {
     SectionJustify,
     SectionAlign,
 } from '@/types/layout-components';
-import { generateResponsiveCSS, generateResponsiveContainerCSS, hasResponsiveValues } from '@/lib/responsive-styles';
+import {
+    generateResponsiveCSS,
+    generateResponsiveContainerCSS,
+    hasResponsiveValues,
+    getEffectiveDataAtBreakpoint,
+} from '@/lib/responsive-styles';
 
 const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
 
@@ -82,24 +87,30 @@ const flexStyle = computed(() => {
 // Generate responsive CSS for direction
 const responsiveDirectionCSS = computed(() => {
     if (!hasResponsive.value) return '';
-    
-    const d = flexData.value;
-    if (!d.directionSm && !d.directionMd && !d.directionLg && !d.directionXl) return '';
-    
+
+    const d = props.data as Record<string, unknown>;
     const selector = `.flex-container-block-responsive[data-flex-id="${flexId.value}"]`;
-    
-    const directionMap = (dir: string | undefined): string => {
-        return dir === 'row' ? 'row' : 'column';
-    };
-    
-    const baseDirection = directionMap(d.direction || 'column');
-    const config = {
-        base: baseDirection,
-        sm: d.directionSm ? directionMap(d.directionSm) : undefined,
-        md: d.directionMd ? directionMap(d.directionMd) : undefined,
-        lg: d.directionLg ? directionMap(d.directionLg) : undefined,
-        xl: d.directionXl ? directionMap(d.directionXl) : undefined,
-    };
+    const usesNewFormat = !!(d.responsive && typeof d.responsive === 'object');
+
+    const directionMap = (dir: string | undefined): string => (dir === 'row' ? 'row' : 'column');
+
+    let config: { base?: string; sm?: string; md?: string; lg?: string; xl?: string };
+    if (usesNewFormat) {
+        const mobile = directionMap(getEffectiveDataAtBreakpoint(d, 'mobile').direction as string | undefined);
+        const tablet = directionMap(getEffectiveDataAtBreakpoint(d, 'tablet').direction as string | undefined);
+        const desktop = directionMap(getEffectiveDataAtBreakpoint(d, 'desktop').direction as string | undefined);
+        config = { base: mobile, md: tablet, lg: desktop };
+    } else {
+        const fd = flexData.value;
+        if (!fd.directionSm && !fd.directionMd && !fd.directionLg && !fd.directionXl) return '';
+        config = {
+            base: directionMap(fd.direction || 'column'),
+            sm: fd.directionSm ? directionMap(fd.directionSm) : undefined,
+            md: fd.directionMd ? directionMap(fd.directionMd) : undefined,
+            lg: fd.directionLg ? directionMap(fd.directionLg) : undefined,
+            xl: fd.directionXl ? directionMap(fd.directionXl) : undefined,
+        };
+    }
     return usePreviewContainerQueries
         ? generateResponsiveContainerCSS(selector, 'flex-direction', config)
         : generateResponsiveCSS(selector, 'flex-direction', config);
@@ -108,20 +119,30 @@ const responsiveDirectionCSS = computed(() => {
 // Generate responsive CSS for gap
 const responsiveGapCSS = computed(() => {
     if (!hasResponsive.value) return '';
-    
-    const d = flexData.value;
-    // Only generate gap CSS if there are responsive gap values
-    if (!d.gapSm && !d.gapMd && !d.gapLg && !d.gapXl) return '';
-    
+
+    const d = props.data as Record<string, unknown>;
     const selector = `.flex-container-block-responsive[data-flex-id="${flexId.value}"]`;
-    const baseGap = d.gap || '1rem';
-    const config = {
-        base: baseGap,
-        sm: d.gapSm,
-        md: d.gapMd,
-        lg: d.gapLg,
-        xl: d.gapXl,
-    };
+    const usesNewFormat = !!(d.responsive && typeof d.responsive === 'object');
+
+    let config: { base?: string; sm?: string; md?: string; lg?: string; xl?: string };
+    if (usesNewFormat) {
+        const baseGap = (d.gap as string) || '1rem';
+        config = {
+            base: (getEffectiveDataAtBreakpoint(d, 'mobile').gap as string) ?? baseGap,
+            md: getEffectiveDataAtBreakpoint(d, 'tablet').gap as string | undefined,
+            lg: (getEffectiveDataAtBreakpoint(d, 'desktop').gap as string) ?? baseGap,
+        };
+    } else {
+        const fd = flexData.value;
+        if (!fd.gapSm && !fd.gapMd && !fd.gapLg && !fd.gapXl) return '';
+        config = {
+            base: fd.gap || '1rem',
+            sm: fd.gapSm,
+            md: fd.gapMd,
+            lg: fd.gapLg,
+            xl: fd.gapXl,
+        };
+    }
     return usePreviewContainerQueries
         ? generateResponsiveContainerCSS(selector, 'gap', config)
         : generateResponsiveCSS(selector, 'gap', config);
@@ -130,19 +151,30 @@ const responsiveGapCSS = computed(() => {
 // Generate responsive CSS for justify
 const responsiveJustifyCSS = computed(() => {
     if (!hasResponsive.value) return '';
-    
-    const d = flexData.value;
-    if (!d.justifySm && !d.justifyMd && !d.justifyLg && !d.justifyXl) return '';
-    
+
+    const d = props.data as Record<string, unknown>;
     const selector = `.flex-container-block-responsive[data-flex-id="${flexId.value}"]`;
-    const baseJustify = mapJustify(d.justify || 'start');
-    const config = {
-        base: baseJustify,
-        sm: d.justifySm ? mapJustify(d.justifySm) : undefined,
-        md: d.justifyMd ? mapJustify(d.justifyMd) : undefined,
-        lg: d.justifyLg ? mapJustify(d.justifyLg) : undefined,
-        xl: d.justifyXl ? mapJustify(d.justifyXl) : undefined,
-    };
+    const usesNewFormat = !!(d.responsive && typeof d.responsive === 'object');
+
+    let config: { base?: string; sm?: string; md?: string; lg?: string; xl?: string };
+    if (usesNewFormat) {
+        const baseJustify = mapJustify(d.justify as string | undefined);
+        config = {
+            base: mapJustify(getEffectiveDataAtBreakpoint(d, 'mobile').justify as string | undefined) || baseJustify,
+            md: mapJustify(getEffectiveDataAtBreakpoint(d, 'tablet').justify as string | undefined) as string | undefined,
+            lg: mapJustify(getEffectiveDataAtBreakpoint(d, 'desktop').justify as string | undefined) || baseJustify,
+        };
+    } else {
+        const fd = flexData.value;
+        if (!fd.justifySm && !fd.justifyMd && !fd.justifyLg && !fd.justifyXl) return '';
+        config = {
+            base: mapJustify(fd.justify || 'start'),
+            sm: fd.justifySm ? mapJustify(fd.justifySm) : undefined,
+            md: fd.justifyMd ? mapJustify(fd.justifyMd) : undefined,
+            lg: fd.justifyLg ? mapJustify(fd.justifyLg) : undefined,
+            xl: fd.justifyXl ? mapJustify(fd.justifyXl) : undefined,
+        };
+    }
     return usePreviewContainerQueries
         ? generateResponsiveContainerCSS(selector, 'justify-content', config)
         : generateResponsiveCSS(selector, 'justify-content', config);
@@ -151,19 +183,30 @@ const responsiveJustifyCSS = computed(() => {
 // Generate responsive CSS for align
 const responsiveAlignCSS = computed(() => {
     if (!hasResponsive.value) return '';
-    
-    const d = flexData.value;
-    if (!d.alignSm && !d.alignMd && !d.alignLg && !d.alignXl) return '';
-    
+
+    const d = props.data as Record<string, unknown>;
     const selector = `.flex-container-block-responsive[data-flex-id="${flexId.value}"]`;
-    const baseAlign = mapAlign(d.align || 'stretch');
-    const config = {
-        base: baseAlign,
-        sm: d.alignSm ? mapAlign(d.alignSm) : undefined,
-        md: d.alignMd ? mapAlign(d.alignMd) : undefined,
-        lg: d.alignLg ? mapAlign(d.alignLg) : undefined,
-        xl: d.alignXl ? mapAlign(d.alignXl) : undefined,
-    };
+    const usesNewFormat = !!(d.responsive && typeof d.responsive === 'object');
+
+    let config: { base?: string; sm?: string; md?: string; lg?: string; xl?: string };
+    if (usesNewFormat) {
+        const baseAlign = mapAlign(d.align as string | undefined);
+        config = {
+            base: mapAlign(getEffectiveDataAtBreakpoint(d, 'mobile').align as string | undefined) || baseAlign,
+            md: mapAlign(getEffectiveDataAtBreakpoint(d, 'tablet').align as string | undefined) as string | undefined,
+            lg: mapAlign(getEffectiveDataAtBreakpoint(d, 'desktop').align as string | undefined) || baseAlign,
+        };
+    } else {
+        const fd = flexData.value;
+        if (!fd.alignSm && !fd.alignMd && !fd.alignLg && !fd.alignXl) return '';
+        config = {
+            base: mapAlign(fd.align || 'stretch'),
+            sm: fd.alignSm ? mapAlign(fd.alignSm) : undefined,
+            md: fd.alignMd ? mapAlign(fd.alignMd) : undefined,
+            lg: fd.alignLg ? mapAlign(fd.alignLg) : undefined,
+            xl: fd.alignXl ? mapAlign(fd.alignXl) : undefined,
+        };
+    }
     return usePreviewContainerQueries
         ? generateResponsiveContainerCSS(selector, 'align-items', config)
         : generateResponsiveCSS(selector, 'align-items', config);

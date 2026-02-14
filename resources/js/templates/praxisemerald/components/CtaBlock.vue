@@ -27,9 +27,11 @@ const image = computed(() => props.data.image ?? { src: '', alt: '' });
             >
                 {{ heading }}
             </h2>
-            <p class="max-w-2xl" style="color: var(--tertiary)">
-                {{ text }}
-            </p>
+            <div
+                class="max-w-2xl prose prose-sm max-w-none"
+                style="color: var(--tertiary)"
+                v-html="text || '<p class=\'text-muted-foreground\'>Text hier eingeben…</p>'"
+            />
             <div class="flex flex-wrap items-center justify-center gap-3">
                 <a
                     v-for="(link, index) in links"

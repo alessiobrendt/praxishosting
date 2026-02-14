@@ -28,7 +28,7 @@ import * as NewsletterBlockMod from './NewsletterBlock.vue';
 export interface PageComponentField {
     key: string;
     label: string;
-    type: 'text' | 'textarea' | 'select' | 'image' | 'number' | 'icon';
+    type: 'text' | 'textarea' | 'richtext' | 'select' | 'image' | 'number' | 'icon';
     options?: string[] | { value: string; label: string }[];
 }
 

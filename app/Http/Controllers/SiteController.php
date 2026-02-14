@@ -225,4 +225,24 @@ class SiteController extends Controller
             'url' => asset('storage/'.$path),
         ]);
     }
+
+    public function destroyImage(Request $request, Site $site): JsonResponse
+    {
+        $this->authorize('update', $site);
+
+        $validated = $request->validate([
+            'path' => ['required', 'string', 'max:500'],
+        ]);
+
+        $path = $validated['path'];
+        $allowedPrefix = "sites/{$site->id}/images/";
+
+        if (! str_starts_with($path, $allowedPrefix)) {
+            return response()->json(['message' => 'Invalid path'], 422);
+        }
+
+        Storage::disk('public')->delete($path);
+
+        return response()->json(['ok' => true]);
+    }
 }

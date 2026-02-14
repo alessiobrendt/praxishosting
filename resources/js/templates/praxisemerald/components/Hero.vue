@@ -2,6 +2,7 @@
 import { computed, inject } from 'vue';
 import Button from '@/templates/praxisemerald/components/ui/Button.vue';
 import InlineTextEditor from '@/templates/shared/components/InlineTextEditor.vue';
+import InlineEditableText from '@/pages/PageDesigner/components/InlineEditableText.vue';
 import type { HeroComponentData } from '@/types/layout-components';
 
 const props = withDefaults(
@@ -36,14 +37,22 @@ function setHeading(v: string): void {
                     class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl @sm:text-4xl"
                     @update:model-value="setHeading"
                 />
-                <InlineTextEditor
+                <InlineEditableText
+                    v-if="layoutEntry?.value?.id"
                     :model-value="text"
                     :design-mode="designMode"
                     :is-selected="isSelected"
-                    tag="p"
+                    :entry-id="layoutEntry.value.id"
+                    field-key="text"
+                    tag="div"
                     class="mt-4 text-slate-700"
                     placeholder="Beschreibungstext…"
-                    @update:model-value="(v) => ((props.data as Record<string, unknown>).text = v)"
+                    html
+                />
+                <div
+                    v-else
+                    class="mt-4 prose prose-sm max-w-none text-slate-700"
+                    v-html="text || '<p class=\'text-muted-foreground\'>Beschreibungstext…</p>'"
                 />
                 <div class="mt-6 flex flex-wrap gap-3">
                     <div v-for="(btn, idx) in buttons" :key="idx">

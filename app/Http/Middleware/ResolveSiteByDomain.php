@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\SiteSeoController;
 use App\Models\Domain;
 use App\Models\Setting;
 use App\Services\SiteRenderService;
@@ -70,6 +71,12 @@ class ResolveSiteByDomain
         $site->load(['template.pages']);
 
         $path = trim($request->path(), '/');
+        if ($path === 'sitemap.xml') {
+            return app(SiteSeoController::class)->sitemap($request, $site);
+        }
+        if ($path === 'robots.txt') {
+            return app(SiteSeoController::class)->robotsTxt($request, $site);
+        }
         $pageSlug = $path === '' ? null : $path;
 
         $normalizedSlug = $this->siteRenderService->normalizePageSlug($pageSlug, $site);
@@ -101,13 +108,16 @@ class ResolveSiteByDomain
         URL::forceScheme('https');
         config(['app.asset_url' => $assetBaseUrl]);
 
+        $canonicalUrl = $request->url();
+
         $inertiaResponse = Inertia::render('site-render/Home', [
-            'site' => $site->only(['uuid', 'name', 'slug']),
+            'site' => array_merge($site->only(['uuid', 'name', 'slug']), ['favicon_url' => $site->favicon_url]),
             'templateSlug' => $site->template->slug,
             'pageData' => $data['pageData'],
             'colors' => $data['colors'],
             'generalInformation' => $data['generalInformation'],
             'pageSlug' => $normalizedSlug,
+            'canonicalUrl' => $canonicalUrl,
         ]);
 
         $response = $inertiaResponse->toResponse($request);

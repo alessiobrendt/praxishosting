@@ -11,8 +11,42 @@ import { ImagePlus, Plus, Trash2, Upload } from 'lucide-vue-next';
 import AnimationPicker from '@/templates/shared/components/AnimationPicker.vue';
 import IconPicker from '@/templates/shared/components/IconPicker.vue';
 import { isSlotContainer } from '@/templates/handyso/component-registry';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+    hasResponsiveValues as hasResponsiveValuesFromLib,
+    getEffectiveDataAtBreakpoint,
+    type ResponsiveBreakpoint,
+} from '@/lib/responsive-styles';
 
 const openMediaLibrary = inject<((callback: (url: string) => void) => void) | null>('openMediaLibrary', null);
+
+function hasResponsiveValues(data: Record<string, unknown>): boolean {
+    return hasResponsiveValuesFromLib(data);
+}
+
+function usesNewResponsiveFormat(data: Record<string, unknown>): boolean {
+    return !!(data.responsive && typeof data.responsive === 'object');
+}
+
+function ensureResponsiveTarget(
+    data: Record<string, unknown>,
+    breakpoint: ResponsiveBreakpoint
+): Record<string, unknown> {
+    if (breakpoint === 'desktop') return data;
+    if (!data.responsive || typeof data.responsive !== 'object') {
+        data.responsive = { tablet: {}, mobile: {} };
+    }
+    const r = data.responsive as Record<string, Record<string, unknown>>;
+    if (breakpoint === 'tablet') {
+        if (!r.tablet) r.tablet = {};
+        return r.tablet;
+    }
+    if (breakpoint === 'mobile') {
+        if (!r.mobile) r.mobile = {};
+        return r.mobile;
+    }
+    return data as Record<string, unknown>;
+}
 
 const pageComponentEditor = computed(() => getEditorForType(props.entry.type));
 const pageComponentMeta = computed(() => getMetaForType(props.entry.type));
@@ -209,32 +243,6 @@ function getPaddingCustomValue(paddingValue: string | undefined): string {
 }
 
 // Responsive helper functions
-function hasResponsiveValues(data: Record<string, unknown>): boolean {
-    const responsiveKeys = [
-        'columnsSm',
-        'columnsMd',
-        'columnsLg',
-        'columnsXl',
-        'gapSm',
-        'gapMd',
-        'gapLg',
-        'gapXl',
-        'directionSm',
-        'directionMd',
-        'directionLg',
-        'directionXl',
-        'justifySm',
-        'justifyMd',
-        'justifyLg',
-        'justifyXl',
-        'alignSm',
-        'alignMd',
-        'alignLg',
-        'alignXl',
-    ];
-    return responsiveKeys.some((key) => data[key] !== undefined);
-}
-
 function enableResponsiveForGrid(data: Record<string, unknown>): void {
     if (!hasResponsiveValues(data)) {
         // Set intelligent defaults
@@ -259,7 +267,6 @@ function enableResponsiveForFlex(data: Record<string, unknown>): void {
 
 function disableResponsive(data: Record<string, unknown>, type: 'grid' | 'flex'): void {
     if (type === 'grid') {
-        // Keep base columns, remove responsive
         delete data.columnsSm;
         delete data.columnsMd;
         delete data.columnsLg;
@@ -269,7 +276,6 @@ function disableResponsive(data: Record<string, unknown>, type: 'grid' | 'flex')
         delete data.gapLg;
         delete data.gapXl;
     } else {
-        // Keep base direction, remove responsive
         delete data.directionSm;
         delete data.directionMd;
         delete data.directionLg;
@@ -286,6 +292,24 @@ function disableResponsive(data: Record<string, unknown>, type: 'grid' | 'flex')
         delete data.gapMd;
         delete data.gapLg;
         delete data.gapXl;
+    }
+    delete data.responsive;
+}
+
+function enableResponsiveNewFormat(data: Record<string, unknown>, type: 'grid' | 'flex'): void {
+    if (!data.responsive || typeof data.responsive !== 'object') {
+        data.responsive = { tablet: {}, mobile: {} };
+    }
+    if (type === 'grid') {
+        const baseColumns = (data.columns as string) || 'repeat(2, 1fr)';
+        (data.responsive as Record<string, Record<string, unknown>>).tablet = { columns: 'repeat(2, 1fr)' };
+        (data.responsive as Record<string, Record<string, unknown>>).mobile = { columns: '1fr' };
+        data.columns = baseColumns;
+    } else {
+        const baseDirection = (data.direction as string) || 'row';
+        (data.responsive as Record<string, Record<string, unknown>>).tablet = { direction: baseDirection };
+        (data.responsive as Record<string, Record<string, unknown>>).mobile = { direction: 'column' };
+        data.direction = baseDirection;
     }
 }
 </script>
@@ -716,113 +740,216 @@ function disableResponsive(data: Record<string, unknown>, type: 'grid' | 'flex')
         <!-- section -->
         <template v-else-if="entry.type === 'section'">
             <p class="text-muted-foreground text-sm">Inhalt über Blöcke hinzufügen.</p>
-            <div class="space-y-3">
-                <div class="space-y-2">
-                    <Label>Richtung</Label>
-                    <Select :model-value="d.direction ?? 'column'" @update:model-value="(v) => (d.direction = v)">
-                        <option value="column">Spalte</option>
-                        <option value="row">Zeile</option>
-                    </Select>
-                </div>
-                <div class="space-y-2">
-                    <Label>Gap</Label>
-                    <Select :model-value="d.gap ?? '1rem'" @update:model-value="(v) => (d.gap = v)">
-                        <option value="0">0</option>
-                        <option value="0.5rem">0.5rem</option>
-                        <option value="1rem">1rem</option>
-                        <option value="1.5rem">1.5rem</option>
-                        <option value="2rem">2rem</option>
-                    </Select>
-                </div>
-                <div class="space-y-2">
-                    <Label>Justify</Label>
-                    <Select :model-value="d.justify ?? 'start'" @update:model-value="(v) => (d.justify = v)">
-                        <option value="start">Start</option>
-                        <option value="center">Mitte</option>
-                        <option value="end">Ende</option>
-                        <option value="space-between">Space-Between</option>
-                        <option value="space-around">Space-Around</option>
-                    </Select>
-                </div>
-                <div class="space-y-2">
-                    <Label>Align</Label>
-                    <Select :model-value="d.align ?? 'stretch'" @update:model-value="(v) => (d.align = v)">
-                        <option value="start">Start</option>
-                        <option value="center">Mitte</option>
-                        <option value="end">Ende</option>
-                        <option value="stretch">Stretch</option>
-                    </Select>
-                </div>
-                <div class="flex items-center gap-2">
-                    <input :id="`section-wrap-${entry.id}`" v-model="d.wrap" type="checkbox" class="h-4 w-4 rounded border-input" />
-                    <Label :for="`section-wrap-${entry.id}`">Wrap</Label>
-                </div>
-                <div class="flex items-center gap-2">
-                    <input :id="`section-padding-${entry.id}`" v-model="d.padding" type="checkbox" class="h-4 w-4 rounded border-input" />
-                    <Label :for="`section-padding-${entry.id}`">Padding</Label>
-                </div>
-                <div class="space-y-2">
-                    <Label>Content Width</Label>
-                    <Select :model-value="d.contentWidth ?? 'full'" @update:model-value="(v) => (d.contentWidth = v)">
-                        <option value="full">Full</option>
-                        <option value="boxed">Boxed</option>
-                    </Select>
-                </div>
-                <div class="space-y-2">
-                    <Label>Hintergrundfarbe</Label>
-                    <Select
-                        :model-value="getSectionBackgroundSelectValue(d)"
-                        @update:model-value="(v) => setSectionBackground(d, v)"
-                    >
-                        <option
-                            v-for="opt in sectionBgOptions"
-                            :key="opt.value || 'none'"
-                            :value="opt.value"
-                        >
-                            {{ opt.label }}
-                        </option>
-                    </Select>
-                    <div
-                        v-if="showSectionCustomColor(d)"
-                        class="flex items-center gap-2"
-                    >
-                        <input
-                            type="color"
-                            :value="getSectionCustomColorValue(d)"
-                            class="h-9 w-14 cursor-pointer rounded border border-input"
-                            @input="(e) => (d.backgroundColor = (e.target as HTMLInputElement).value)"
-                        />
-                        <Input
-                            :model-value="getSectionCustomColorValue(d)"
-                            placeholder="#ffffff"
-                            class="min-w-0 flex-1 font-mono text-sm"
-                            @update:model-value="(v) => setSectionCustomColor(d, v)"
-                        />
+            <Tabs default-tab="desktop" class="mt-2">
+                <TabsList class="mb-3 w-full grid grid-cols-3">
+                    <TabsTrigger value="desktop" class="text-xs">Desktop</TabsTrigger>
+                    <TabsTrigger value="tablet" class="text-xs">Tablet</TabsTrigger>
+                    <TabsTrigger value="mobile" class="text-xs">Mobile</TabsTrigger>
+                </TabsList>
+                <TabsContent
+                    v-for="bp in (['desktop', 'tablet', 'mobile'] as const)"
+                    :key="bp"
+                    :value="bp"
+                    class="mt-0 space-y-3"
+                >
+                    <div class="space-y-3">
+                        <div class="space-y-2">
+                            <Label>Richtung</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).direction ?? 'column'"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).direction = v)"
+                            >
+                                <option value="column">Spalte</option>
+                                <option value="row">Zeile</option>
+                            </Select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label>Gap</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).gap ?? '1rem'"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).gap = v)"
+                            >
+                                <option value="0">0</option>
+                                <option value="0.5rem">0.5rem</option>
+                                <option value="1rem">1rem</option>
+                                <option value="1.5rem">1.5rem</option>
+                                <option value="2rem">2rem</option>
+                            </Select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label>Justify</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).justify ?? 'start'"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).justify = v)"
+                            >
+                                <option value="start">Start</option>
+                                <option value="center">Mitte</option>
+                                <option value="end">Ende</option>
+                                <option value="space-between">Space-Between</option>
+                                <option value="space-around">Space-Around</option>
+                            </Select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label>Align</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).align ?? 'stretch'"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).align = v)"
+                            >
+                                <option value="start">Start</option>
+                                <option value="center">Mitte</option>
+                                <option value="end">Ende</option>
+                                <option value="stretch">Stretch</option>
+                            </Select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input
+                                :id="`section-wrap-${entry.id}-${bp}`"
+                                :checked="!!(getEffectiveDataAtBreakpoint(d, bp).wrap ?? true)"
+                                type="checkbox"
+                                class="h-4 w-4 rounded border-input"
+                                @change="(e) => (ensureResponsiveTarget(d, bp).wrap = (e.target as HTMLInputElement).checked)"
+                            />
+                            <Label :for="`section-wrap-${entry.id}-${bp}`">Wrap</Label>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input
+                                :id="`section-padding-${entry.id}-${bp}`"
+                                :checked="!!(getEffectiveDataAtBreakpoint(d, bp).padding ?? true)"
+                                type="checkbox"
+                                class="h-4 w-4 rounded border-input"
+                                @change="(e) => (ensureResponsiveTarget(d, bp).padding = (e.target as HTMLInputElement).checked)"
+                            />
+                            <Label :for="`section-padding-${entry.id}-${bp}`">Padding</Label>
+                        </div>
+                        <div class="space-y-2">
+                            <Label>Content Width</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).contentWidth ?? 'full'"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).contentWidth = v)"
+                            >
+                                <option value="full">Full</option>
+                                <option value="boxed">Boxed</option>
+                            </Select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label>Hintergrundfarbe</Label>
+                            <Select
+                                :model-value="getSectionBackgroundSelectValue(getEffectiveDataAtBreakpoint(d, bp) as Record<string, unknown>)"
+                                @update:model-value="(v) => setSectionBackground(ensureResponsiveTarget(d, bp) as Record<string, unknown>, v)"
+                            >
+                                <option
+                                    v-for="opt in sectionBgOptions"
+                                    :key="opt.value || 'none'"
+                                    :value="opt.value"
+                                >
+                                    {{ opt.label }}
+                                </option>
+                            </Select>
+                            <div
+                                v-if="showSectionCustomColor(getEffectiveDataAtBreakpoint(d, bp) as Record<string, unknown>)"
+                                class="flex items-center gap-2"
+                            >
+                                <input
+                                    type="color"
+                                    :value="getSectionCustomColorValue(getEffectiveDataAtBreakpoint(d, bp) as Record<string, unknown>)"
+                                    class="h-9 w-14 cursor-pointer rounded border border-input"
+                                    @input="(e) => (ensureResponsiveTarget(d, bp).backgroundColor = (e.target as HTMLInputElement).value)"
+                                />
+                                <Input
+                                    :model-value="getSectionCustomColorValue(getEffectiveDataAtBreakpoint(d, bp) as Record<string, unknown>)"
+                                    placeholder="#ffffff"
+                                    class="min-w-0 flex-1 font-mono text-sm"
+                                    @update:model-value="(v) => setSectionCustomColor(ensureResponsiveTarget(d, bp) as Record<string, unknown>, v)"
+                                />
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </TabsContent>
+            </Tabs>
         </template>
 
         <!-- grid -->
         <template v-else-if="entry.type === 'grid'">
             <p class="text-muted-foreground text-sm">Inhalt über Blöcke hinzufügen.</p>
             <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                    <input
-                        :id="`grid-responsive-${entry.id}`"
-                        :checked="hasResponsiveValues(d)"
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-input"
-                        @change="(e) => {
-                            if ((e.target as HTMLInputElement).checked) {
-                                enableResponsiveForGrid(d);
-                            } else {
-                                disableResponsive(d, 'grid');
-                            }
-                        }"
-                    />
-                    <Label :for="`grid-responsive-${entry.id}`">Responsive aktivieren</Label>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <input
+                            :id="`grid-responsive-${entry.id}`"
+                            :checked="hasResponsiveValues(d)"
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-input"
+                            @change="(e) => {
+                                if ((e.target as HTMLInputElement).checked) {
+                                    enableResponsiveForGrid(d);
+                                } else {
+                                    disableResponsive(d, 'grid');
+                                }
+                            }"
+                        />
+                        <Label :for="`grid-responsive-${entry.id}`">Responsive aktivieren</Label>
+                    </div>
+                    <div v-if="hasResponsiveValues(d)" class="flex items-center gap-2">
+                        <input
+                            :id="`grid-breakpoint-tabs-${entry.id}`"
+                            :checked="usesNewResponsiveFormat(d)"
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-input"
+                            @change="(e) => {
+                                if ((e.target as HTMLInputElement).checked) {
+                                    enableResponsiveNewFormat(d, 'grid');
+                                } else {
+                                    disableResponsive(d, 'grid');
+                                }
+                            }"
+                        />
+                        <Label :for="`grid-breakpoint-tabs-${entry.id}`">Breakpoint-Tabs</Label>
+                    </div>
                 </div>
+                <Tabs
+                    v-if="hasResponsiveValues(d) && usesNewResponsiveFormat(d)"
+                    default-tab="desktop"
+                    class="mt-2"
+                >
+                    <TabsList class="mb-3 w-full grid grid-cols-3">
+                        <TabsTrigger value="desktop" class="text-xs">Desktop</TabsTrigger>
+                        <TabsTrigger value="tablet" class="text-xs">Tablet</TabsTrigger>
+                        <TabsTrigger value="mobile" class="text-xs">Mobile</TabsTrigger>
+                    </TabsList>
+                    <TabsContent
+                        v-for="bp in (['desktop', 'tablet', 'mobile'] as const)"
+                        :key="bp"
+                        :value="bp"
+                        class="mt-0 space-y-3"
+                    >
+                        <div class="space-y-2">
+                            <Label>Spalten</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).columns ?? (bp === 'mobile' ? '1fr' : 'repeat(2, 1fr)')"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).columns = v)"
+                            >
+                                <option value="1fr">1</option>
+                                <option value="repeat(2, 1fr)">2</option>
+                                <option value="repeat(3, 1fr)">3</option>
+                                <option value="repeat(4, 1fr)">4</option>
+                            </Select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label>Gap</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).gap ?? '1rem'"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).gap = v)"
+                            >
+                                <option value="0">0</option>
+                                <option value="0.5rem">0.5rem</option>
+                                <option value="1rem">1rem</option>
+                                <option value="1.5rem">1.5rem</option>
+                                <option value="2rem">2rem</option>
+                            </Select>
+                        </div>
+                    </TabsContent>
+                </Tabs>
+                <template v-else>
                 <div v-if="!hasResponsiveValues(d)" class="space-y-2">
                     <Label>Spalten</Label>
                     <Select :model-value="d.columns ?? 'repeat(2, 1fr)'" @update:model-value="(v) => (d.columns = v)">
@@ -965,6 +1092,7 @@ function disableResponsive(data: Record<string, unknown>, type: 'grid' | 'flex')
                         />
                     </div>
                 </div>
+                </template>
             </div>
         </template>
 
@@ -972,22 +1100,107 @@ function disableResponsive(data: Record<string, unknown>, type: 'grid' | 'flex')
         <template v-else-if="entry.type === 'flex'">
             <p class="text-muted-foreground text-sm">Inhalt über Blöcke hinzufügen.</p>
             <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                    <input
-                        :id="`flex-responsive-${entry.id}`"
-                        :checked="hasResponsiveValues(d)"
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-input"
-                        @change="(e) => {
-                            if ((e.target as HTMLInputElement).checked) {
-                                enableResponsiveForFlex(d);
-                            } else {
-                                disableResponsive(d, 'flex');
-                            }
-                        }"
-                    />
-                    <Label :for="`flex-responsive-${entry.id}`">Responsive aktivieren</Label>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <input
+                            :id="`flex-responsive-${entry.id}`"
+                            :checked="hasResponsiveValues(d)"
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-input"
+                            @change="(e) => {
+                                if ((e.target as HTMLInputElement).checked) {
+                                    enableResponsiveForFlex(d);
+                                } else {
+                                    disableResponsive(d, 'flex');
+                                }
+                            }"
+                        />
+                        <Label :for="`flex-responsive-${entry.id}`">Responsive aktivieren</Label>
+                    </div>
+                    <div v-if="hasResponsiveValues(d)" class="flex items-center gap-2">
+                        <input
+                            :id="`flex-breakpoint-tabs-${entry.id}`"
+                            :checked="usesNewResponsiveFormat(d)"
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-input"
+                            @change="(e) => {
+                                if ((e.target as HTMLInputElement).checked) {
+                                    enableResponsiveNewFormat(d, 'flex');
+                                } else {
+                                    disableResponsive(d, 'flex');
+                                }
+                            }"
+                        />
+                        <Label :for="`flex-breakpoint-tabs-${entry.id}`">Breakpoint-Tabs</Label>
+                    </div>
                 </div>
+                <Tabs
+                    v-if="hasResponsiveValues(d) && usesNewResponsiveFormat(d)"
+                    default-tab="desktop"
+                    class="mt-2"
+                >
+                    <TabsList class="mb-3 w-full grid grid-cols-3">
+                        <TabsTrigger value="desktop" class="text-xs">Desktop</TabsTrigger>
+                        <TabsTrigger value="tablet" class="text-xs">Tablet</TabsTrigger>
+                        <TabsTrigger value="mobile" class="text-xs">Mobile</TabsTrigger>
+                    </TabsList>
+                    <TabsContent
+                        v-for="bp in (['desktop', 'tablet', 'mobile'] as const)"
+                        :key="bp"
+                        :value="bp"
+                        class="mt-0 space-y-3"
+                    >
+                        <div class="space-y-2">
+                            <Label>Richtung</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).direction ?? (bp === 'mobile' ? 'column' : 'row')"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).direction = v)"
+                            >
+                                <option value="column">Spalte</option>
+                                <option value="row">Zeile</option>
+                            </Select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label>Gap</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).gap ?? '1rem'"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).gap = v)"
+                            >
+                                <option value="0">0</option>
+                                <option value="0.5rem">0.5rem</option>
+                                <option value="1rem">1rem</option>
+                                <option value="1.5rem">1.5rem</option>
+                                <option value="2rem">2rem</option>
+                            </Select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label>Justify</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).justify ?? 'start'"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).justify = v)"
+                            >
+                                <option value="start">Start</option>
+                                <option value="center">Mitte</option>
+                                <option value="end">Ende</option>
+                                <option value="space-between">Space-Between</option>
+                                <option value="space-around">Space-Around</option>
+                            </Select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label>Align</Label>
+                            <Select
+                                :model-value="getEffectiveDataAtBreakpoint(d, bp).align ?? 'stretch'"
+                                @update:model-value="(v) => (ensureResponsiveTarget(d, bp).align = v)"
+                            >
+                                <option value="start">Start</option>
+                                <option value="center">Mitte</option>
+                                <option value="end">Ende</option>
+                                <option value="stretch">Stretch</option>
+                            </Select>
+                        </div>
+                    </TabsContent>
+                </Tabs>
+                <template v-else>
                 <div v-if="!hasResponsiveValues(d)" class="space-y-2">
                     <Label>Richtung</Label>
                     <Select :model-value="d.direction ?? 'row'" @update:model-value="(v) => (d.direction = v)">
@@ -1141,6 +1354,7 @@ function disableResponsive(data: Record<string, unknown>, type: 'grid' | 'flex')
                         />
                     </div>
                 </div>
+                </template>
             </div>
         </template>
 

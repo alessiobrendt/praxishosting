@@ -126,7 +126,18 @@ export type SectionJustify = 'start' | 'center' | 'end' | 'space-between' | 'spa
 export type SectionAlign = 'start' | 'center' | 'end' | 'stretch';
 export type SectionContentWidth = 'full' | 'boxed';
 
-export interface SectionComponentData {
+/**
+ * Breakpoint-specific overrides for block data.
+ * Base data = desktop, responsive.tablet = md (768px), responsive.mobile = sm/base (< 768px).
+ */
+export interface ResponsiveBlockData {
+    responsive?: {
+        tablet?: Record<string, unknown>;
+        mobile?: Record<string, unknown>;
+    };
+}
+
+export interface SectionComponentData extends ResponsiveBlockData {
     direction?: SectionFlexDirection;
     wrap?: boolean;
     gap?: string;
@@ -145,7 +156,7 @@ export interface SectionComponentData {
     backgroundColor?: string;
 }
 
-export interface GridComponentData {
+export interface GridComponentData extends ResponsiveBlockData {
     /** CSS grid-template-columns (z. B. "1fr 1fr", "repeat(3, 1fr)"). */
     columns?: string;
     /** Responsive columns: mobile-first approach */
@@ -167,7 +178,7 @@ export interface GridComponentData {
     paddingRight?: string;
 }
 
-export interface FlexContainerComponentData {
+export interface FlexContainerComponentData extends ResponsiveBlockData {
     direction?: SectionFlexDirection;
     /** Responsive direction: mobile-first approach */
     directionSm?: SectionFlexDirection; // >= 640px

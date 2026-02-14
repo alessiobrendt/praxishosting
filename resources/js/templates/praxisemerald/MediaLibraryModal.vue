@@ -7,8 +7,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import MediaLibraryLightbox from '@/templates/praxisemerald/MediaLibraryLightbox.vue';
+import ImageEditorModal from '@/templates/praxisemerald/ImageEditorModal.vue';
 import { ref, watch } from 'vue';
-import { Upload } from 'lucide-vue-next';
+import { Download, Eye, Copy, Trash2, MoreVertical, Pencil, Upload } from 'lucide-vue-next';
 
 const props = defineProps<{
     open: boolean;
@@ -23,10 +31,17 @@ const emit = defineEmits<{
 const urls = ref<string[]>([]);
 const loading = ref(false);
 const uploadInputRef = ref<HTMLInputElement | null>(null);
+const lightboxUrl = ref<string | null>(null);
+const editorUrl = ref<string | null>(null);
 
 function getCsrfToken(): string {
     const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
     return match ? decodeURIComponent(match[1]) : '';
+}
+
+function urlToPath(url: string): string {
+    const m = url.match(/\/storage\/(.+)$/);
+    return m ? m[1] : '';
 }
 
 async function fetchUrls() {
@@ -82,11 +97,62 @@ function choose(url: string) {
     emit('select', url);
     emit('close');
 }
+
+function openLightbox(url: string) {
+    lightboxUrl.value = url;
+}
+
+function openEditor(url: string) {
+    editorUrl.value = url;
+}
+
+async function downloadImage(url: string) {
+    try {
+        const r = await fetch(url);
+        const blob = await r.blob();
+        const filename = url.split('/').pop() ?? 'image.png';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    } catch {
+        // fallback: open in new tab
+        window.open(url, '_blank');
+    }
+}
+
+async function copyUrl(url: string) {
+    await navigator.clipboard.writeText(url);
+}
+
+async function deleteImage(url: string) {
+    const path = urlToPath(url);
+    if (!path || !props.siteUuid) return;
+    const r = await fetch(images.destroy.url({ site: props.siteUuid }), {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-XSRF-TOKEN': getCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest',
+            Accept: 'application/json',
+        },
+        body: JSON.stringify({ path }),
+    });
+    if (r.ok) {
+        urls.value = urls.value.filter((u) => u !== url);
+    }
+}
+
+function onEditorUploaded(newUrl: string) {
+    urls.value = [newUrl, ...urls.value];
+}
 </script>
 
 <template>
     <Dialog :open="open" @update:open="(v) => !v && $emit('close')">
-        <DialogContent class="max-h-[80vh] max-w-2xl overflow-hidden flex flex-col">
+        <DialogContent class="flex max-h-[90vh] max-w-5xl flex-col overflow-hidden">
             <DialogHeader>
                 <DialogTitle>Media Library</DialogTitle>
             </DialogHeader>
@@ -97,36 +163,99 @@ function choose(url: string) {
                 class="sr-only"
                 @change="onFileSelected"
             />
-            <div class="flex flex-col gap-3 overflow-hidden min-h-0">
+            <div class="flex min-h-0 flex-col gap-3 overflow-hidden">
                 <Button type="button" variant="outline" size="sm" class="w-fit" @click="triggerUpload">
                     <Upload class="mr-2 h-4 w-4" />
                     Bild hochladen
                 </Button>
-                <div v-if="loading" class="text-muted-foreground text-sm py-4">
+                <div v-if="loading" class="py-4 text-sm text-muted-foreground">
                     Wird geladen…
                 </div>
                 <div
                     v-else
-                    class="grid grid-cols-3 sm:grid-cols-4 @sm:grid-cols-4 gap-2 overflow-y-auto min-h-0"
+                    class="grid min-h-0 grid-cols-4 gap-3 overflow-y-auto @sm:grid-cols-5 @lg:grid-cols-6"
                 >
-                    <button
+                    <div
                         v-for="url in urls"
                         :key="url"
-                        type="button"
-                        class="aspect-square rounded border border-input overflow-hidden bg-muted hover:ring-2 hover:ring-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                        @click="choose(url)"
+                        class="group relative aspect-square overflow-hidden rounded border border-input bg-muted"
                     >
-                        <img
-                            :src="url"
-                            :alt="url"
-                            class="h-full w-full object-cover"
-                        />
-                    </button>
+                        <button
+                            type="button"
+                            class="absolute inset-0 flex h-full w-full items-center justify-center transition-opacity hover:opacity-90"
+                            @click="openLightbox(url)"
+                        >
+                            <img
+                                :src="url"
+                                :alt="url"
+                                class="h-full w-full object-cover"
+                            />
+                        </button>
+                        <div
+                            class="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100"
+                            @click.stop
+                        >
+                            <DropdownMenu>
+                                <DropdownMenuTrigger as-child>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="icon"
+                                        class="h-8 w-8"
+                                        aria-label="Optionen"
+                                    >
+                                        <MoreVertical class="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem @select="openLightbox(url)">
+                                        <Eye class="mr-2 h-4 w-4" />
+                                        Ansehen
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem @select="downloadImage(url)">
+                                        <Download class="mr-2 h-4 w-4" />
+                                        Download
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem @select="copyUrl(url)">
+                                        <Copy class="mr-2 h-4 w-4" />
+                                        URL kopieren
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem @select="openEditor(url)">
+                                        <Pencil class="mr-2 h-4 w-4" />
+                                        Größe ändern / Zuschneiden
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        variant="destructive"
+                                        @select="deleteImage(url)"
+                                    >
+                                        <Trash2 class="mr-2 h-4 w-4" />
+                                        Löschen
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
                 </div>
-                <p v-if="!loading && urls.length === 0" class="text-muted-foreground text-sm py-4">
+                <p v-if="!loading && urls.length === 0" class="py-4 text-sm text-muted-foreground">
                     Noch keine Bilder. Laden Sie ein Bild hoch.
                 </p>
             </div>
         </DialogContent>
     </Dialog>
+
+    <MediaLibraryLightbox
+        :open="lightboxUrl !== null"
+        :url="lightboxUrl"
+        show-select
+        @close="lightboxUrl = null"
+        @select="(u) => { choose(u); lightboxUrl = null; }"
+    />
+
+    <ImageEditorModal
+        :open="editorUrl !== null"
+        :url="editorUrl"
+        :site-uuid="siteUuid"
+        @close="editorUrl = null"
+        @uploaded="onEditorUploaded"
+    />
 </template>

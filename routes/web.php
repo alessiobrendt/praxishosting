@@ -55,6 +55,10 @@ Route::get('components', function () {
 Route::get('gallery', [GalleryController::class, 'index'])->name('gallery.index');
 Route::get('gallery/preview/{template}', [GalleryController::class, 'preview'])->name('gallery.preview');
 
+Route::get('site/{site:slug}/sitemap.xml', [\App\Http\Controllers\SiteSeoController::class, 'sitemap'])
+    ->name('site-render.sitemap');
+Route::get('site/{site:slug}/robots.txt', [\App\Http\Controllers\SiteSeoController::class, 'robotsTxt'])
+    ->name('site-render.robots');
 Route::get('site/{site:slug}/{pageSlug?}', [SiteRenderController::class, 'show'])
     ->where('pageSlug', '[a-z0-9\-]+')
     ->middleware(DisableCacheForSiteRender::class)
@@ -77,8 +81,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('sites', SiteController::class);
     Route::post('sites/{site}/subscription/cancel', [SiteSubscriptionController::class, 'cancel'])->name('sites.subscription.cancel');
     Route::post('sites/{site}/preview', [SiteRenderController::class, 'storePreviewDraft'])->name('sites.preview.store');
+    Route::get('sites/{site}/designer/state', [\App\Http\Controllers\SiteDesignerController::class, 'state'])->name('sites.designer.state');
+    Route::post('sites/{site}/designer/draft', [\App\Http\Controllers\SiteDesignerController::class, 'draft'])->name('sites.designer.draft');
+    Route::post('sites/{site}/designer/publish', [\App\Http\Controllers\SiteDesignerController::class, 'publish'])->name('sites.designer.publish');
+    Route::patch('sites/{site}/designer/blocks/{blockId}', [\App\Http\Controllers\SiteDesignerController::class, 'updateBlock'])->name('sites.designer.blocks.update')->where('blockId', '[a-zA-Z0-9_\-]+');
+    Route::post('sites/{site}/designer/blocks', [\App\Http\Controllers\SiteDesignerController::class, 'storeBlock'])->name('sites.designer.blocks.store');
+    Route::delete('sites/{site}/designer/blocks/{blockId}', [\App\Http\Controllers\SiteDesignerController::class, 'destroyBlock'])->name('sites.designer.blocks.destroy')->where('blockId', '[a-zA-Z0-9_\-]+');
+    Route::post('sites/{site}/designer/upload', [\App\Http\Controllers\SiteDesignerController::class, 'upload'])->name('sites.designer.upload');
     Route::get('sites/{site}/images', [SiteController::class, 'indexImages'])->name('sites.images.index');
     Route::post('sites/{site}/images', [SiteController::class, 'uploadImage'])->name('sites.images.store');
+    Route::delete('sites/{site}/images', [SiteController::class, 'destroyImage'])->name('sites.images.destroy');
     Route::get('sites/{site}/collaborators', [SiteCollaboratorController::class, 'index'])->name('sites.collaborators.index');
     Route::post('sites/{site}/collaborators', [SiteCollaboratorController::class, 'store'])->name('sites.collaborators.store');
     Route::delete('sites/{site}/collaborators/{user}', [SiteCollaboratorController::class, 'destroy'])->name('sites.collaborators.destroy');

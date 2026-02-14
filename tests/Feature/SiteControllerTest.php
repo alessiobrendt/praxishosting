@@ -3,6 +3,7 @@
 use App\Models\Site;
 use App\Models\Template;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 test('guests cannot access sites index', function () {
     $response = $this->get(route('sites.index'));
@@ -158,4 +159,32 @@ test('user can list site images for media library', function () {
     $response->assertOk();
     $response->assertJsonStructure(['urls']);
     expect($response->json('urls'))->toBeArray();
+});
+
+test('user can delete site image with valid path', function () {
+    Storage::fake('public');
+    $user = User::factory()->create();
+    $site = Site::factory()->create(['user_id' => $user->id]);
+    $path = "sites/{$site->id}/images/test-image.png";
+    Storage::disk('public')->put($path, 'fake-image-content');
+    $this->actingAs($user);
+
+    $response = $this->deleteJson(route('sites.images.destroy', $site), ['path' => $path]);
+
+    $response->assertOk();
+    $response->assertJson(['ok' => true]);
+    Storage::disk('public')->assertMissing($path);
+});
+
+test('user cannot delete image with path outside site images directory', function () {
+    Storage::fake('public');
+    $user = User::factory()->create();
+    $site = Site::factory()->create(['user_id' => $user->id]);
+    $this->actingAs($user);
+
+    $response = $this->deleteJson(route('sites.images.destroy', $site), [
+        'path' => 'sites/999/images/other-site-image.png',
+    ]);
+
+    $response->assertStatus(422);
 });
