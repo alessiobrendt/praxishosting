@@ -206,5 +206,3 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 });
 
 require __DIR__.'/settings.php';
-
-require __DIR__.'/api.php';
