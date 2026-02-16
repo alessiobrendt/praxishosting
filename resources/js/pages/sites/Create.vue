@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Form, Head, Link } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { watch } from 'vue';
 import { store as sitesStore } from '@/routes/sites';
 import InputError from '@/components/InputError.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -11,6 +12,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Heading, Text } from '@/components/ui/typography';
 import { index as sitesIndex } from '@/routes/sites';
 import { dashboard } from '@/routes';
+import { notify } from '@/composables/useNotify';
 import type { BreadcrumbItem } from '@/types';
 
 type Template = {
@@ -25,7 +27,27 @@ type Props = {
     templates: Template[];
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const page = usePage();
+const form = useForm({
+    template_id: (props.template?.id ?? '') as string | number,
+    name: '',
+});
+
+watch(
+    () => (page.props.flash as { error?: string })?.error,
+    (message) => {
+        if (message) {
+            notify.error(message);
+        }
+    },
+    { immediate: true },
+);
+
+function submit(): void {
+    form.post(sitesStore.url());
+}
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -52,58 +74,46 @@ const breadcrumbs: BreadcrumbItem[] = [
                     <CardDescription>Geben Sie die Informationen für Ihre neue Site ein</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Form
-                        :action="sitesStore.url()"
-                        method="post"
-                        class="space-y-6"
-                        v-slot="{ errors }"
-                    >
-                        <input
-                            v-if="template"
-                            type="hidden"
-                            name="template_id"
-                            :value="template.id"
-                        />
+                    <form class="space-y-6" @submit.prevent="submit">
                         <div class="space-y-2">
                             <Label for="template_id">Template</Label>
                             <Select
                                 id="template_id"
-                                name="template_id"
+                                v-model="form.template_id"
                                 required
-                                :aria-invalid="!!errors.template_id"
+                                :aria-invalid="!!form.errors.template_id"
                             >
                                 <option value="">Bitte wählen...</option>
                                 <option
                                     v-for="t in templates"
                                     :key="t.id"
                                     :value="t.id"
-                                    :selected="template?.id === t.id"
                                 >
                                     {{ t.name }} ({{ t.price }} €)
                                 </option>
                             </Select>
-                            <InputError :message="errors.template_id" />
+                            <InputError :message="form.errors.template_id" />
                         </div>
                         <div class="space-y-2">
                             <Label for="name">Name der Site</Label>
                             <Input
                                 id="name"
-                                name="name"
+                                v-model="form.name"
                                 required
                                 placeholder="z. B. Praxis Mustermann"
-                                :aria-invalid="!!errors.name"
+                                :aria-invalid="!!form.errors.name"
                             />
-                            <InputError :message="errors.name" />
+                            <InputError :message="form.errors.name" />
                         </div>
                         <CardFooter class="px-0 pb-0">
                             <div class="flex gap-2">
-                                <Button type="submit">Zur Kasse</Button>
+                                <Button type="submit" :disabled="form.processing">Zur Kasse</Button>
                                 <Link :href="sitesIndex().url">
                                     <Button type="button" variant="outline">Abbrechen</Button>
                                 </Link>
                             </div>
                         </CardFooter>
-                    </Form>
+                    </form>
                 </CardContent>
             </Card>
         </div>

@@ -31,10 +31,13 @@ class User extends Authenticatable
         'pin_length',
         'inactivity_lock_minutes',
         'street',
+        'street_number',
         'postal_code',
         'city',
+        'state',
         'country',
         'company',
+        'phone',
         'ticket_signature',
     ];
 
@@ -90,6 +93,16 @@ class User extends Authenticatable
     public function sites(): HasMany
     {
         return $this->hasMany(Site::class);
+    }
+
+    /**
+     * Reseller domains assigned to this customer.
+     *
+     * @return HasMany<ResellerDomain>
+     */
+    public function resellerDomains(): HasMany
+    {
+        return $this->hasMany(ResellerDomain::class);
     }
 
     /**
@@ -221,6 +234,32 @@ class User extends Authenticatable
             if ($value === null || trim((string) $value) === '') {
                 return false;
             }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the user has all contact data required for domain order (Skrime/WHOIS).
+     * No empty or placeholder values may be sent.
+     */
+    public function hasCompleteDomainContact(): bool
+    {
+        $required = ['name', 'street', 'postal_code', 'city', 'state', 'country', 'email', 'phone'];
+        foreach ($required as $field) {
+            $value = $this->{$field};
+            if ($value === null || trim((string) $value) === '') {
+                return false;
+            }
+        }
+        $number = $this->street_number ?? '';
+        if ($number === null || trim((string) $number) === '') {
+            if (preg_match('/\s+([0-9]+[a-zA-Z]?)\s*$/', trim((string) $this->street ?? ''), $m)) {
+                $number = $m[1];
+            }
+        }
+        if ($number === null || trim((string) $number) === '') {
+            return false;
         }
 
         return true;

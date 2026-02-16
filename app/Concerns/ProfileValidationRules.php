@@ -20,8 +20,10 @@ trait ProfileValidationRules
             'street' => ['nullable', 'string', 'max:255'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'city' => ['nullable', 'string', 'max:255'],
+            'state' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:2'],
             'company' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
             'ticket_signature' => ['nullable', 'string', 'max:2000'],
         ];
     }

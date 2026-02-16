@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import HeroSection from '@/components/site/HeroSection.vue';
 import AboutSection from '@/components/site/AboutSection.vue';
@@ -76,6 +76,33 @@ const layoutComponent = computed(() => {
     }
     return e.Layout;
 });
+
+let jsonLdScript: HTMLScriptElement | null = null;
+
+function injectJsonLd(): void {
+    if (typeof document === 'undefined') return;
+    const data = schemaOrgData.value;
+    const json = JSON.stringify(data);
+    if (!jsonLdScript) {
+        jsonLdScript = document.createElement('script');
+        jsonLdScript.type = 'application/ld+json';
+        document.head.appendChild(jsonLdScript);
+    }
+    jsonLdScript.textContent = json;
+}
+
+onMounted(() => {
+    injectJsonLd();
+});
+watch(schemaOrgData, () => {
+    injectJsonLd();
+}, { deep: true });
+onBeforeUnmount(() => {
+    if (jsonLdScript?.parentNode) {
+        jsonLdScript.parentNode.removeChild(jsonLdScript);
+    }
+    jsonLdScript = null;
+});
 </script>
 
 <template>
@@ -138,10 +165,6 @@ const layoutComponent = computed(() => {
                 name="twitter:image"
                 :content="(seo.twitter_image as string) || (seo.og_image as string)"
             >
-            <script
-                type="application/ld+json"
-                v-html="JSON.stringify(schemaOrgData)"
-            />
         </Head>
 
         <template v-if="templateEntry && layoutComponent">

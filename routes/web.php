@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LegacyMigrationController;
 use App\Http\Controllers\Admin\OrderConfirmationController;
 use App\Http\Controllers\Admin\QuoteController;
+use App\Http\Controllers\Admin\ResellerDomainController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SiteController as AdminSiteController;
 use App\Http\Controllers\Admin\SubscriptionController;
@@ -66,6 +67,30 @@ Route::get('site/{site:slug}/{pageSlug?}', [SiteRenderController::class, 'show']
     ->name('site-render.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('domains', [\App\Http\Controllers\DomainShopController::class, 'index'])->name('domains.index');
+    Route::get('domains/search', [\App\Http\Controllers\DomainShopController::class, 'search'])->name('domains.search');
+    Route::post('domains/check-availability', [\App\Http\Controllers\DomainShopController::class, 'checkAvailability'])->name('domains.check-availability');
+    Route::get('domains/checkout', [\App\Http\Controllers\DomainShopController::class, 'checkout'])->name('domains.checkout');
+    Route::post('domains/checkout', [\App\Http\Controllers\DomainShopController::class, 'storeCheckout'])->name('domains.checkout.store');
+    Route::get('domains/checkout/redirect', [\App\Http\Controllers\DomainShopController::class, 'redirectToStripe'])->name('domains.checkout.redirect');
+    Route::get('domains/checkout/dev-complete', [\App\Http\Controllers\DomainShopController::class, 'devCompleteCheckout'])->name('domains.checkout.dev-complete');
+    Route::get('domains/checkout/success', [\App\Http\Controllers\DomainShopController::class, 'checkoutSuccess'])->name('domains.checkout.success');
+
+    Route::get('domains/{reseller_domain}', [\App\Http\Controllers\DomainManageController::class, 'show'])->name('domains.manage.show');
+    Route::get('domains/{reseller_domain}/authcode', [\App\Http\Controllers\DomainManageController::class, 'authcode'])->name('domains.manage.authcode');
+    Route::get('domains/{reseller_domain}/contact', [\App\Http\Controllers\DomainManageController::class, 'getContact'])->name('domains.manage.contact');
+    Route::put('domains/{reseller_domain}/contact', [\App\Http\Controllers\DomainManageController::class, 'updateContact'])->name('domains.manage.contact.update');
+    Route::get('domains/{reseller_domain}/whois', [\App\Http\Controllers\DomainManageController::class, 'getWhoisLookup'])->name('domains.manage.whois');
+    Route::put('domains/{reseller_domain}/whois', [\App\Http\Controllers\DomainManageController::class, 'updateWhoisPrivacy'])->name('domains.manage.whois.update');
+    Route::put('domains/{reseller_domain}/nameserver', [\App\Http\Controllers\DomainManageController::class, 'updateNameserver'])->name('domains.manage.nameserver.update');
+    Route::get('domains/{reseller_domain}/dns', [\App\Http\Controllers\DomainManageController::class, 'dns'])->name('domains.manage.dns');
+    Route::put('domains/{reseller_domain}/dns', [\App\Http\Controllers\DomainManageController::class, 'updateDns'])->name('domains.manage.dns.update');
+    Route::get('domains/{reseller_domain}/dnssec', [\App\Http\Controllers\DomainManageController::class, 'getDnssec'])->name('domains.manage.dnssec');
+    Route::post('domains/{reseller_domain}/dnssec', [\App\Http\Controllers\DomainManageController::class, 'setDnssec'])->name('domains.manage.dnssec.store');
+    Route::delete('domains/{reseller_domain}/dnssec', [\App\Http\Controllers\DomainManageController::class, 'deleteDnssec'])->name('domains.manage.dnssec.destroy');
+    Route::post('domains/{reseller_domain}/renew', [\App\Http\Controllers\DomainManageController::class, 'renew'])->name('domains.manage.renew');
+    Route::post('domains/{reseller_domain}/autorenew', [\App\Http\Controllers\DomainManageController::class, 'setAutoRenew'])->name('domains.manage.autorenew');
+
     Route::post('checkout', [CheckoutController::class, 'store'])->middleware('billing.profile')->name('checkout.store');
     Route::get('checkout/redirect', [CheckoutController::class, 'redirect'])->middleware('billing.profile')->name('checkout.redirect');
     Route::get('checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
@@ -184,6 +209,22 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('templates/{template}/pages', [TemplatePageController::class, 'index'])->name('templates.pages.index');
     Route::get('templates/{template}/pages/{page}/data', [\App\Http\Controllers\Admin\TemplatePageDataController::class, 'edit'])->name('templates.pages.data.edit');
     Route::put('templates/{template}/pages/{page}/data', [\App\Http\Controllers\Admin\TemplatePageDataController::class, 'update'])->name('templates.pages.data.update');
+    Route::get('domains', [ResellerDomainController::class, 'index'])->name('domains.index');
+    Route::post('domains/sync', [ResellerDomainController::class, 'syncFromSkrime'])->name('domains.sync');
+    Route::post('domains/import', [ResellerDomainController::class, 'import'])->name('domains.import');
+    Route::get('domains/tld-pricelist', [\App\Http\Controllers\Admin\TldPricelistController::class, 'index'])->name('domains.tld-pricelist.index');
+    Route::post('domains/tld-pricelist/sync', [\App\Http\Controllers\Admin\TldPricelistController::class, 'sync'])->name('domains.tld-pricelist.sync');
+    Route::put('domains/tld-pricelist/bulk', [\App\Http\Controllers\Admin\TldPricelistController::class, 'bulk'])->name('domains.tld-pricelist.bulk');
+    Route::get('domains/{reseller_domain}', [ResellerDomainController::class, 'show'])->name('domains.show');
+    Route::put('domains/{reseller_domain}/customer', [ResellerDomainController::class, 'updateCustomer'])->name('domains.customer.update');
+    Route::post('domains/{reseller_domain}/renew', [ResellerDomainController::class, 'renew'])->name('domains.renew');
+    Route::post('domains/{reseller_domain}/autorenew', [ResellerDomainController::class, 'setAutoRenew'])->name('domains.autorenew');
+    Route::get('domains/{reseller_domain}/authcode', [ResellerDomainController::class, 'authcode'])->name('domains.authcode');
+    Route::post('domains/{reseller_domain}/cancel', [ResellerDomainController::class, 'cancel'])->name('domains.cancel');
+    Route::put('domains/{reseller_domain}/nameserver', [ResellerDomainController::class, 'updateNameserver'])->name('domains.nameserver.update');
+    Route::get('domains/{reseller_domain}/dns', [ResellerDomainController::class, 'dns'])->name('domains.dns');
+    Route::put('domains/{reseller_domain}/dns', [ResellerDomainController::class, 'updateDns'])->name('domains.dns.update');
+
     Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
     Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');

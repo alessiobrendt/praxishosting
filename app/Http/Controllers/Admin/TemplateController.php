@@ -70,6 +70,7 @@ class TemplateController extends Controller
                 'name' => $template->name,
                 'slug' => $template->slug,
                 'price' => $template->price,
+                'stripe_price_id' => $template->stripe_price_id,
                 'is_active' => $template->is_active,
                 'preview_image' => $template->preview_image,
                 'page_data' => $pageData,

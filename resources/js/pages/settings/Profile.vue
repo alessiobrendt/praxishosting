@@ -41,9 +41,11 @@ const form = useForm({
     name: (user.value?.name as string) ?? '',
     email: (user.value?.email as string) ?? '',
     company: (user.value?.company as string) ?? '',
+    phone: (user.value?.phone as string) ?? '',
     street: (user.value?.street as string) ?? '',
     postal_code: (user.value?.postal_code as string) ?? '',
     city: (user.value?.city as string) ?? '',
+    state: (user.value?.state as string) ?? '',
     country: (user.value?.country as string) ?? '',
     ticket_signature: (user.value?.ticket_signature as string) ?? '',
 });
@@ -118,6 +120,26 @@ function submit() {
                                 <InputError :message="form.errors.company" />
                             </div>
 
+                            <div class="space-y-2">
+                                <Label for="phone">Telefonnummer</Label>
+                                <Input
+                                    id="phone"
+                                    v-model="form.phone"
+                                    name="phone"
+                                    type="tel"
+                                    autocomplete="tel"
+                                    placeholder="z. B. +49 123 456789"
+                                    :aria-invalid="!!form.errors.phone"
+                                />
+                                <InputError :message="form.errors.phone" />
+                                <Text
+                                    class="text-xs"
+                                    muted
+                                >
+                                    Wird u. a. für Domain-Registrierung (WHOIS) benötigt. Format z. B. +49.123456789.
+                                </Text>
+                            </div>
+
                             <Alert
                                 variant="info"
                                 class="text-sm"
@@ -163,6 +185,24 @@ function submit() {
                                         :aria-invalid="!!form.errors.city"
                                     />
                                     <InputError :message="form.errors.city" />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="state">Bundesland / State</Label>
+                                    <Input
+                                        id="state"
+                                        v-model="form.state"
+                                        name="state"
+                                        autocomplete="address-level1"
+                                        placeholder="z. B. Bayern oder BY"
+                                        :aria-invalid="!!form.errors.state"
+                                    />
+                                    <InputError :message="form.errors.state" />
+                                    <Text
+                                        class="text-xs"
+                                        muted
+                                    >
+                                        Erforderlich für Domain-Registrierung (WHOIS).
+                                    </Text>
                                 </div>
                                 <div class="space-y-2 sm:col-span-2">
                                     <Label for="country">Land</Label>

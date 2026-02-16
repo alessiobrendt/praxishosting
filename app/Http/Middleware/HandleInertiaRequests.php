@@ -65,8 +65,15 @@ class HandleInertiaRequests extends Middleware
             $activeUserModules = app(SiteRenderService::class)->getActiveModulesForUser($user);
         }
 
+        $flash = array_filter([
+            'error' => $request->session()->get('error'),
+            'success' => $request->session()->get('success'),
+            'info' => $request->session()->get('info'),
+        ]);
+
         return [
             ...parent::share($request),
+            'flash' => $flash,
             'name' => Setting::get('app_name') ?: config('app.name'),
             'auth' => [
                 'user' => $user,

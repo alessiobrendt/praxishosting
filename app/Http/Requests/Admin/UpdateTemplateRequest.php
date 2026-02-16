@@ -22,19 +22,19 @@ class UpdateTemplateRequest extends FormRequest
             // Already correctly structured, no need to rebuild
             return;
         }
-        
+
         // Handle page_data - merge all nested data into page_data
         $pageData = [];
-        
+
         // Collect all data that should go into page_data
-        $allData = $this->except(['name', 'slug', 'price', 'is_active', 'preview_image', '_token', '_method']);
-        
+        $allData = $this->except(['name', 'slug', 'price', 'stripe_price_id', 'is_active', 'preview_image', '_token', '_method']);
+
         foreach ($allData as $key => $value) {
             // Skip page_data if it's already an array (handled above)
             if ($key === 'page_data' && is_array($value)) {
                 continue;
             }
-            
+
             // Handle nested arrays like colors[primary], site[title], etc.
             if (str_contains($key, '[')) {
                 // Parse nested keys like "colors[primary]" or "site[title]"
@@ -42,8 +42,8 @@ class UpdateTemplateRequest extends FormRequest
                 if (count($matches) === 3) {
                     $parentKey = $matches[1];
                     $childKey = $matches[2];
-                    
-                    if (!isset($pageData[$parentKey])) {
+
+                    if (! isset($pageData[$parentKey])) {
                         $pageData[$parentKey] = [];
                     }
                     $pageData[$parentKey][$childKey] = $value;
@@ -63,8 +63,8 @@ class UpdateTemplateRequest extends FormRequest
                 }
             }
         }
-        
-        if (!empty($pageData)) {
+
+        if (! empty($pageData)) {
             $this->merge(['page_data' => $pageData]);
         }
     }
@@ -84,6 +84,7 @@ class UpdateTemplateRequest extends FormRequest
             'preview_image' => ['nullable', 'string', 'max:500'],
             'is_active' => ['boolean'],
             'price' => ['numeric', 'min:0'],
+            'stripe_price_id' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

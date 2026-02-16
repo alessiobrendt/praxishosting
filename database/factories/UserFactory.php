@@ -88,8 +88,10 @@ class UserFactory extends Factory
             'street' => fake()->streetAddress(),
             'postal_code' => fake()->postcode(),
             'city' => fake()->city(),
+            'state' => 'Bayern',
             'country' => 'DE',
             'company' => fake()->optional(0.3)->company(),
+            'phone' => '+49.'.fake()->numerify('##########'),
         ]);
     }
 }

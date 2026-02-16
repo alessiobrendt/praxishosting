@@ -20,6 +20,7 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Laravel\Cashier\Checkout;
 use Stripe\Checkout\Session as StripeSession;
+use Stripe\Exception\InvalidRequestException;
 use Stripe\StripeClient;
 
 class CheckoutController extends Controller
@@ -46,33 +47,54 @@ class CheckoutController extends Controller
         if (! $priceId) {
             $request->session()->forget('checkout_meine_seiten');
 
+            $productId = config('billing.stripe_meine_seiten_product_id');
+            $hasPrice = $template->price !== null && (float) $template->price > 0;
+            if (! $productId) {
+                $message = 'STRIPE_MEINE_SEITEN_PRODUCT_ID fehlt in der .env (Stripe-Produkt-ID prod_…). Nach dem Eintragen ggf. "php artisan config:clear" ausführen.';
+            } elseif (! $hasPrice) {
+                $message = 'Dieses Template hat keinen monatlichen Preis. Im Admin unter Templates den Preis (monatlich) eintragen und speichern – dann wird der Stripe-Preis automatisch erzeugt.';
+            } else {
+                $message = 'Dieses Template ist derzeit nicht buchbar. Bitte prüfen: Template mit Preis speichern, STRIPE_MEINE_SEITEN_PRODUCT_ID in .env (prod_…) und ggf. "php artisan config:clear".';
+            }
+
             return redirect()
-                ->route('sites.create')
-                ->with('error', 'Dieses Template ist derzeit nicht buchbar. Bitte legen Sie im Admin einen Preis an und speichern Sie das Template.');
+                ->route('sites.create', ['template' => $template->id])
+                ->with('error', $message);
         }
 
         $siteName = $payload['name'];
 
-        $checkout = Checkout::customer($user)
-            ->allowPromotionCodes()
-            ->create($priceId, [
-                'mode' => StripeSession::MODE_SUBSCRIPTION,
-                'success_url' => route('checkout.success').'?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url' => route('sites.create').'?template='.$template->id,
-                'subscription_data' => [
-                    'metadata' => [
-                        'template_id' => (string) $template->id,
-                        'site_name' => $siteName,
-                        'user_id' => (string) $user->id,
+        try {
+            $checkout = Checkout::customer($user)
+                ->allowPromotionCodes()
+                ->create($priceId, [
+                    'mode' => StripeSession::MODE_SUBSCRIPTION,
+                    'success_url' => route('checkout.success').'?session_id={CHECKOUT_SESSION_ID}',
+                    'cancel_url' => route('sites.create').'?template='.$template->id,
+                    'subscription_data' => [
+                        'metadata' => [
+                            'template_id' => (string) $template->id,
+                            'site_name' => $siteName,
+                            'user_id' => (string) $user->id,
+                        ],
                     ],
-                ],
-            ]);
+                ]);
 
-        $request->session()->forget('checkout_meine_seiten');
+            $redirectResponse = $checkout->redirect();
 
-        $redirectResponse = $checkout->redirect();
+            $request->session()->forget('checkout_meine_seiten');
 
-        return Inertia::location($redirectResponse->getTargetUrl());
+            return Inertia::location($redirectResponse->getTargetUrl());
+        } catch (InvalidRequestException $e) {
+            $request->session()->forget('checkout_meine_seiten');
+            $message = str_contains($e->getMessage(), 'No such price')
+                ? 'Der gespeicherte Stripe-Preis ist ungültig. Template erneut speichern (Preis im Panel beibehalten) – dann wird ein neuer Preis erzeugt. In .env muss STRIPE_MEINE_SEITEN_PRODUCT_ID gesetzt sein (Stripe-Produkt prod_…).'
+                : $e->getMessage();
+
+            return redirect()
+                ->route('sites.create', ['template' => $template->id])
+                ->with('error', $message);
+        }
     }
 
     /**
@@ -337,11 +359,23 @@ class CheckoutController extends Controller
 
     protected function getPriceIdForTemplate(Template $template): ?string
     {
+        $syncService = app(SyncTemplateStripePriceService::class);
+
         if ($template->stripe_price_id) {
-            return $template->stripe_price_id;
+            try {
+                $stripe = new StripeClient(config('cashier.secret'));
+                $stripe->prices->retrieve($template->stripe_price_id);
+
+                return $template->stripe_price_id;
+            } catch (InvalidRequestException $e) {
+                if (str_contains($e->getMessage(), 'No such price')) {
+                    $template->update(['stripe_price_id' => null]);
+                } else {
+                    throw $e;
+                }
+            }
         }
 
-        $syncService = app(SyncTemplateStripePriceService::class);
         $priceId = $syncService->ensurePriceId($template);
         if ($priceId) {
             return $priceId;

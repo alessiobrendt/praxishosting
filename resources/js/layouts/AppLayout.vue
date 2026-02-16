@@ -57,6 +57,7 @@ const sidebarItems = computed<NavItem[]>(() => {
         { title: 'Meine Sites', href: sitesIndex().url, icon: Globe },
         { title: 'Workflow Builder', href: '/workflow-builder', icon: GitBranch },
         { title: 'Meine Rechnungen', href: billingIndex().url, icon: FileText },
+        { title: 'Meine Domains', href: '/domains', icon: Globe },
         supportItem,
     ];
     if (activeUserModules.value.length > 0) {
@@ -101,6 +102,8 @@ const sidebarItems = computed<NavItem[]>(() => {
                     icon: FileText,
                     children: [
                         { title: 'Rechnungen', href: '/admin/invoices', icon: FileText },
+                        { title: 'Domains', href: '/admin/domains', icon: Globe },
+                        { title: 'TLD-Preise', href: '/admin/domains/tld-pricelist', icon: Globe },
                         { title: 'Angebote', href: '/admin/quotes', icon: FileText },
                         { title: 'Auftragsbestätigungen', href: '/admin/order-confirmations', icon: FileText },
                         { title: 'Mahnungen', href: '/admin/dunning-letters', icon: FileText },
