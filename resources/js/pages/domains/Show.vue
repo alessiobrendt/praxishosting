@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/table';
 import InputError from '@/components/InputError.vue';
 import { dashboard } from '@/routes';
-import domains from '@/routes/domains';
+import domains from '@/routes/domains/index';
 import { notify } from '@/composables/useNotify';
 import type { BreadcrumbItem } from '@/types';
 import {
