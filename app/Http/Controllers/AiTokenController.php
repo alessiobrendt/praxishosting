@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AiTokenCheckoutRequest;
+use App\Services\AiTokenStripePriceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -12,16 +13,29 @@ use Stripe\Checkout\Session as StripeSession;
 
 class AiTokenController extends Controller
 {
-    public function checkout(AiTokenCheckoutRequest $request): Response|RedirectResponse
+    public function checkout(AiTokenCheckoutRequest $request, AiTokenStripePriceService $aiTokenStripePriceService): Response|RedirectResponse
     {
         $user = $request->user();
         $tokenAmount = (int) $request->validated('token_amount');
 
-        $priceId = config("billing.ai_token_packages.{$tokenAmount}");
+        try {
+            $priceId = $aiTokenStripePriceService->getPriceId($tokenAmount);
+        } catch (\Throwable $e) {
+            Log::error('AI token price resolve failed', [
+                'user_id' => $user->id,
+                'token_amount' => $tokenAmount,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('billing.index')
+                ->with('error', $e->getMessage());
+        }
+
         if (! $priceId) {
             return redirect()
                 ->route('billing.index')
-                ->with('error', 'Dieses AI-Token-Paket ist derzeit nicht verfügbar.');
+                ->with('error', 'Dieses AI-Token-Paket ist derzeit nicht verfügbar. STRIPE_AI_TOKENS_PRODUCT_ID in .env prüfen.');
         }
 
         try {

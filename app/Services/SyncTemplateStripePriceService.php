@@ -15,8 +15,8 @@ class SyncTemplateStripePriceService
 
     /**
      * Ensure the template has a Stripe Price ID. Creates or updates the Stripe Price
-     * when the template has a positive price. Stripe Prices are immutable; on price
-     * change a new Price is created.
+     * when the template has a price set (including 0 for free tier). Stripe Prices are
+     * immutable; on price change a new Price is created.
      */
     public function sync(Template $template): void
     {
@@ -25,11 +25,11 @@ class SyncTemplateStripePriceService
             return;
         }
 
-        $priceAmount = $template->price !== null ? (float) $template->price : 0.0;
-        if ($priceAmount <= 0) {
+        if ($template->price === null) {
             return;
         }
 
+        $priceAmount = (float) $template->price;
         $unitAmountCents = (int) round($priceAmount * 100);
 
         if ($template->stripe_price_id) {
@@ -82,11 +82,11 @@ class SyncTemplateStripePriceService
             return null;
         }
 
-        $priceAmount = $template->price !== null ? (float) $template->price : 0.0;
-        if ($priceAmount <= 0) {
+        if ($template->price === null) {
             return null;
         }
 
+        $priceAmount = (float) $template->price;
         $unitAmountCents = (int) round($priceAmount * 100);
 
         try {

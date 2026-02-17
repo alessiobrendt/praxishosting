@@ -16,10 +16,13 @@ class BillingController extends Controller
 
         $packages = config('billing.ai_token_packages', []);
         $aiTokenPackages = [];
-        $labels = [500 => '500 Tokens (5 €)', 2000 => '2.000 Tokens (15 €)', 10000 => '10.000 Tokens (50 €)'];
-        foreach ($packages as $amount => $priceId) {
-            if ($priceId) {
-                $aiTokenPackages[] = ['amount' => $amount, 'label' => $labels[$amount] ?? "{$amount} Tokens"];
+        foreach ($packages as $amount => $priceEur) {
+            if ($priceEur !== null && $priceEur !== '') {
+                $eur = (float) $priceEur;
+                $aiTokenPackages[] = [
+                    'amount' => $amount,
+                    'label' => number_format($amount, 0, ',', '.').' Tokens ('.number_format($eur, 2, ',', '.').' €)',
+                ];
             }
         }
 

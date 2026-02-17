@@ -48,7 +48,7 @@ class CheckoutController extends Controller
             $request->session()->forget('checkout_meine_seiten');
 
             $productId = config('billing.stripe_meine_seiten_product_id');
-            $hasPrice = $template->price !== null && (float) $template->price > 0;
+            $hasPrice = $template->price !== null;
             if (! $productId) {
                 $message = 'STRIPE_MEINE_SEITEN_PRODUCT_ID fehlt in der .env (Stripe-Produkt-ID prod_…). Nach dem Eintragen ggf. "php artisan config:clear" ausführen.';
             } elseif (! $hasPrice) {

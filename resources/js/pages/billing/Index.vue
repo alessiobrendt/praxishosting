@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { notify } from '@/composables/useNotify';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -59,6 +61,22 @@ function checkoutAiTokens(amount: number): void {
         preserveState: true,
     });
 }
+
+const page = usePage();
+watch(
+    () => (page.props.flash as { error?: string; success?: string })?.error,
+    (message) => {
+        if (message) notify.error(message);
+    },
+    { immediate: true },
+);
+watch(
+    () => (page.props.flash as { error?: string; success?: string })?.success,
+    (message) => {
+        if (message) notify.success(message);
+    },
+    { immediate: true },
+);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },

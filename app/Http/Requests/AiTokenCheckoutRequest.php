@@ -18,7 +18,7 @@ class AiTokenCheckoutRequest extends FormRequest
     {
         $packages = config('billing.ai_token_packages', []);
         $packages = is_array($packages) ? $packages : [];
-        $validAmounts = array_keys(array_filter($packages));
+        $validAmounts = array_keys(array_filter($packages, fn ($price) => $price !== null && $price !== ''));
 
         if (count($validAmounts) === 0) {
             $validAmounts = [500, 2000, 10000];

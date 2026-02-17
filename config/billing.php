@@ -62,18 +62,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | AI Token Packages (Stripe Price IDs)
+    | AI Token Packages (Menge => Preis in EUR)
     |--------------------------------------------------------------------------
     |
-    | One-time payment Stripe Price IDs for AI token packages.
-    | Create products in Stripe Dashboard, e.g. "AI Tokens 500" (5€), etc.
+    | Ein Stripe-Produkt (z. B. "AI Tokens") in Stripe anlegen und die
+    | Produkt-ID (prod_…) in .env als STRIPE_AI_TOKENS_PRODUCT_ID eintragen.
+    | Beim ersten Checkout werden die Einmalpreise automatisch in Stripe
+    | angelegt. Preise hier in EUR angeben (z. B. 5 für 5 €).
     |
     */
 
+    'stripe_ai_tokens_product_id' => env('STRIPE_AI_TOKENS_PRODUCT_ID'),
+
     'ai_token_packages' => [
-        500 => env('STRIPE_AI_TOKENS_500_PRICE_ID'),
-        2000 => env('STRIPE_AI_TOKENS_2000_PRICE_ID'),
-        10000 => env('STRIPE_AI_TOKENS_10000_PRICE_ID'),
+        500 => (float) env('AI_TOKENS_PRICE_500', 5),
+        2000 => (float) env('AI_TOKENS_PRICE_2000', 15),
+        10000 => (float) env('AI_TOKENS_PRICE_10000', 50),
     ],
 
     /*
