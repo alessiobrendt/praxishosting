@@ -48,6 +48,7 @@ class DomainManageController extends Controller
 
         return Inertia::render('domains/Show', [
             'domain' => $domain,
+            'domains_index_url' => route('domains.index'),
             'easy_dns_presets' => $easyDnsPresets,
         ]);
     }

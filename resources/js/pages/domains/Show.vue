@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/table';
 import InputError from '@/components/InputError.vue';
 import { dashboard } from '@/routes';
-import domains from '@/routes/domains/index';
 import { notify } from '@/composables/useNotify';
 import type { BreadcrumbItem } from '@/types';
 import {
@@ -79,6 +78,7 @@ type EasyDnsPreset = {
 
 type Props = {
     domain: Domain;
+    domains_index_url: string;
     easy_dns_presets?: EasyDnsPreset[];
 };
 
@@ -90,7 +90,7 @@ const baseUrl = () => `/domains/${props.domain.id}`;
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
-    { title: 'Meine Domains', href: domains.index.url() },
+    { title: 'Meine Domains', href: props.domains_index_url },
     { title: props.domain.domain, href: '#' },
 ];
 
