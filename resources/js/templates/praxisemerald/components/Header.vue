@@ -42,6 +42,7 @@ function isActive(href: string): boolean {
 </script>
 
 <template>
+  <div class="pb-16">
     <header
         class="border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60"
         :class="isDesignMode ? 'relative z-0' : 'fixed inset-x-0 top-0 z-50'"
@@ -101,4 +102,5 @@ function isActive(href: string): boolean {
             </div>
         </div>
     </header>
+  </div>
 </template>

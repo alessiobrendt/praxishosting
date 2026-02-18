@@ -30,6 +30,8 @@ const designer = inject<{
     isTemplateMode: boolean;
     layoutComponents: LayoutComponentEntry[];
     getLayoutForPage: (slug: string) => LayoutComponentEntry[];
+    updateBlockField?: (entryId: string, fieldKey: string, value: string) => void;
+    updateBlockFieldNested?: (entryId: string, dotPath: string, value: string) => void;
 } | null>('designer', null);
 
 const linkPickerPages = computed(
@@ -416,6 +418,20 @@ function addCtaLink() {
 function removeCtaLink(i: number) {
     ensureCtaLinks(props.entry.data as Record<string, unknown>).splice(i, 1);
 }
+
+/** Open media library to set image.src (Hero / Bild-URL). Debug-logged. */
+function openMediaLibraryForImageSrc(): void {
+    const entryId = props.entry?.id != null ? String(props.entry.id) : '';
+    const hasNested = !!designer?.updateBlockFieldNested;
+    openMediaLibrary?.((url) => {
+        if (designer?.updateBlockFieldNested && entryId) {
+            designer.updateBlockFieldNested(entryId, 'image.src', url);
+        } else if (entryId) {
+            if (!(props.entry.data as Record<string, unknown>).image) (props.entry.data as Record<string, unknown>).image = { src: '', alt: '' };
+            ((props.entry.data as Record<string, unknown>).image as Record<string, string>).src = url;
+        }
+    });
+}
 </script>
 
 <template>
@@ -522,7 +538,7 @@ function removeCtaLink(i: number) {
                             variant="outline"
                             size="sm"
                             title="Aus Media Library wählen"
-                            @click="openMediaLibrary((url) => ((entry.data as Record<string, unknown>)[field.key] = url))"
+                            @click="openMediaLibrary((url) => { if (designer?.updateBlockField) designer.updateBlockField(entry.id, field.key, url); else (entry.data as Record<string, unknown>)[field.key] = url; })"
                         >
                             <ImagePlus class="h-4 w-4" />
                         </Button>
@@ -559,7 +575,7 @@ function removeCtaLink(i: number) {
                         variant="outline"
                         size="sm"
                         title="Aus Media Library wählen"
-                        @click="openMediaLibrary((url) => ((entry.data as Record<string, unknown>).logoUrl = url))"
+                        @click="openMediaLibrary((url) => { if (designer?.updateBlockField) designer.updateBlockField(entry.id, 'logoUrl', url); else (entry.data as Record<string, unknown>).logoUrl = url; })"
                     >
                         <ImagePlus class="h-4 w-4" />
                     </Button>
@@ -768,12 +784,7 @@ function removeCtaLink(i: number) {
                         variant="outline"
                         size="sm"
                         title="Aus Media Library wählen"
-                        @click="
-                            openMediaLibrary((url) => {
-                                if (!(entry.data as Record<string, unknown>).image) (entry.data as Record<string, unknown>).image = { src: '', alt: '' };
-                                ((entry.data as Record<string, unknown>).image as Record<string, string>).src = url;
-                            })
-                        "
+                        @click="openMediaLibraryForImageSrc()"
                     >
                         <ImagePlus class="h-4 w-4" />
                     </Button>
@@ -990,12 +1001,7 @@ function removeCtaLink(i: number) {
                         variant="outline"
                         size="sm"
                         title="Aus Media Library wählen"
-                        @click="
-                            openMediaLibrary((url) => {
-                                if (!(entry.data as Record<string, unknown>).image) (entry.data as Record<string, unknown>).image = { src: '', alt: '' };
-                                ((entry.data as Record<string, unknown>).image as Record<string, string>).src = url;
-                            })
-                        "
+                        @click="openMediaLibraryForImageSrc()"
                     >
                         <ImagePlus class="h-4 w-4" />
                     </Button>

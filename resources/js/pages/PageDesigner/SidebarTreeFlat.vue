@@ -159,10 +159,12 @@ function getIcon(flatItem: FlatEntry): typeof Layers {
             v-model="reorderedVisible"
             item-key="flatItem.entry.id"
             handle=".drag-handle"
-            :group="{ name: 'layout-blocks', pull: true, put: true }"
+            :group="{ name: 'sidebar-structure', pull: true, put: false }"
             ghost-class="sidebar-tree-ghost"
+            chosen-class="sidebar-tree-chosen"
+            drag-class="sidebar-tree-drag"
             class="flex flex-col gap-0.5"
-            :animation="180"
+            :animation="200"
             @end="onDragEnd"
         >
             <template #item="{ element: item }">
@@ -267,7 +269,19 @@ function getIcon(flatItem: FlatEntry): typeof Layers {
 
 <style scoped>
 .sidebar-tree-ghost {
-    opacity: 0.6;
-    background-color: var(--muted);
+    opacity: 0.5;
+    background-color: hsl(var(--muted));
+    border-radius: 0.375rem;
+    border: 2px dashed hsl(var(--primary) / 0.5);
+}
+.sidebar-tree-chosen {
+    opacity: 0.9;
+    background-color: hsl(var(--primary) / 0.08);
+    border-radius: 0.375rem;
+}
+.sidebar-tree-drag {
+    opacity: 0.95;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+    border-radius: 0.375rem;
 }
 </style>

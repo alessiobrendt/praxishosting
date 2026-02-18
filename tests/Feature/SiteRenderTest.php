@@ -276,7 +276,7 @@ test('new template page without pages_meta entry redirects to site index', funct
     $response->assertRedirect(route('site-render.show', $site->slug));
 });
 
-test('public site uses template content not site custom_page_data', function () {
+test('public site uses site custom_page_data overrides when provided', function () {
     $template = Template::factory()->create([
         'slug' => 'praxisemerald',
         'page_data' => ['hero' => ['heading' => 'Index', 'text' => 'Text']],
@@ -309,7 +309,7 @@ test('public site uses template content not site custom_page_data', function () 
     $response = $this->get(route('site-render.show', $site->slug));
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
-        ->where('pageData.layout_components.0.data.text', 'From Template')
+        ->where('pageData.layout_components.0.data.text', 'From Site Override')
     );
 });
 

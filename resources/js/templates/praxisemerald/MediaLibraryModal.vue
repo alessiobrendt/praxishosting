@@ -6,6 +6,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     DropdownMenu,
@@ -15,18 +16,30 @@ import {
 } from '@/components/ui/dropdown-menu';
 import MediaLibraryLightbox from '@/templates/praxisemerald/MediaLibraryLightbox.vue';
 import ImageEditorModal from '@/templates/praxisemerald/ImageEditorModal.vue';
-import { ref, watch } from 'vue';
-import { Download, Eye, Copy, Trash2, MoreVertical, Pencil, Upload } from 'lucide-vue-next';
+import { ref, watch, inject } from 'vue';
+import { Download, Eye, Copy, Trash2, MoreVertical, Pencil, Upload, Check } from 'lucide-vue-next';
 
-const props = defineProps<{
-    open: boolean;
-    siteUuid: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        open: boolean;
+        siteUuid: string;
+        /** Apply selected image URL (from PageDesigner). Used in choose() so "Bild verwenden" always works. */
+        onApplySelection?: (url: string) => void;
+    }>(),
+    { onApplySelection: undefined }
+);
 
 const emit = defineEmits<{
     (e: 'close'): void;
     (e: 'select', url: string): void;
 }>();
+
+const onMediaLibrarySelectInject = inject<(url: string) => void>('onMediaLibrarySelect', () => {});
+const onMediaLibraryClose = inject<() => void>('onMediaLibraryClose', () => {});
+
+function applySelection(url: string): void {
+    (props.onApplySelection ?? onMediaLibrarySelectInject)(url);
+}
 
 const urls = ref<string[]>([]);
 const loading = ref(false);
@@ -63,6 +76,10 @@ watch(
     () => [props.open, props.siteUuid] as const,
     ([open, siteUuid]) => {
         if (open && siteUuid) fetchUrls();
+        if (!open) {
+            lightboxUrl.value = null;
+            editorUrl.value = null;
+        }
     },
     { immediate: true },
 );
@@ -94,6 +111,9 @@ async function onFileSelected(event: Event) {
 }
 
 function choose(url: string) {
+    console.log('[MediaLibraryModal] choose()', url?.slice(0, 60));
+    applySelection(url);
+    onMediaLibraryClose();
     emit('select', url);
     emit('close');
 }
@@ -155,6 +175,9 @@ function onEditorUploaded(newUrl: string) {
         <DialogContent class="flex max-h-[90vh] max-w-5xl flex-col overflow-hidden">
             <DialogHeader>
                 <DialogTitle>Media Library</DialogTitle>
+                <DialogDescription class="sr-only">
+                    Bilder für die Seite auswählen oder hochladen.
+                </DialogDescription>
             </DialogHeader>
             <input
                 ref="uploadInputRef"
@@ -208,6 +231,10 @@ function onEditorUploaded(newUrl: string) {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                    <DropdownMenuItem @select="choose(url)">
+                                        <Check class="mr-2 h-4 w-4" />
+                                        Bild verwenden
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem @select="openLightbox(url)">
                                         <Eye class="mr-2 h-4 w-4" />
                                         Ansehen
@@ -247,6 +274,7 @@ function onEditorUploaded(newUrl: string) {
         :open="lightboxUrl !== null"
         :url="lightboxUrl"
         show-select
+        :on-use-image="(u) => { choose(u); lightboxUrl = null; }"
         @close="lightboxUrl = null"
         @select="(u) => { choose(u); lightboxUrl = null; }"
     />

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch, provide, nextTick } from 'vue';
 import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
-import type { LayoutComponentEntry } from '@/types/layout-components';
-import type { LayoutComponentType } from '@/types/layout-components';
+import { normalizeLayoutTree } from '@/lib/layout-tree';
+import type { LayoutComponentEntry, LayoutComponentType } from '@/types/layout-components';
 import LayoutBlock from '@/templates/praxisemerald/LayoutBlock.vue';
 import draggable from 'vuedraggable';
 
@@ -15,6 +15,18 @@ const props = withDefaults(
         designMode?: boolean;
         onSelect?: (id: string) => void;
         selectedModuleId?: string | null;
+        selectedBlockIds?: Set<string>;
+        moveSelectionToContainer?: (
+            containerId: string,
+            newChildren: LayoutComponentEntry[],
+            currentTree: LayoutComponentEntry[],
+        ) => LayoutComponentEntry[];
+        moveEntryToContainer?: (
+            entryId: string,
+            containerId: string,
+            index: number,
+            currentTree: LayoutComponentEntry[],
+        ) => LayoutComponentEntry[];
         insertAtRoot?: (index: number, type: string) => void;
         insertAtParent?: (parentId: string, index: number, type: string) => void;
         /** Global button style from Design tab (variant, radius, size). */
@@ -25,6 +37,9 @@ const props = withDefaults(
         designMode: false,
         onSelect: undefined,
         selectedModuleId: null,
+        selectedBlockIds: undefined,
+        moveSelectionToContainer: undefined,
+        moveEntryToContainer: undefined,
         insertAtRoot: undefined,
         insertAtParent: undefined,
         globalButtonStyle: () => ({}),
@@ -32,10 +47,32 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-    (e: 'select', id: string): void;
+    (e: 'select', id: string, addToSelection?: boolean): void;
     (e: 'reorder', tree: LayoutComponentEntry[]): void;
     (e: 'dragStart'): void;
 }>();
+
+/** True while any layout block is being dragged; prevents watch from overwriting localTree mid-drag. */
+const isDragging = ref(false);
+
+/** Entry currently being dragged; used when drop lands on a drop zone so we can move it into the container. */
+const lastDraggedEntry = ref<LayoutComponentEntry | null>(null);
+
+function setLastDraggedEntry(entry: LayoutComponentEntry | null): void {
+    lastDraggedEntry.value = entry;
+}
+
+function addDraggedEntryToContainer(containerId: string, index: number): void {
+    const entry = lastDraggedEntry.value;
+    const move = props.moveEntryToContainer;
+    if (!entry || !move) return;
+    const newTree = move(entry.id, containerId, index, localTree.value);
+    if (newTree !== localTree.value) {
+        localTree.value = newTree;
+        scheduleFlushLayout();
+    }
+    lastDraggedEntry.value = null;
+}
 
 function isValidEntry(e: unknown): e is LayoutComponentEntry {
     return (
@@ -46,24 +83,38 @@ function isValidEntry(e: unknown): e is LayoutComponentEntry {
     );
 }
 
-function cloneDeepAndNormalize(entries: LayoutComponentEntry[]): LayoutComponentEntry[] {
+/** Reject drops from sidebar (VisibleItem) or any non–layout-block shape. */
+function isLayoutBlockEntry(el: unknown): el is LayoutComponentEntry {
+    if (el == null || typeof el !== 'object') return false;
+    const o = el as Record<string, unknown>;
+    if (typeof o.id !== 'string' || typeof o.type !== 'string') return false;
+    if ('flatItem' in o || 'flatIndex' in o) return false;
+    return true;
+}
+
+function onRootMove(evt: { draggedContext?: { element?: unknown } }): boolean {
+    return isLayoutBlockEntry(evt.draggedContext?.element);
+}
+
+/** Clone tree for local editing (no dedupe; dedupe happens on flush). */
+function cloneTree(entries: LayoutComponentEntry[]): LayoutComponentEntry[] {
     return entries.filter(isValidEntry).map((e) => {
         const cloned: LayoutComponentEntry = {
             id: e.id,
             type: e.type,
-            data: e.data ?? {},
+            data: e.data != null && typeof e.data === 'object' ? { ...e.data } : {},
         };
         if (acceptsChildren(e.type as LayoutComponentType)) {
             const raw = e.children;
-            cloned.children = Array.isArray(raw) ? cloneDeepAndNormalize(raw.filter(isValidEntry)) : [];
+            cloned.children = Array.isArray(raw) ? cloneTree(raw.filter(isValidEntry) as LayoutComponentEntry[]) : [];
         }
         return cloned;
     });
 }
 
-function onSectionClick(moduleId: string): void {
+function onSectionClick(moduleId: string, addToSelection?: boolean): void {
     if (!props.designMode) return;
-    emit('select', moduleId);
+    emit('select', moduleId, addToSelection);
     props.onSelect?.(moduleId);
     try {
         if (typeof window.parent !== 'undefined') {
@@ -71,6 +122,16 @@ function onSectionClick(moduleId: string): void {
         }
     } catch {
         // cross-origin or unavailable
+    }
+}
+
+function addSelectionToContainer(containerId: string, newChildren: LayoutComponentEntry[]): void {
+    const move = props.moveSelectionToContainer;
+    if (!move) return;
+    const newTree = move(containerId, newChildren, localTree.value);
+    if (newTree !== localTree.value) {
+        localTree.value = newTree;
+        scheduleFlushLayout();
     }
 }
 
@@ -85,26 +146,32 @@ const layoutComponents = computed((): LayoutComponentEntry[] => {
 
 const localTree = ref<LayoutComponentEntry[]>([]);
 
+/** One flush per drag: normalize localTree and emit to store. */
+let flushScheduled = false;
+
+function scheduleFlushLayout(): void {
+    if (flushScheduled) return;
+    flushScheduled = true;
+    nextTick(() => {
+        nextTick(() => {
+            flushScheduled = false;
+            const normalized = normalizeLayoutTree(
+                localTree.value.filter(isValidEntry) as LayoutComponentEntry[],
+                acceptsChildren,
+            );
+            emit('reorder', normalized);
+        });
+    });
+}
+
 watch(
     layoutComponents,
     (val) => {
-        const cloned = cloneDeepAndNormalize(val);
-        // Defer update to avoid race with Vue's patch cycle (parentNode / vnode null errors)
-        nextTick(() => {
-            localTree.value = cloned;
-            const cleaned = JSON.stringify(cloned);
-            const original = JSON.stringify(val);
-            if (cleaned !== original) {
-                emit('reorder', JSON.parse(cleaned));
-            }
-        });
+        if (isDragging.value) return;
+        localTree.value = cloneTree(val);
     },
     { immediate: true, deep: true, flush: 'post' },
 );
-
-function onReorder(): void {
-    emit('reorder', JSON.parse(JSON.stringify(localTree.value)));
-}
 
 provide('designMode', computed(() => props.designMode ?? false));
 provide('site', computed(() => props.site));
@@ -113,27 +180,55 @@ provide(
     'globalButtonStyle',
     computed(() => props.globalButtonStyle ?? {}),
 );
+provide('layoutIsDragging', isDragging);
+provide('setLayoutDragging', (value: boolean) => {
+    isDragging.value = value;
+});
+provide('addSelectionToContainer', addSelectionToContainer);
+provide('selectedBlockIds', computed(() => props.selectedBlockIds ?? new Set()));
+provide('lastDraggedEntry', lastDraggedEntry);
+provide('setLastDraggedEntry', setLastDraggedEntry);
+provide('addDraggedEntryToContainer', addDraggedEntryToContainer);
 
 const dropTargetIndex = ref<number | null>(null);
 
 function onDropZoneDragOver(index: number, e: DragEvent): void {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer ??= new DataTransfer();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = 'move';
     dropTargetIndex.value = index;
 }
 
-function onDropZoneDragLeave(): void {
-    dropTargetIndex.value = null;
+function onDropZoneDragLeave(e: DragEvent): void {
+    if (!(e.currentTarget as HTMLElement)?.contains?.(e.relatedTarget as Node)) {
+        dropTargetIndex.value = null;
+    }
 }
 
 function onDropZoneDrop(index: number, e: DragEvent): void {
     e.preventDefault();
+    e.stopPropagation();
     dropTargetIndex.value = null;
     const type = e.dataTransfer?.getData('component-type');
     if (type && props.insertAtRoot) {
         props.insertAtRoot(index, type);
     }
+}
+
+function onLayoutDragStart(evt?: { oldIndex?: number }): void {
+    isDragging.value = true;
+    if (evt?.oldIndex != null && localTree.value[evt.oldIndex]) {
+        lastDraggedEntry.value = localTree.value[evt.oldIndex] as LayoutComponentEntry;
+    }
+    emit('dragStart');
+}
+
+function onLayoutDragEnd(): void {
+    isDragging.value = false;
+    lastDraggedEntry.value = null;
+    dropTargetIndex.value = null;
+    scheduleFlushLayout();
 }
 </script>
 
@@ -146,46 +241,62 @@ function onDropZoneDrop(index: number, e: DragEvent): void {
                     item-key="id"
                     handle=".block-drag-handle"
                     :group="{ name: 'layout-blocks', pull: true, put: true }"
+                    :move="onRootMove"
                     class="flex flex-col"
-                    ghost-class="opacity-50"
+                    ghost-class="page-designer-ghost"
+                    chosen-class="page-designer-chosen"
+                    drag-class="page-designer-drag"
                     :revert-on-spill="true"
-                    @start="emit('dragStart')"
-                    @end="onReorder"
+                    :animation="200"
+                    @start="(evt: { oldIndex?: number }) => onLayoutDragStart(evt)"
+                    @end="onLayoutDragEnd"
                 >
                     <template #item="{ element: entry, index }">
                         <div class="flex flex-col">
                             <div
                                 v-if="insertAtRoot"
-                                class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
-                                :class="{ 'border-primary bg-primary/10': dropTargetIndex === index }"
-                                @dragover="onDropZoneDragOver(index, $event)"
+                                class="drop-zone shrink-0 rounded transition-all duration-150 min-h-8 border-2 border-dashed flex items-center justify-center"
+                                :class="[
+                                    dropTargetIndex === index
+                                        ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                                        : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                                    isDragging && 'pointer-events-none',
+                                ]"
+                                @dragover.prevent.stop="onDropZoneDragOver(index, $event)"
                                 @dragleave="onDropZoneDragLeave"
-                                @drop="onDropZoneDrop(index, $event)"
+                                @drop.prevent.stop="onDropZoneDrop(index, $event)"
                             >
-                                <span class="sr-only">Komponente vor diesem Block einfügen</span>
+                                <span v-if="dropTargetIndex === index" class="text-xs font-medium text-primary">Hier einfügen</span>
+                                <span v-else class="sr-only">Komponente vor diesem Block einfügen</span>
                             </div>
                         <LayoutBlock
                             :entry="entry"
                             :design-mode="true"
                             :selected-module-id="selectedModuleId"
                             :insert-at-parent="insertAtParent"
-                            @select="onSectionClick"
-                            @reorder="onReorder"
-                            @drag-start="emit('dragStart')"
+                            @select="(id: string, addToSelection?: boolean) => onSectionClick(id, addToSelection)"
+                            @reorder="scheduleFlushLayout"
+                            @drag-start="onLayoutDragStart"
                         />
                         </div>
                     </template>
                 </draggable>
                 <div
                     v-if="insertAtRoot"
-                    class="min-h-4 shrink-0 flex-1 border border-dashed border-transparent transition-colors"
-                    :class="{ 'border-primary bg-primary/10': dropTargetIndex === localTree.length }"
+                    class="drop-zone shrink-0 flex-1 min-h-8 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                    :class="[
+                        dropTargetIndex === localTree.length
+                            ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                            : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                        isDragging && 'pointer-events-none',
+                    ]"
                     :data-drop-index="localTree.length"
-                    @dragover="onDropZoneDragOver(localTree.length, $event)"
+                    @dragover.prevent.stop="onDropZoneDragOver(localTree.length, $event)"
                     @dragleave="onDropZoneDragLeave"
-                    @drop="onDropZoneDrop(localTree.length, $event)"
+                    @drop.prevent.stop="onDropZoneDrop(localTree.length, $event)"
                 >
-                    <span class="sr-only">Komponente am Ende einfügen</span>
+                    <span v-if="dropTargetIndex === localTree.length" class="text-xs font-medium text-primary">Hier einfügen</span>
+                    <span v-else class="sr-only">Komponente am Ende einfügen</span>
                 </div>
             </div>
         </template>

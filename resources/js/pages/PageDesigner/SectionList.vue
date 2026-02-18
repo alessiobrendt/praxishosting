@@ -67,9 +67,12 @@ function onMove(rootIndex: number, direction: 'up' | 'down'): void {
             v-model="localList"
             item-key="id"
             handle=".section-drag-handle"
+            :group="{ name: 'sidebar-sections', pull: true, put: false }"
             ghost-class="section-list-ghost"
+            chosen-class="section-list-chosen"
+            drag-class="section-list-drag"
             class="flex flex-col gap-0.5"
-            :animation="180"
+            :animation="200"
             @end="onDragEnd"
         >
             <template #item="{ element: entry, index: rootIndex }">
@@ -144,7 +147,19 @@ function onMove(rootIndex: number, direction: 'up' | 'down'): void {
 
 <style scoped>
 .section-list-ghost {
-    opacity: 0.6;
-    background-color: var(--muted);
+    opacity: 0.5;
+    background-color: hsl(var(--muted));
+    border-radius: 0.375rem;
+    border: 2px dashed hsl(var(--primary) / 0.5);
+}
+.section-list-chosen {
+    opacity: 0.9;
+    background-color: hsl(var(--primary) / 0.08);
+    border-radius: 0.375rem;
+}
+.section-list-drag {
+    opacity: 0.95;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+    border-radius: 0.375rem;
 }
 </style>

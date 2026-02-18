@@ -157,3 +157,52 @@ export function flatToTree(
 
     return root;
 }
+
+/**
+ * Valid layout entry (has id and type). Used for normalization.
+ */
+function isValidLayoutEntry(e: unknown): e is LayoutComponentEntry {
+    return (
+        e !== null &&
+        typeof e === 'object' &&
+        typeof (e as LayoutComponentEntry).id === 'string' &&
+        typeof (e as LayoutComponentEntry).type === 'string'
+    );
+}
+
+/**
+ * Single source of truth for layout tree normalization.
+ * Returns a deep clone with:
+ * - Only valid entries (id, type)
+ * - Duplicate IDs removed (first occurrence in pre-order wins)
+ * Use this whenever reading a tree from drag state or before persisting.
+ */
+export function normalizeLayoutTree(
+    entries: LayoutComponentEntry[],
+    getAcceptsChildren: AcceptsChildrenFn = defaultAcceptsChildren,
+    seenIds: Set<string> = new Set(),
+): LayoutComponentEntry[] {
+    const result: LayoutComponentEntry[] = [];
+    for (const e of entries) {
+        if (!isValidLayoutEntry(e)) continue;
+        if (seenIds.has(e.id)) continue;
+        seenIds.add(e.id);
+        const cloned: LayoutComponentEntry = {
+            id: e.id,
+            type: e.type,
+            data: e.data != null && typeof e.data === 'object' ? { ...e.data } : {},
+        };
+        if (getAcceptsChildren(e.type as LayoutComponentType)) {
+            const raw = e.children;
+            cloned.children = Array.isArray(raw)
+                ? normalizeLayoutTree(
+                      raw.filter(isValidLayoutEntry) as LayoutComponentEntry[],
+                      getAcceptsChildren,
+                      seenIds,
+                  )
+                : [];
+        }
+        result.push(cloned);
+    }
+    return result;
+}

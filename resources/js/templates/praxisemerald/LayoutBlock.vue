@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, provide, inject, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, watch, computed, provide, inject, onMounted, onUnmounted } from 'vue';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -34,6 +34,19 @@ type BlockContextActions = {
     getCanPaste: () => boolean;
 };
 const blockContextActions = inject<{ value: BlockContextActions } | null>('blockContextActions', null);
+const layoutIsDragging = inject<{ value: boolean } | null>('layoutIsDragging', null);
+const setLayoutDragging = inject<((value: boolean) => void) | null>('setLayoutDragging', null);
+const addSelectionToContainer = inject<
+    ((containerId: string, newChildren: LayoutComponentEntry[]) => void) | null
+>('addSelectionToContainer', null);
+const selectedBlockIds = inject<{ value: Set<string> } | null>('selectedBlockIds', null);
+const setLastDraggedEntry = inject<((entry: LayoutComponentEntry | null) => void) | null>(
+    'setLastDraggedEntry',
+    null,
+);
+const addDraggedEntryToContainer = inject<
+    ((containerId: string, index: number) => void) | null
+>('addDraggedEntryToContainer', null);
 
 function isValidContainerChild(e: unknown): e is LayoutComponentEntry {
     return (
@@ -42,6 +55,31 @@ function isValidContainerChild(e: unknown): e is LayoutComponentEntry {
         typeof (e as LayoutComponentEntry).id === 'string' &&
         typeof (e as LayoutComponentEntry).type === 'string'
     );
+}
+
+/** Reject drops from sidebar (VisibleItem) or any non–layout-block shape. */
+function isLayoutBlockEntry(el: unknown): el is LayoutComponentEntry {
+    if (el == null || typeof el !== 'object') return false;
+    const o = el as Record<string, unknown>;
+    if (typeof o.id !== 'string' || typeof o.type !== 'string') return false;
+    if ('flatItem' in o || 'flatIndex' in o) return false;
+    return true;
+}
+
+/** Normalize to a clean LayoutComponentEntry so container never holds invalid/corrupt refs. */
+function normalizeEntry(entry: LayoutComponentEntry): LayoutComponentEntry {
+    const out: LayoutComponentEntry = {
+        id: entry.id,
+        type: entry.type,
+        data: entry.data != null && typeof entry.data === 'object' ? { ...entry.data } : {},
+    };
+    if (acceptsChildren(entry.type as LayoutComponentType)) {
+        const c = entry.children;
+        out.children = Array.isArray(c)
+            ? c.filter(isValidContainerChild).map(normalizeEntry)
+            : [];
+    }
+    return out;
 }
 
 const props = withDefaults(
@@ -57,7 +95,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-    (e: 'select', id: string): void;
+    (e: 'select', id: string, addToSelection?: boolean): void;
     (e: 'reorder'): void;
     (e: 'dragStart'): void;
 }>();
@@ -74,35 +112,40 @@ function childEntries(): LayoutComponentEntry[] {
     );
 }
 
-/** Container children array; ensures entry.children is always an array for any container type. */
-function getContainerChildren(): LayoutComponentEntry[] {
-    if (!acceptsChildren(props.entry.type as LayoutComponentType)) return [];
-    let c = props.entry.children;
-    if (!Array.isArray(c)) {
-        c = [];
-        (props.entry as Record<string, unknown>).children = c;
-    }
-    return c as LayoutComponentEntry[];
+/** Container list: single source of truth bound to entry.children so cross-list moves (root→container) don't duplicate. */
+const containerList = computed({
+    get(): LayoutComponentEntry[] {
+        if (!acceptsChildren(props.entry.type as LayoutComponentType)) return [];
+        let c = props.entry.children;
+        if (!Array.isArray(c)) {
+            c = [];
+            (props.entry as Record<string, unknown>).children = c;
+        }
+        return c as LayoutComponentEntry[];
+    },
+    set(v: LayoutComponentEntry[]) {
+        const valid = v.filter(isValidContainerChild).map(normalizeEntry);
+        (props.entry as Record<string, unknown>).children = valid;
+        emit('reorder');
+    },
+});
+
+function onContainerMove(evt: { draggedContext?: { element?: unknown } }): boolean {
+    const el = evt.draggedContext?.element;
+    if (!isLayoutBlockEntry(el)) return false;
+    return true;
 }
 
-/** Only valid container children (for display/reorder); invalid entries are not rendered. */
-const containerChildrenFiltered = ref<LayoutComponentEntry[]>([]);
-
-watch(
-    () => getContainerChildren(),
-    (raw) => {
-        const filtered = raw.filter(isValidContainerChild);
-        // Defer update to avoid race with Vue's patch cycle (parentNode / vnode null errors)
-        nextTick(() => {
-            containerChildrenFiltered.value = filtered;
-        });
-    },
-    { immediate: true, deep: true, flush: 'post' },
-);
+function onContainerDragStart(evt: { oldIndex?: number }): void {
+    const list = containerList.value;
+    if (evt?.oldIndex != null && list[evt.oldIndex]) {
+        setLastDraggedEntry?.(list[evt.oldIndex] as LayoutComponentEntry);
+    }
+    emit('dragStart');
+}
 
 function onContainerDragEnd(): void {
-    (props.entry as Record<string, unknown>).children = [...containerChildrenFiltered.value];
-    nextTick(() => emit('reorder'));
+    setLayoutDragging?.(false);
 }
 
 const isRow = (): boolean => (props.entry.data?.direction as string) === 'row';
@@ -116,12 +159,14 @@ function getChildFlexStyle(child: LayoutComponentEntry): Record<string, string> 
     return { flex: '1 1 0%', minWidth: '0', overflow: 'hidden' };
 }
 
-function onSelect(id: string): void {
-    emit('select', id);
+function onSelect(id: string, evtOrAdd?: MouseEvent | boolean): void {
+    const addToSelection =
+        typeof evtOrAdd === 'boolean' ? evtOrAdd : (evtOrAdd as MouseEvent | undefined)?.ctrlKey ?? false;
+    emit('select', id, addToSelection);
 }
 
 function getNextChild(index: number): LayoutComponentEntry | undefined {
-    return containerChildrenFiltered.value[index + 1];
+    return containerList.value[index + 1];
 }
 
 /** Grid/Flex containers: child wrappers use w-full so content fills the cell; Section uses flex-1. */
@@ -291,21 +336,29 @@ const containerDropTargetIndex = ref<number | null>(null);
 
 function onContainerDropZoneDragOver(index: number, e: DragEvent): void {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer ??= new DataTransfer();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = 'move';
     containerDropTargetIndex.value = index;
 }
 
-function onContainerDropZoneDragLeave(): void {
-    containerDropTargetIndex.value = null;
+function onContainerDropZoneDragLeave(e: DragEvent): void {
+    if (!(e.currentTarget as HTMLElement)?.contains?.(e.relatedTarget as Node)) {
+        containerDropTargetIndex.value = null;
+    }
 }
 
 function onContainerDropZoneDrop(index: number, e: DragEvent): void {
     e.preventDefault();
+    e.stopPropagation();
     containerDropTargetIndex.value = null;
     const type = e.dataTransfer?.getData('component-type');
     if (type && props.insertAtParent) {
         props.insertAtParent(props.entry.id, index, type);
+        return;
+    }
+    if (addDraggedEntryToContainer) {
+        addDraggedEntryToContainer(props.entry.id, index);
     }
 }
 
@@ -329,8 +382,8 @@ const useDesignBlock = computed(
         :class="{ 'ring-1 ring-primary': selectedModuleId === entry.id }"
         tabindex="0"
         role="button"
-        aria-label="Bereich auswählen und Einstellungen öffnen"
-        @click.stop="onSelect(entry.id)"
+        aria-label="Bereich auswählen (Strg+Klick für Mehrfachauswahl)"
+        @click.stop="onSelect(entry.id, $event)"
         @keydown.enter.space.prevent="onSelect(entry.id)"
     >
         <div
@@ -402,28 +455,38 @@ const useDesignBlock = computed(
                     >
                         <div
                             v-if="insertAtParent"
-                            class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
-                            :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === 0 }"
-                            @dragover="onContainerDropZoneDragOver(0, $event)"
+                            class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                            :class="[
+                                containerDropTargetIndex === 0
+                                    ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                                    : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                                layoutIsDragging?.value && 'pointer-events-none',
+                            ]"
+                            @dragover.prevent.stop="onContainerDropZoneDragOver(0, $event)"
                             @dragleave="onContainerDropZoneDragLeave"
-                            @drop="onContainerDropZoneDrop(0, $event)"
+                            @drop.prevent.stop="onContainerDropZoneDrop(0, $event)"
                         >
-                            <span class="sr-only">Komponente hier einfügen</span>
+                            <span v-if="containerDropTargetIndex === 0" class="text-xs font-medium text-primary">Hier einfügen</span>
+                            <span v-else class="sr-only">Komponente hier einfügen</span>
                         </div>
                         <draggable
-                            v-model="containerChildrenFiltered"
+                            v-model="containerList"
                             item-key="id"
                             handle=".block-drag-handle"
                             :group="{ name: 'layout-blocks', pull: true, put: true }"
+                            :move="onContainerMove"
+                            ghost-class="page-designer-ghost"
+                            chosen-class="page-designer-chosen"
+                            drag-class="page-designer-drag"
+                            :revert-on-spill="true"
+                            :animation="200"
                             :class="[
                                 'section-children-flex min-h-[2.5rem] min-w-0 flex-1',
                                 containerUsesResponsiveQueries && 'layout-block-container-responsive',
                             ]"
                             :data-layout-container-id="containerUsesResponsiveQueries ? entry.id : undefined"
                             :style="getContainerStyle()"
-                            ghost-class="opacity-50"
-                            :revert-on-spill="true"
-                            @start="emit('dragStart')"
+                            @start="onContainerDragStart"
                             @end="onContainerDragEnd"
                         >
                             <template #item="{ element: child, index }">
@@ -434,13 +497,19 @@ const useDesignBlock = computed(
                                 >
                                     <div
                                         v-if="insertAtParent"
-                                        class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
-                                        :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === index + 1 }"
-                                        @dragover="onContainerDropZoneDragOver(index + 1, $event)"
+                                        class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                                        :class="[
+                                            containerDropTargetIndex === index + 1
+                                                ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                                                : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                                            layoutIsDragging?.value && 'pointer-events-none',
+                                        ]"
+                                        @dragover.prevent.stop="onContainerDropZoneDragOver(index + 1, $event)"
                                         @dragleave="onContainerDropZoneDragLeave"
-                                        @drop="onContainerDropZoneDrop(index + 1, $event)"
+                                        @drop.prevent.stop="onContainerDropZoneDrop(index + 1, $event)"
                                     >
-                                        <span class="sr-only">Komponente hier einfügen</span>
+                                        <span v-if="containerDropTargetIndex === index + 1" class="text-xs font-medium text-primary">Hier einfügen</span>
+                                        <span v-else class="sr-only">Komponente hier einfügen</span>
                                     </div>
                                     <div
                                         class="section-child relative flex min-h-[2rem] min-w-0 flex-1 flex-row"
@@ -460,7 +529,7 @@ const useDesignBlock = computed(
                                                 :selected-module-id="selectedModuleId"
                                                 :insert-at-parent="insertAtParent"
                                                 embedding-provides-drag-handle
-                                                @select="onSelect"
+                                                @select="(id: string, add?: boolean) => onSelect(id, add)"
                                                 @reorder="emit('reorder')"
                                                 @drag-start="emit('dragStart')"
                                             />
@@ -478,13 +547,19 @@ const useDesignBlock = computed(
                         </draggable>
                         <div
                             v-if="insertAtParent"
-                            class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
-                            :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === containerChildrenFiltered.length }"
-                            @dragover="onContainerDropZoneDragOver(containerChildrenFiltered.length, $event)"
+                            class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                            :class="[
+                                containerDropTargetIndex === containerList.length
+                                    ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                                    : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                                layoutIsDragging?.value && 'pointer-events-none',
+                            ]"
+                            @dragover.prevent.stop="onContainerDropZoneDragOver(containerList.length, $event)"
                             @dragleave="onContainerDropZoneDragLeave"
-                            @drop="onContainerDropZoneDrop(containerChildrenFiltered.length, $event)"
+                            @drop.prevent.stop="onContainerDropZoneDrop(containerList.length, $event)"
                         >
-                            <span class="sr-only">Komponente am Ende einfügen</span>
+                            <span v-if="containerDropTargetIndex === containerList.length" class="text-xs font-medium text-primary">Hier einfügen</span>
+                            <span v-else class="sr-only">Komponente am Ende einfügen</span>
                         </div>
                     </component>
                 </motion.div>
@@ -499,28 +574,38 @@ const useDesignBlock = computed(
             >
                 <div
                     v-if="insertAtParent"
-                    class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
-                    :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === 0 }"
-                    @dragover="onContainerDropZoneDragOver(0, $event)"
+                    class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                    :class="[
+                        containerDropTargetIndex === 0
+                            ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                            : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                        layoutIsDragging?.value && 'pointer-events-none',
+                    ]"
+                    @dragover.prevent.stop="onContainerDropZoneDragOver(0, $event)"
                     @dragleave="onContainerDropZoneDragLeave"
-                    @drop="onContainerDropZoneDrop(0, $event)"
+                    @drop.prevent.stop="onContainerDropZoneDrop(0, $event)"
                 >
-                    <span class="sr-only">Komponente hier einfügen</span>
+                    <span v-if="containerDropTargetIndex === 0" class="text-xs font-medium text-primary">Hier einfügen</span>
+                    <span v-else class="sr-only">Komponente hier einfügen</span>
                 </div>
                 <draggable
-                    v-model="containerChildrenFiltered"
+                    v-model="containerList"
                     item-key="id"
                     handle=".block-drag-handle"
                     :group="{ name: 'layout-blocks', pull: true, put: true }"
+                    :move="onContainerMove"
+                    ghost-class="page-designer-ghost"
+                    chosen-class="page-designer-chosen"
+                    drag-class="page-designer-drag"
+                    :revert-on-spill="true"
+                    :animation="200"
                     :class="[
                         'section-children-flex min-h-[2.5rem] min-w-0 flex-1',
                         containerUsesResponsiveQueries && 'layout-block-container-responsive',
                     ]"
                     :data-layout-container-id="containerUsesResponsiveQueries ? entry.id : undefined"
                     :style="getContainerStyle()"
-                    ghost-class="opacity-50"
-                    :revert-on-spill="true"
-                    @start="emit('dragStart')"
+                    @start="onContainerDragStart"
                     @end="onContainerDragEnd"
                 >
                     <template #item="{ element: child, index }">
@@ -531,13 +616,19 @@ const useDesignBlock = computed(
                         >
                             <div
                                 v-if="insertAtParent"
-                                class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
-                                :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === index + 1 }"
-                                @dragover="onContainerDropZoneDragOver(index + 1, $event)"
+                                class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                                        :class="[
+                                            containerDropTargetIndex === index + 1
+                                                ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                                                : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                                            layoutIsDragging?.value && 'pointer-events-none',
+                                        ]"
+                                @dragover.prevent.stop="onContainerDropZoneDragOver(index + 1, $event)"
                                 @dragleave="onContainerDropZoneDragLeave"
-                                @drop="onContainerDropZoneDrop(index + 1, $event)"
+                                @drop.prevent.stop="onContainerDropZoneDrop(index + 1, $event)"
                             >
-                                <span class="sr-only">Komponente hier einfügen</span>
+                                <span v-if="containerDropTargetIndex === index + 1" class="text-xs font-medium text-primary">Hier einfügen</span>
+                                <span v-else class="sr-only">Komponente hier einfügen</span>
                             </div>
                             <div
                                 class="section-child relative flex min-h-[2rem] min-w-0 flex-1 flex-row"
@@ -557,7 +648,7 @@ const useDesignBlock = computed(
                                         :selected-module-id="selectedModuleId"
                                         :insert-at-parent="insertAtParent"
                                         embedding-provides-drag-handle
-                                        @select="onSelect"
+                                        @select="(id: string, add?: boolean) => onSelect(id, add)"
                                         @reorder="emit('reorder')"
                                         @drag-start="emit('dragStart')"
                                     />
@@ -575,13 +666,19 @@ const useDesignBlock = computed(
                 </draggable>
                 <div
                     v-if="insertAtParent"
-                    class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
-                    :class="{ 'border-primary bg-primary/10': containerDropTargetIndex === containerChildrenFiltered.length }"
-                    @dragover="onContainerDropZoneDragOver(containerChildrenFiltered.length, $event)"
+                    class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                    :class="[
+                        containerDropTargetIndex === containerList.length
+                            ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                            : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                        layoutIsDragging?.value && 'pointer-events-none',
+                    ]"
+                    @dragover.prevent.stop="onContainerDropZoneDragOver(containerList.length, $event)"
                     @dragleave="onContainerDropZoneDragLeave"
-                    @drop="onContainerDropZoneDrop(containerChildrenFiltered.length, $event)"
+                    @drop.prevent.stop="onContainerDropZoneDrop(containerList.length, $event)"
                 >
-                    <span class="sr-only">Komponente am Ende einfügen</span>
+                    <span v-if="containerDropTargetIndex === containerList.length" class="text-xs font-medium text-primary">Hier einfügen</span>
+                    <span v-else class="sr-only">Komponente am Ende einfügen</span>
                 </div>
             </component>
         </template>
@@ -619,7 +716,7 @@ const useDesignBlock = computed(
                                     :design-mode="designMode"
                                     :selected-module-id="selectedModuleId"
                                     :insert-at-parent="insertAtParent"
-                                    @select="onSelect"
+                                    @select="(id: string, add?: boolean) => onSelect(id, add)"
                                     @reorder="emit('reorder')"
                                     @drag-start="emit('dragStart')"
                                 />
@@ -655,7 +752,7 @@ const useDesignBlock = computed(
                                 :design-mode="designMode"
                                 :selected-module-id="selectedModuleId"
                                 :insert-at-parent="insertAtParent"
-                                @select="onSelect"
+                                @select="(id: string, add?: boolean) => onSelect(id, add)"
                                 @reorder="emit('reorder')"
                                 @drag-start="emit('dragStart')"
                             />

@@ -28,7 +28,9 @@ class SiteRenderService
         $templatePageData = $site->template->page_data ?? [];
 
         $source = $draftPageData ?? $site->custom_page_data;
-        $contentFromTemplateOnly = $draftPageData === null;
+        $useTemplateOnly = $draftPageData === null
+            && ($site->custom_page_data === null || $site->custom_page_data === []);
+        $contentFromTemplateOnly = $useTemplateOnly;
         $pageData = $this->resolvePageDataForSlug($source, $templatePageData, $templatePages, $pageSlug, $contentFromTemplateOnly);
 
         $templateSlug = $site->template->slug ?? null;
@@ -206,26 +208,42 @@ class SiteRenderService
     {
         $indexPage = $templatePages->first(fn ($p) => $p->slug === 'index') ?? $templatePages->sortBy('order')->first();
         $fromTemplate = $indexPage && is_array($indexPage->data) ? $indexPage->data : [];
+        $base = array_merge($templatePageData, $fromTemplate);
 
         if ($contentFromTemplateOnly) {
-            return array_merge($templatePageData, $fromTemplate);
+            return $base;
         }
 
-        if ($source === null) {
-            return $fromTemplate;
+        if ($source === null || $source === []) {
+            return $base;
         }
 
         $hasPages = isset($source['pages']) && is_array($source['pages']);
-        $fromRoot = $source;
-        $fromPagesIndex = $hasPages && isset($source['pages']['index']) && is_array($source['pages']['index'])
+        $fromPagesIndex = $hasPages
+            && isset($source['pages']['index'])
+            && is_array($source['pages']['index'])
             ? $source['pages']['index']
             : null;
 
-        if ($fromPagesIndex !== null && (! isset($fromRoot['layout_components']) || ! is_array($fromRoot['layout_components']) || $fromRoot['layout_components'] === [])) {
-            return array_merge($source, ['layout_components' => $fromPagesIndex['layout_components'] ?? []]);
-        }
+        $layoutFromRoot = isset($source['layout_components']) && is_array($source['layout_components'])
+            ? $source['layout_components']
+            : [];
+        $layoutFromPagesIndex = $fromPagesIndex !== null
+            && isset($fromPagesIndex['layout_components'])
+            && is_array($fromPagesIndex['layout_components'])
+            ? $fromPagesIndex['layout_components']
+            : [];
+        $layoutFromBase = isset($base['layout_components']) && is_array($base['layout_components'])
+            ? $base['layout_components']
+            : [];
 
-        return $fromRoot;
+        $layout = $layoutFromRoot !== []
+            ? $layoutFromRoot
+            : ($layoutFromPagesIndex !== [] ? $layoutFromPagesIndex : $layoutFromBase);
+
+        return array_merge($base, $source, [
+            'layout_components' => $layout,
+        ]);
     }
 
     /**

@@ -28,6 +28,7 @@ import {
     getSubtreeEndIndex,
     getPreviousSiblingStart,
     moveFlatSubtree,
+    normalizeLayoutTree,
 } from '@/lib/layout-tree';
 import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
 import PraxisemeraldLayoutComponentContextPanel from '@/templates/praxisemerald/LayoutComponentContextPanel.vue';
@@ -137,19 +138,9 @@ function isValidLayoutEntry(e: unknown): e is LayoutComponentEntry {
     );
 }
 
+/** Normalize and dedupe layout tree (single source: lib/layout-tree.normalizeLayoutTree). */
 function cleanLayoutTree(entries: LayoutComponentEntry[]): LayoutComponentEntry[] {
-    return entries.filter(isValidLayoutEntry).map((e) => {
-        const cloned: LayoutComponentEntry = {
-            id: e.id,
-            type: e.type,
-            data: { ...(e.data ?? {}) },
-        };
-        if (acceptsChildren(e.type as LayoutComponentType)) {
-            const raw = e.children;
-            cloned.children = Array.isArray(raw) ? cleanLayoutTree(raw.filter(isValidLayoutEntry)) : [];
-        }
-        return cloned;
-    });
+    return normalizeLayoutTree(entries, acceptsChildren);
 }
 
 import type { PageSlug } from '@/pages/PageDesigner/composables/useDesignerPages';
@@ -308,6 +299,8 @@ export function useDesignerStore(props: DesignerProps) {
     });
 
     const selectedModuleId = ref<string | null>(null);
+    /** Multi-select: block ids selected with Ctrl+click. Used to move multiple blocks into a container together. */
+    const selectedBlockIds = ref<Set<string>>(new Set());
     const addPageModalOpen = ref(false);
     const newPageName = ref('');
     const newPageSlug = ref('');
@@ -434,6 +427,96 @@ export function useDesignerStore(props: DesignerProps) {
         return null;
     }
 
+    function setSelection(id: string, addToSelection: boolean): void {
+        selectedModuleId.value = id;
+        if (addToSelection) {
+            const next = new Set(selectedBlockIds.value);
+            next.add(id);
+            selectedBlockIds.value = next;
+        } else {
+            selectedBlockIds.value = new Set([id]);
+        }
+    }
+
+    /**
+     * Remove entry by id from tree (mutate), return removed entry or null.
+     */
+    function removeEntryById(tree: LayoutComponentEntry[], id: string): LayoutComponentEntry | null {
+        for (let i = 0; i < tree.length; i++) {
+            if (tree[i].id === id) {
+                const removed = tree.splice(i, 1)[0];
+                return removed ?? null;
+            }
+            const c = tree[i].children;
+            if (Array.isArray(c)) {
+                const found = removeEntryById(c, id);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find container entry by id in tree (clone). Returns undefined if not found.
+     */
+    function findContainerInClone(tree: LayoutComponentEntry[], containerId: string): LayoutComponentEntry | undefined {
+        for (const entry of tree) {
+            if (entry.id === containerId) return entry;
+            const c = entry.children;
+            if (Array.isArray(c)) {
+                const found = findContainerInClone(c, containerId);
+                if (found) return found;
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * Returns a new tree with all selectedBlockIds moved into the given container.
+     * Used when dropping one selected block into a container so the rest of the selection follows.
+     */
+    function moveSelectionToContainer(
+        containerId: string,
+        newContainerChildren: LayoutComponentEntry[],
+        currentTree: LayoutComponentEntry[],
+    ): LayoutComponentEntry[] {
+        const idsInContainer = new Set(newContainerChildren.map((e) => e.id));
+        const toMove = [...selectedBlockIds.value].filter((id) => !idsInContainer.has(id));
+
+        const clone = JSON.parse(JSON.stringify(currentTree)) as LayoutComponentEntry[];
+        const collected: LayoutComponentEntry[] = [];
+        for (const id of toMove) {
+            const removed = removeEntryById(clone, id);
+            if (removed) collected.push(removed);
+        }
+
+        const container = findContainerInClone(clone, containerId);
+        if (!container) return currentTree;
+        container.children = [...newContainerChildren, ...collected];
+        return clone;
+    }
+
+    /**
+     * Returns a new tree with the given entry moved into the container at index.
+     * Used when dropping an existing block onto a container drop zone (so the drop zone can apply the move).
+     */
+    function moveEntryToContainer(
+        entryId: string,
+        containerId: string,
+        index: number,
+        currentTree: LayoutComponentEntry[],
+    ): LayoutComponentEntry[] {
+        const clone = JSON.parse(JSON.stringify(currentTree)) as LayoutComponentEntry[];
+        const removed = removeEntryById(clone, entryId);
+        if (!removed) return currentTree;
+        const container = findContainerInClone(clone, containerId);
+        if (!container) return currentTree;
+        if (!Array.isArray(container.children)) container.children = [];
+        const pos = Math.max(0, Math.min(index, container.children.length));
+        container.children.splice(pos, 0, removed);
+        return clone;
+    }
+
     const selectedEntry = computed(() => {
         const id = selectedModuleId.value;
         if (!id) return null;
@@ -538,6 +621,33 @@ export function useDesignerStore(props: DesignerProps) {
         if (!entry || !entry.data) return;
         if (!isTemplateMode.value) pushHistory();
         (entry.data as Record<string, unknown>)[fieldKey] = value;
+        draft.pushPreviewDraft();
+    }
+
+    /** Set a nested field (e.g. "image.src") so Hero and similar blocks get URL + history/draft. */
+    function updateBlockFieldNested(entryId: string, dotPath: string, value: string): void {
+        console.log('[MediaLibrary] updateBlockFieldNested', entryId, dotPath, value?.length);
+        const entry = findEntryById(layoutComponents.value, entryId);
+        if (!entry) {
+            console.warn('[MediaLibrary] updateBlockFieldNested: entry not found', entryId);
+            return;
+        }
+        if (!entry.data) {
+            (entry as Record<string, unknown>).data = {};
+        }
+        if (!isTemplateMode.value) pushHistory();
+        const data = entry.data as Record<string, unknown>;
+        const parts = dotPath.split('.');
+        let target = data;
+        for (let i = 0; i < parts.length - 1; i++) {
+            const key = parts[i];
+            if (!target[key] || typeof target[key] !== 'object') {
+                target[key] = {};
+            }
+            target = target[key] as Record<string, unknown>;
+        }
+        target[parts[parts.length - 1]] = value;
+        console.log('[MediaLibrary] updateBlockFieldNested done', entryId, value?.slice?.(0, 60));
         draft.pushPreviewDraft();
     }
 
@@ -860,14 +970,30 @@ export function useDesignerStore(props: DesignerProps) {
     }
 
     function openMediaLibrary(callback: (url: string) => void): void {
+        console.log('[MediaLibrary] openMediaLibrary called', 'templateMode:', isTemplateMode.value);
         if (isTemplateMode.value) return;
         mediaLibraryCallback.value = callback;
         mediaLibraryOpen.value = true;
     }
 
     function onMediaLibrarySelect(url: string): void {
-        mediaLibraryCallback.value?.(url);
+        const callback = mediaLibraryCallback.value;
         mediaLibraryCallback.value = null;
+        console.log('[MediaLibrary Store] onMediaLibrarySelect', {
+            url: url?.slice(0, 80),
+            hasCallback: !!callback,
+            stack: new Error().stack?.split('\n').slice(1, 4).join(' <- '),
+        });
+        if (callback) {
+            try {
+                callback(url);
+                console.log('[MediaLibrary Store] callback executed');
+            } catch (e) {
+                console.error('[MediaLibrary Store] callback error', e);
+            }
+        } else {
+            console.warn('[MediaLibrary Store] no callback – modal was opened without a selection handler');
+        }
         mediaLibraryOpen.value = false;
     }
 
@@ -960,6 +1086,10 @@ export function useDesignerStore(props: DesignerProps) {
         pageData,
         layoutComponents,
         selectedModuleId,
+        selectedBlockIds,
+        setSelection,
+        moveSelectionToContainer,
+        moveEntryToContainer,
         selectedEntry,
         previewColors,
         previewStyles,
@@ -1052,6 +1182,7 @@ export function useDesignerStore(props: DesignerProps) {
         setPageGlobalFonts,
         setPageGlobalButtonStyle,
         updateBlockField,
+        updateBlockFieldNested,
         getComponentLabel,
         openColorPicker,
         onColorInput,

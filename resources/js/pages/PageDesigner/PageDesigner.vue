@@ -36,6 +36,8 @@ if (!designer.isTemplateMode && designer.props.site) {
 }
 
 provide('openMediaLibrary', designer.openMediaLibrary);
+provide('onMediaLibrarySelect', designer.onMediaLibrarySelect);
+provide('onMediaLibraryClose', designer.onMediaLibraryClose);
 provide('blockContextActions', designer.blockContextActions);
 provide('selectedModuleId', designer.selectedModuleId);
 provide('updateBlockField', designer.updateBlockField);
@@ -130,10 +132,10 @@ onUnmounted(() => {
             @close="designer.closeComponentGallery"
         />
         <MediaLibraryModal
-            v-if="designer.props.site"
-            :open="designer.mediaLibraryOpen"
+            v-if="designer.props.site && designer.mediaLibraryOpen"
+            :open="true"
             :site-uuid="designer.props.site.uuid"
-            @select="designer.onMediaLibrarySelect"
+            :on-apply-selection="designer.onMediaLibrarySelect"
             @close="designer.onMediaLibraryClose"
         />
         <AddPageModal
