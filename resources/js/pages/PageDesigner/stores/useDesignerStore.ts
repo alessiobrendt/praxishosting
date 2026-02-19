@@ -979,20 +979,12 @@ export function useDesignerStore(props: DesignerProps) {
     function onMediaLibrarySelect(url: string): void {
         const callback = mediaLibraryCallback.value;
         mediaLibraryCallback.value = null;
-        console.log('[MediaLibrary Store] onMediaLibrarySelect', {
-            url: url?.slice(0, 80),
-            hasCallback: !!callback,
-            stack: new Error().stack?.split('\n').slice(1, 4).join(' <- '),
-        });
         if (callback) {
             try {
                 callback(url);
-                console.log('[MediaLibrary Store] callback executed');
             } catch (e) {
-                console.error('[MediaLibrary Store] callback error', e);
+                console.error('[MediaLibrary] callback error', e);
             }
-        } else {
-            console.warn('[MediaLibrary Store] no callback – modal was opened without a selection handler');
         }
         mediaLibraryOpen.value = false;
     }

@@ -111,11 +111,17 @@ async function onFileSelected(event: Event) {
 }
 
 function choose(url: string) {
-    console.log('[MediaLibraryModal] choose()', url?.slice(0, 60));
     applySelection(url);
     onMediaLibraryClose();
     emit('select', url);
     emit('close');
+}
+
+function onPointerDownOutside(e: { preventDefault: () => void; detail?: { originalEvent?: PointerEvent } }) {
+    const target = e.detail?.originalEvent?.target as HTMLElement | null;
+    if (target?.closest?.('[data-media-lightbox]')) {
+        e.preventDefault();
+    }
 }
 
 function openLightbox(url: string) {
@@ -172,7 +178,10 @@ function onEditorUploaded(newUrl: string) {
 
 <template>
     <Dialog :open="open" @update:open="(v) => !v && $emit('close')">
-        <DialogContent class="flex max-h-[90vh] max-w-5xl flex-col overflow-hidden">
+        <DialogContent
+            class="flex max-h-[90vh] max-w-5xl flex-col overflow-hidden"
+            @pointer-down-outside="onPointerDownOutside"
+        >
             <DialogHeader>
                 <DialogTitle>Media Library</DialogTitle>
                 <DialogDescription class="sr-only">

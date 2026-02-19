@@ -28,24 +28,10 @@ function handleKeydown(e: KeyboardEvent) {
 function selectImage(e?: Event) {
     e?.preventDefault();
     e?.stopPropagation();
-    const url = props.url;
-    const hasInject = typeof applyMediaSelection === 'function';
-    const hasProp = typeof props.onUseImage === 'function';
-    console.log('[MediaLibraryLightbox] selectImage', {
-        url: url?.slice(0, 60),
-        hasInject,
-        hasProp,
-        willCall: hasInject || hasProp,
-    });
-    if (!url) return;
+    if (!props.url) return;
     const apply = applyMediaSelection ?? props.onUseImage;
-    if (apply) {
-        console.log('[MediaLibraryLightbox] calling apply(url)');
-        apply(url);
-    } else {
-        console.warn('[MediaLibraryLightbox] no apply function (inject nor prop)');
-    }
-    emit('select', url);
+    if (apply) apply(props.url);
+    emit('select', props.url);
     emit('close');
 }
 
@@ -62,6 +48,7 @@ onUnmounted(() => {
     <Teleport to="body">
         <div
             v-if="open && url"
+            data-media-lightbox
             class="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-black/90 p-4"
             role="dialog"
             aria-modal="true"
