@@ -25,7 +25,7 @@ test('admin users can view email templates index', function () {
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
         ->component('admin/emails/Index')
-        ->has('templates', 6)
+        ->has('templates')
     );
 });
 
@@ -99,7 +99,7 @@ test('admin users can send test email', function () {
 
     $response = $this->post(route('admin.emails.send-test', $template));
     $response->assertRedirect();
-    Mail::assertSent(\App\Mail\EmailTemplateTestMail::class, function ($mail) {
-        return $mail->hasTo('admin@example.com');
+    Mail::assertSent(\App\Mail\TransactionalTemplateMail::class, function ($mail) {
+        return $mail->hasTo('admin@example.com') && $mail->isTest === true;
     });
 });

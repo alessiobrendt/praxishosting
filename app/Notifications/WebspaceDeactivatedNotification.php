@@ -3,17 +3,17 @@
 namespace App\Notifications;
 
 use App\Models\EmailTemplate;
-use App\Models\Site;
+use App\Models\WebspaceAccount;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class OrderCompletedNotification extends Notification implements ShouldQueue
+class WebspaceDeactivatedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(
-        public Site $site
+        public WebspaceAccount $webspaceAccount
     ) {}
 
     /**
@@ -29,30 +29,31 @@ class OrderCompletedNotification extends Notification implements ShouldQueue
      */
     public function toTransactionalMail(object $notifiable): array
     {
-        $url = route('sites.show', $this->site);
-        $template = EmailTemplate::find('order_completed');
+        $billingUrl = route('billing.portal');
+
+        $template = EmailTemplate::find('webspace_deactivated');
         $content = $template?->replace([
             'user_name' => $notifiable->name,
-            'site_name' => $this->site->name,
-            'site_url' => $url,
-        ]) ?? $this->defaultContent($notifiable, $url);
+            'domain' => $this->webspaceAccount->domain,
+            'billing_portal_url' => $billingUrl,
+        ]) ?? $this->defaultContent($notifiable);
 
         return [
             'content' => $content,
-            'actionUrl' => $content['action_text'] ? $url : null,
+            'actionUrl' => $content['action_text'] ? $billingUrl : null,
         ];
     }
 
     /**
      * @return array{subject: string, greeting: string, body: string, action_text: string|null}
      */
-    private function defaultContent(object $notifiable, string $siteUrl): array
+    private function defaultContent(object $notifiable): array
     {
         return [
-            'subject' => 'Ihre Bestellung wurde abgeschlossen',
+            'subject' => 'Ihr Webspace '.$this->webspaceAccount->domain.' wurde deaktiviert',
             'greeting' => 'Hallo '.$notifiable->name.',',
-            'body' => "Ihre Bestellung wurde erfolgreich abgeschlossen.\nIhre Webseite **".$this->site->name."** wurde eingerichtet.\nVielen Dank für Ihr Vertrauen.",
-            'action_text' => 'Zur Webseite',
+            'body' => 'Ihr Webspace **'.$this->webspaceAccount->domain.'** wurde aufgrund eines abgelaufenen Abonnements deaktiviert. Um den Zugriff wiederherzustellen, aktualisieren Sie bitte Ihre Zahlungsmethode und verlängern Sie das Abo.',
+            'action_text' => 'Zahlungsart verwalten',
         ];
     }
 }

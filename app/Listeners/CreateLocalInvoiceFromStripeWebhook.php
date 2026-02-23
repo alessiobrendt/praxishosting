@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\SiteSubscription;
 use App\Models\User;
 use App\Notifications\InvoiceCreatedNotification;
+use App\Notifications\PaymentReceivedNotification;
 use App\Services\InvoiceEInvoiceService;
 use App\Services\InvoicePdfService;
 use Carbon\Carbon;
@@ -92,5 +93,6 @@ class CreateLocalInvoiceFromStripeWebhook
         }
 
         $invoice->user->notify(new InvoiceCreatedNotification($invoice));
+        $invoice->user->notify(new PaymentReceivedNotification($invoice));
     }
 }

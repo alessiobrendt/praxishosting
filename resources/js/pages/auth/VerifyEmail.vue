@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import TextLink from '@/components/TextLink.vue';
+import { Form, Head, router } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -42,13 +41,13 @@ defineProps<{
                     Verifizierungs-E-Mail erneut senden
                 </Button>
 
-                <TextLink
-                    :href="logout.url()"
-                    as="button"
-                    class="block text-sm"
+                <button
+                    type="button"
+                    class="block text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                    @click="() => router.post(logout.url())"
                 >
                     Abmelden
-                </TextLink>
+                </button>
             </Form>
         </div>
     </AuthLayout>

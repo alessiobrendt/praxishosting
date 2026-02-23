@@ -3,17 +3,15 @@
 namespace App\Notifications;
 
 use App\Models\EmailTemplate;
-use App\Models\Site;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class OrderCompletedNotification extends Notification implements ShouldQueue
+class LoginNotification extends Notification
 {
     use Queueable;
 
     public function __construct(
-        public Site $site
+        public string $loginAt
     ) {}
 
     /**
@@ -29,30 +27,28 @@ class OrderCompletedNotification extends Notification implements ShouldQueue
      */
     public function toTransactionalMail(object $notifiable): array
     {
-        $url = route('sites.show', $this->site);
-        $template = EmailTemplate::find('order_completed');
+        $template = EmailTemplate::find('login');
         $content = $template?->replace([
             'user_name' => $notifiable->name,
-            'site_name' => $this->site->name,
-            'site_url' => $url,
-        ]) ?? $this->defaultContent($notifiable, $url);
+            'login_at' => $this->loginAt,
+        ]) ?? $this->defaultContent($notifiable);
 
         return [
             'content' => $content,
-            'actionUrl' => $content['action_text'] ? $url : null,
+            'actionUrl' => $content['action_text'] ? route('dashboard') : null,
         ];
     }
 
     /**
      * @return array{subject: string, greeting: string, body: string, action_text: string|null}
      */
-    private function defaultContent(object $notifiable, string $siteUrl): array
+    private function defaultContent(object $notifiable): array
     {
         return [
-            'subject' => 'Ihre Bestellung wurde abgeschlossen',
+            'subject' => 'Sie haben sich eingeloggt',
             'greeting' => 'Hallo '.$notifiable->name.',',
-            'body' => "Ihre Bestellung wurde erfolgreich abgeschlossen.\nIhre Webseite **".$this->site->name."** wurde eingerichtet.\nVielen Dank für Ihr Vertrauen.",
-            'action_text' => 'Zur Webseite',
+            'body' => 'Sie haben sich am '.$this->loginAt." in Ihr Konto eingeloggt.\nFalls Sie das nicht waren, ändern Sie bitte umgehend Ihr Passwort.",
+            'action_text' => 'Zum Dashboard',
         ];
     }
 }

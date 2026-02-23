@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SendTestEmailTemplateRequest;
 use App\Http\Requests\Admin\UpdateEmailTemplateRequest;
-use App\Mail\EmailTemplateTestMail;
+use App\Mail\TransactionalTemplateMail;
 use App\Models\AdminActivityLog;
 use App\Models\EmailTemplate;
 use Illuminate\Http\JsonResponse;
@@ -48,6 +48,7 @@ class EmailController extends Controller
 
     /**
      * Preview template with sample data. Accepts optional subject, greeting, body, action_text to preview unsaved form.
+     * Returns replaced text plus full rendered HTML (Maizzle layout) for iframe preview.
      */
     public function preview(Request $request, EmailTemplate $emailTemplate): JsonResponse
     {
@@ -60,11 +61,21 @@ class EmailController extends Controller
         $search = array_map(fn (string $key) => ':'.$key, array_keys($replacements));
         $values = array_map(fn ($value) => (string) $value, array_values($replacements));
 
-        return response()->json([
+        $content = [
             'subject' => str_replace($search, $values, $subject),
             'greeting' => str_replace($search, $values, $greeting),
             'body' => str_replace($search, $values, $body),
             'action_text' => $actionText ? str_replace($search, $values, $actionText) : null,
+        ];
+        $actionUrl = $this->sampleActionUrl($emailTemplate->key);
+        $html = TransactionalTemplateMail::renderHtml($content, $actionUrl);
+
+        return response()->json([
+            'subject' => $content['subject'],
+            'greeting' => $content['greeting'],
+            'body' => $content['body'],
+            'action_text' => $content['action_text'],
+            'html' => $html,
         ]);
     }
 
@@ -77,7 +88,7 @@ class EmailController extends Controller
         $content = $emailTemplate->replace($this->sampleReplacements($emailTemplate->key));
         $actionUrl = $this->sampleActionUrl($emailTemplate->key);
 
-        Mail::to($to)->send(new EmailTemplateTestMail($content, $actionUrl));
+        Mail::to($to)->send(new TransactionalTemplateMail($content, $actionUrl, isTest: true));
 
         return back()->with('success', 'Test-E-Mail wurde an '.$to.' gesendet.');
     }
@@ -89,11 +100,18 @@ class EmailController extends Controller
     {
         return match ($key) {
             'order_completed' => ['user_name', 'site_name', 'site_url'],
+            'order_completed_webspace' => ['user_name', 'domain', 'plesk_username', 'plesk_password', 'login_url'],
             'invoice_created' => ['user_name', 'invoice_number', 'amount', 'invoice_date', 'pdf_url'],
+            'payment_received' => ['user_name', 'amount', 'invoice_number', 'payment_date'],
             'payment_failed' => ['user_name', 'invoice_number', 'amount', 'billing_portal_url'],
-            'subscription_ending_soon' => ['user_name', 'site_name', 'ends_at', 'billing_portal_url'],
+            'subscription_ending_soon' => ['user_name', 'site_name', 'ends_at', 'days_remaining', 'billing_portal_url'],
             'site_suspended' => ['user_name', 'site_name', 'billing_portal_url'],
             'site_deleted' => ['user_name', 'site_name', 'create_site_url'],
+            'webspace_deactivated' => ['user_name', 'domain', 'billing_portal_url'],
+            'login' => ['user_name', 'login_at'],
+            'ticket_created' => ['user_name', 'ticket_subject', 'ticket_url'],
+            'ticket_reply' => ['user_name', 'ticket_subject', 'ticket_url'],
+            'ticket_admin_reply' => ['user_name', 'ticket_subject', 'ticket_url'],
             default => [],
         };
     }
@@ -111,9 +129,18 @@ class EmailController extends Controller
             'amount' => '9,99 €',
             'invoice_date' => now()->format('d.m.Y'),
             'pdf_url' => config('app.url').'/invoices/1/pdf',
+            'payment_date' => now()->format('d.m.Y'),
             'billing_portal_url' => config('app.url').'/billing/portal',
             'create_site_url' => config('app.url').'/sites/create',
             'ends_at' => now()->addDays(7)->format('d.m.Y'),
+            'days_remaining' => '7',
+            'domain' => 'beispiel.de',
+            'plesk_username' => 'ws0001abc',
+            'plesk_password' => '••••••••',
+            'login_url' => config('app.url').'/webspace-accounts/1/plesk-login',
+            'login_at' => now()->format('d.m.Y H:i'),
+            'ticket_subject' => 'Frage zu meiner Bestellung',
+            'ticket_url' => config('app.url').'/support/1',
         ];
 
         return array_intersect_key($base, array_flip($this->placeholdersFor($key)));
@@ -123,9 +150,14 @@ class EmailController extends Controller
     {
         return match ($key) {
             'order_completed' => config('app.url').'/sites/1',
+            'order_completed_webspace' => config('app.url').'/webspace-accounts/1/plesk-login',
             'invoice_created' => config('app.url').'/invoices/1/pdf',
-            'payment_failed', 'subscription_ending_soon', 'site_suspended' => config('app.url').'/billing/portal',
+            'payment_received' => config('app.url').'/invoices/1/pdf',
+            'payment_failed', 'subscription_ending_soon', 'site_suspended', 'webspace_deactivated' => config('app.url').'/billing/portal',
             'site_deleted' => config('app.url').'/sites/create',
+            'login' => config('app.url').'/dashboard',
+            'ticket_created', 'ticket_reply' => config('app.url').'/support/1',
+            'ticket_admin_reply' => config('app.url').'/admin/tickets/1',
             default => null,
         };
     }

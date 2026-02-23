@@ -1,0 +1,12 @@
+{
+  "name": "praxishosting-emails",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "maizzle build production",
+    "dev": "maizzle serve"
+  },
+  "dependencies": {
+    "@maizzle/framework": "^5.5.0"
+  }
+}

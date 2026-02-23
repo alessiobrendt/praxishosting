@@ -18,8 +18,9 @@ class NotifySubscriptionEndingSoon implements ShouldQueue
 
     public function handle(): void
     {
-        $from = Carbon::now()->startOfDay();
-        $to = Carbon::now()->addDays($this->daysAhead)->endOfDay();
+        $targetDay = Carbon::now()->addDays($this->daysAhead);
+        $from = $targetDay->copy()->startOfDay();
+        $to = $targetDay->copy()->endOfDay();
 
         SiteSubscription::query()
             ->with('site.user')
@@ -29,7 +30,7 @@ class NotifySubscriptionEndingSoon implements ShouldQueue
             ->each(function (SiteSubscription $sub): void {
                 $site = $sub->site;
                 $endsAt = $sub->current_period_ends_at->format('d.m.Y');
-                $site->user?->notify(new SubscriptionEndingSoonNotification($site, $endsAt));
+                $site->user?->notify(new SubscriptionEndingSoonNotification($site, $endsAt, $this->daysAhead));
             });
     }
 }

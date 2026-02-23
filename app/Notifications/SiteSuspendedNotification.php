@@ -6,7 +6,6 @@ use App\Models\EmailTemplate;
 use App\Models\Site;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class SiteSuspendedNotification extends Notification implements ShouldQueue
@@ -22,10 +21,13 @@ class SiteSuspendedNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['transactional_mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    /**
+     * @return array{content: array{subject: string, greeting: string, body: string, action_text: string|null}, actionUrl: string|null}
+     */
+    public function toTransactionalMail(object $notifiable): array
     {
         $billingUrl = route('billing.portal');
 
@@ -36,19 +38,10 @@ class SiteSuspendedNotification extends Notification implements ShouldQueue
             'billing_portal_url' => $billingUrl,
         ]) ?? $this->defaultContent($notifiable);
 
-        $mail = (new MailMessage)
-            ->subject($content['subject'])
-            ->greeting($content['greeting']);
-
-        foreach (explode("\n", $content['body']) as $line) {
-            $mail->line(trim($line) !== '' ? $line : ' ');
-        }
-
-        if ($content['action_text']) {
-            $mail->action($content['action_text'], $billingUrl);
-        }
-
-        return $mail;
+        return [
+            'content' => $content,
+            'actionUrl' => $content['action_text'] ? $billingUrl : null,
+        ];
     }
 
     /**

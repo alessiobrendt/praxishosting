@@ -8,7 +8,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class InvoiceCreatedNotification extends Notification implements ShouldQueue
+class PaymentReceivedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -29,18 +29,17 @@ class InvoiceCreatedNotification extends Notification implements ShouldQueue
      */
     public function toTransactionalMail(object $notifiable): array
     {
-        $pdfUrl = $this->invoice->pdf_path ? route('invoices.pdf', $this->invoice) : null;
         $amount = number_format((float) $this->invoice->amount, 2, ',', '.').' €';
-        $invoiceDate = $this->invoice->invoice_date->format('d.m.Y');
+        $paymentDate = $this->invoice->invoice_date->format('d.m.Y');
+        $pdfUrl = $this->invoice->pdf_path ? route('invoices.pdf', $this->invoice) : null;
 
-        $template = EmailTemplate::find('invoice_created');
+        $template = EmailTemplate::find('payment_received');
         $content = $template?->replace([
             'user_name' => $notifiable->name,
-            'invoice_number' => $this->invoice->number,
             'amount' => $amount,
-            'invoice_date' => $invoiceDate,
-            'pdf_url' => $pdfUrl ?? '',
-        ]) ?? $this->defaultContent($notifiable, $amount, $invoiceDate);
+            'invoice_number' => $this->invoice->number,
+            'payment_date' => $paymentDate,
+        ]) ?? $this->defaultContent($notifiable, $amount, $paymentDate);
 
         return [
             'content' => $content,
@@ -51,13 +50,13 @@ class InvoiceCreatedNotification extends Notification implements ShouldQueue
     /**
      * @return array{subject: string, greeting: string, body: string, action_text: string|null}
      */
-    private function defaultContent(object $notifiable, string $amount, string $invoiceDate): array
+    private function defaultContent(object $notifiable, string $amount, string $paymentDate): array
     {
         return [
-            'subject' => 'Ihre Rechnung '.$this->invoice->number,
+            'subject' => 'Ihre Zahlung wurde verbucht',
             'greeting' => 'Hallo '.$notifiable->name.',',
-            'body' => 'Ihre Rechnung **'.$this->invoice->number."** wurde erstellt.\nBetrag: **".$amount."**\nDatum: ".$invoiceDate."\nVielen Dank für Ihr Vertrauen.",
-            'action_text' => 'Rechnung als PDF herunterladen',
+            'body' => 'Ihre Zahlung in Höhe von **'.$amount.'** wurde am '.$paymentDate.' verbucht. Rechnung: '.$this->invoice->number,
+            'action_text' => 'Rechnung ansehen',
         ];
     }
 }

@@ -13,6 +13,9 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new ProcessExpiredSubscriptions)->daily();
-Schedule::job(new NotifySubscriptionEndingSoon)->daily();
+Schedule::job(new NotifySubscriptionEndingSoon(14))->daily();
+Schedule::job(new NotifySubscriptionEndingSoon(7))->daily();
+Schedule::job(new NotifySubscriptionEndingSoon(3))->daily();
+Schedule::job(new NotifySubscriptionEndingSoon(1))->daily();
 Schedule::job(new SyncResellerDomainsJob)->daily();
 Schedule::job(new CreateDomainRenewalInvoicesJob)->daily();

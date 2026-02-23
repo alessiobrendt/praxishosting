@@ -9,6 +9,9 @@ use App\Models\Ticket;
 use App\Models\TicketCategory;
 use App\Models\TicketMessage;
 use App\Models\TicketPriority;
+use App\Models\User;
+use App\Notifications\TicketAdminReplyNotification;
+use App\Notifications\TicketCreatedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -82,6 +85,8 @@ class SupportController extends Controller
             'is_internal' => false,
         ]);
 
+        $request->user()->notify(new TicketCreatedNotification($ticket));
+
         return redirect()->route('support.show', $ticket)->with('success', 'Ticket wurde erstellt.');
     }
 
@@ -128,6 +133,10 @@ class SupportController extends Controller
             'is_internal' => false,
         ]);
         $ticket->update(['status' => 'in_progress']);
+
+        User::where('is_admin', true)->get()->each(function (User $admin) use ($ticket, $request): void {
+            $admin->notify(new TicketAdminReplyNotification($ticket, $request->user()->name));
+        });
 
         return redirect()->route('support.show', $ticket)->with('success', 'Nachricht gesendet.');
     }

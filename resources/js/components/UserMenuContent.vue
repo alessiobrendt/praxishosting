@@ -16,8 +16,9 @@ type Props = {
     user: User;
 };
 
-const handleLogout = () => {
-    router.flushAll();
+const handleLogout = (e: Event) => {
+    e.preventDefault();
+    router.post(logout.url(), {}, { preserveScroll: true });
 };
 
 defineProps<Props>();
@@ -39,16 +40,15 @@ defineProps<Props>();
         </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator />
-    <DropdownMenuItem :as-child="true">
-        <Link
-            class="block w-full cursor-pointer"
-            :href="logout.url()"
-            @click="handleLogout"
-            as="button"
-            data-test="logout-button"
-        >
-            <LogOut class="mr-2 h-4 w-4" />
-            Log out
-        </Link>
-    </DropdownMenuItem>
+        <DropdownMenuItem :as-child="true">
+            <button
+                type="button"
+                class="block w-full cursor-pointer"
+                data-test="logout-button"
+                @click="handleLogout"
+            >
+                <LogOut class="mr-2 h-4 w-4" />
+                Log out
+            </button>
+        </DropdownMenuItem>
 </template>

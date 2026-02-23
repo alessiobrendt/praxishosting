@@ -3,17 +3,18 @@
 namespace App\Notifications;
 
 use App\Models\EmailTemplate;
+use App\Models\WebspaceAccount;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class PaymentFailedNotification extends Notification implements ShouldQueue
+class WebspaceOrderCompletedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(
-        public string $invoiceNumber = '',
-        public string $amount = ''
+        public WebspaceAccount $webspaceAccount,
+        public string $plainPassword
     ) {}
 
     /**
@@ -29,20 +30,20 @@ class PaymentFailedNotification extends Notification implements ShouldQueue
      */
     public function toTransactionalMail(object $notifiable): array
     {
-        $billingUrl = route('billing.portal');
-        $amountDisplay = $this->amount !== '' ? $this->amount.' €' : '';
+        $loginUrl = route('webspace-accounts.plesk-login', $this->webspaceAccount);
 
-        $template = EmailTemplate::find('payment_failed');
+        $template = EmailTemplate::find('order_completed_webspace');
         $content = $template?->replace([
             'user_name' => $notifiable->name,
-            'invoice_number' => $this->invoiceNumber,
-            'amount' => $amountDisplay,
-            'billing_portal_url' => $billingUrl,
+            'domain' => $this->webspaceAccount->domain,
+            'plesk_username' => $this->webspaceAccount->plesk_username,
+            'plesk_password' => $this->plainPassword,
+            'login_url' => $loginUrl,
         ]) ?? $this->defaultContent($notifiable);
 
         return [
             'content' => $content,
-            'actionUrl' => $content['action_text'] ? $billingUrl : null,
+            'actionUrl' => $content['action_text'] ? $loginUrl : null,
         ];
     }
 
@@ -51,14 +52,11 @@ class PaymentFailedNotification extends Notification implements ShouldQueue
      */
     private function defaultContent(object $notifiable): array
     {
-        $invoiceLine = $this->invoiceNumber ? 'Rechnung: '.$this->invoiceNumber : '';
-        $amountLine = $this->amount !== '' ? 'Betrag: '.$this->amount.' €' : '';
-
         return [
-            'subject' => 'Zahlung fehlgeschlagen – bitte Zahlungsart prüfen',
+            'subject' => 'Ihr Webspace für '.$this->webspaceAccount->domain.' wurde eingerichtet',
             'greeting' => 'Hallo '.$notifiable->name.',',
-            'body' => "Eine Zahlung konnte nicht durchgeführt werden.\n".$invoiceLine."\n".$amountLine."\nBitte aktualisieren Sie Ihre Zahlungsmethode, um Unterbrechungen zu vermeiden.",
-            'action_text' => 'Zahlungsart verwalten',
+            'body' => "Ihr Webspace wurde erfolgreich eingerichtet.\n**Domain:** ".$this->webspaceAccount->domain."\n**Plesk-Benutzer:** ".$this->webspaceAccount->plesk_username."\nBitte bewahren Sie Ihre Zugangsdaten sicher auf.",
+            'action_text' => 'Zum Plesk-Login',
         ];
     }
 }

@@ -15,6 +15,7 @@ use App\Models\TicketMessage;
 use App\Models\TicketTimeLog;
 use App\Models\TicketTodo;
 use App\Models\User;
+use App\Notifications\TicketReplyNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -142,6 +143,7 @@ class TicketController extends Controller
         ]);
         if (! $isInternal) {
             $ticket->update(['status' => 'waiting_customer']);
+            $ticket->user?->notify(new TicketReplyNotification($ticket));
         }
 
         AdminActivityLog::log($request->user()->id, 'ticket_message_stored', Ticket::class, $ticket->id, null, ['is_internal' => $isInternal]);

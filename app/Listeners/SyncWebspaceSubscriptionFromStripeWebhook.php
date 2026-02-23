@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Models\WebspaceAccount;
+use App\Notifications\WebspaceDeactivatedNotification;
 use App\Services\ControlPanels\PleskClient;
 use Carbon\Carbon;
 use Laravel\Cashier\Events\WebhookReceived;
@@ -59,6 +60,7 @@ class SyncWebspaceSubscriptionFromStripeWebhook
             $plesk->setServer($account->hostingServer);
             $plesk->suspendAccount($account->plesk_username);
             $account->update(['status' => 'suspended']);
+            $account->user?->notify(new WebspaceDeactivatedNotification($account));
         } elseif ($status === 'active' && $account->status === 'suspended' && $account->hostingServer) {
             $plesk = app(PleskClient::class);
             $plesk->setServer($account->hostingServer);
@@ -92,5 +94,6 @@ class SyncWebspaceSubscriptionFromStripeWebhook
             'status' => 'terminated',
             'ends_at' => $endsAt,
         ]);
+        $account->user?->notify(new WebspaceDeactivatedNotification($account));
     }
 }

@@ -68,12 +68,10 @@ const previewData = ref<{
     greeting: string;
     body: string;
     action_text: string | null;
+    html?: string;
 } | null>(null);
 
-const previewBodyLines = computed(() => {
-    if (!previewData.value?.body) return [];
-    return previewData.value.body.split('\n').filter((line) => line.trim() !== '');
-});
+const previewHtml = computed(() => previewData.value?.html ?? '');
 
 function getCsrfToken(): string {
     const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
@@ -201,30 +199,21 @@ function closePreview() {
             </form>
 
             <Dialog v-model:open="previewOpen" @update:open="(v: boolean) => !v && closePreview()">
-                <DialogContent class="max-w-lg">
+                <DialogContent class="max-w-2xl max-h-[90vh] flex flex-col">
                     <DialogHeader>
-                        <DialogTitle>Vorschau (Beispieldaten)</DialogTitle>
+                        <DialogTitle>Vorschau (wie die E-Mail beim Versand aussieht)</DialogTitle>
                     </DialogHeader>
                     <div v-if="previewError" class="text-destructive text-sm">{{ previewError }}</div>
-                    <div v-else-if="previewData" class="space-y-3 text-sm">
-                        <div>
-                            <span class="font-medium text-muted-foreground">Betreff:</span>
-                            <p class="mt-1">{{ previewData.subject }}</p>
-                        </div>
-                        <div>
-                            <span class="font-medium text-muted-foreground">Anrede:</span>
-                            <p class="mt-1">{{ previewData.greeting }}</p>
-                        </div>
-                        <div>
-                            <span class="font-medium text-muted-foreground">Nachricht:</span>
-                            <div class="mt-1 whitespace-pre-wrap rounded border border-border bg-muted/30 p-3">
-                                <p v-for="(line, i) in previewBodyLines" :key="i" class="mb-1 last:mb-0">{{ line }}</p>
-                            </div>
-                        </div>
-                        <div v-if="previewData.action_text">
-                            <span class="font-medium text-muted-foreground">Button:</span>
-                            <p class="mt-1">{{ previewData.action_text }}</p>
-                        </div>
+                    <div
+                        v-else-if="previewHtml"
+                        class="min-h-0 flex-1 overflow-hidden rounded border border-border bg-muted/30"
+                    >
+                        <iframe
+                            :srcdoc="previewHtml"
+                            title="E-Mail-Vorschau"
+                            class="h-[60vh] w-full border-0"
+                            sandbox="allow-same-origin"
+                        />
                     </div>
                     <DialogFooter>
                         <DialogClose as-child>

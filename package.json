@@ -2,10 +2,12 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
-    "scripts": {
-        "build": "vite build",
-        "build:ssr": "vite build && vite build --ssr",
-        "dev": "vite",
+"scripts": {
+    "build": "vite build",
+    "build:ssr": "vite build && vite build --ssr",
+    "dev": "vite",
+    "emails:build": "cd resources/emails && npm run build",
+    "emails:install": "cd resources/emails && npm install",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix"

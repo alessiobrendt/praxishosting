@@ -5,18 +5,24 @@ namespace App\Providers;
 use App\Listeners\AddAiTokensFromStripeWebhook;
 use App\Listeners\CreateLocalInvoiceFromStripeWebhook;
 use App\Listeners\LogStripeWebhookReceived;
+use App\Listeners\SendLoginNotification;
 use App\Listeners\SendPaymentFailedNotification;
 use App\Listeners\SyncSiteSubscriptionFromStripeWebhook;
 use App\Listeners\SyncWebspaceSubscriptionFromStripeWebhook;
+use App\Models\Setting;
 use App\Models\Site;
 use App\Modules\Handlers\ContactModuleHandler;
 use App\Modules\Handlers\NewsletterModuleHandler;
 use App\Modules\ModuleRegistry;
+use App\Notifications\Channels\TransactionalMailChannel;
 use App\Observers\SiteObserver;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Cashier\Events\WebhookReceived;
@@ -71,6 +77,12 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(WebhookReceived::class, SyncWebspaceSubscriptionFromStripeWebhook::class);
         Event::listen(WebhookReceived::class, CreateLocalInvoiceFromStripeWebhook::class);
         Event::listen(WebhookReceived::class, SendPaymentFailedNotification::class);
+
+        Event::listen(Login::class, SendLoginNotification::class);
+
+        Notification::extend('transactional_mail', function () {
+            return new TransactionalMailChannel;
+        });
 
         Event::listen(MessageSending::class, function (MessageSending $event): void {
             $replyTo = Setting::get('mail_reply_to_address');

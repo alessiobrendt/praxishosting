@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
+import { logout } from '@/routes';
 import { cn } from '@/lib/utils';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Avatar } from '@/components/ui/avatar';
@@ -84,10 +85,14 @@ const headerClasses = computed(() =>
                     </Link>
                 </DropdownItem>
                 <DropdownItem>
-                    <Link href="/logout" class="flex items-center gap-2 text-red-600 dark:text-red-400">
+                    <button
+                        type="button"
+                        class="flex w-full items-center gap-2 text-left text-red-600 dark:text-red-400"
+                        @click="() => router.post(logout.url())"
+                    >
                         <LogOut class="h-4 w-4" />
                         Logout
-                    </Link>
+                    </button>
                 </DropdownItem>
             </Dropdown>
         </div>

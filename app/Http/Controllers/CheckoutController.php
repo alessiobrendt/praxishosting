@@ -11,6 +11,7 @@ use App\Models\Template;
 use App\Models\WebspaceAccount;
 use App\Notifications\InvoiceCreatedNotification;
 use App\Notifications\OrderCompletedNotification;
+use App\Notifications\WebspaceOrderCompletedNotification;
 use App\Services\ControlPanels\PleskClient;
 use App\Services\InvoiceEInvoiceService;
 use App\Services\InvoicePdfService;
@@ -547,6 +548,7 @@ class CheckoutController extends Controller
         if ($ok) {
             $account->update(['status' => 'active']);
             Log::debug('Checkout success webspace: Plesk account created', ['account_id' => $account->id]);
+            $user->notify(new WebspaceOrderCompletedNotification($account, $password));
         } else {
             Log::warning('Checkout success webspace: Plesk createAccount failed', [
                 'account_id' => $account->id,

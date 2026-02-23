@@ -3,17 +3,17 @@
 namespace App\Notifications;
 
 use App\Models\EmailTemplate;
-use App\Models\Site;
+use App\Models\Ticket;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class OrderCompletedNotification extends Notification implements ShouldQueue
+class TicketReplyNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(
-        public Site $site
+        public Ticket $ticket
     ) {}
 
     /**
@@ -29,30 +29,31 @@ class OrderCompletedNotification extends Notification implements ShouldQueue
      */
     public function toTransactionalMail(object $notifiable): array
     {
-        $url = route('sites.show', $this->site);
-        $template = EmailTemplate::find('order_completed');
+        $ticketUrl = route('support.show', $this->ticket);
+
+        $template = EmailTemplate::find('ticket_reply');
         $content = $template?->replace([
             'user_name' => $notifiable->name,
-            'site_name' => $this->site->name,
-            'site_url' => $url,
-        ]) ?? $this->defaultContent($notifiable, $url);
+            'ticket_subject' => $this->ticket->subject,
+            'ticket_url' => $ticketUrl,
+        ]) ?? $this->defaultContent($notifiable);
 
         return [
             'content' => $content,
-            'actionUrl' => $content['action_text'] ? $url : null,
+            'actionUrl' => $content['action_text'] ? $ticketUrl : null,
         ];
     }
 
     /**
      * @return array{subject: string, greeting: string, body: string, action_text: string|null}
      */
-    private function defaultContent(object $notifiable, string $siteUrl): array
+    private function defaultContent(object $notifiable): array
     {
         return [
-            'subject' => 'Ihre Bestellung wurde abgeschlossen',
+            'subject' => 'Neue Antwort auf Ihr Ticket: '.$this->ticket->subject,
             'greeting' => 'Hallo '.$notifiable->name.',',
-            'body' => "Ihre Bestellung wurde erfolgreich abgeschlossen.\nIhre Webseite **".$this->site->name."** wurde eingerichtet.\nVielen Dank für Ihr Vertrauen.",
-            'action_text' => 'Zur Webseite',
+            'body' => 'Es gibt eine neue Antwort auf Ihr Support-Ticket **'.$this->ticket->subject.'**. Bitte melden Sie sich an, um die Nachricht zu lesen und ggf. zu antworten.',
+            'action_text' => 'Ticket ansehen',
         ];
     }
 }
