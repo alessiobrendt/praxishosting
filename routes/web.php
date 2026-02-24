@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DiscountCodeController;
 use App\Http\Controllers\Admin\DunningLetterController;
 use App\Http\Controllers\Admin\EmailController;
+use App\Http\Controllers\Admin\GameServerAccountController;
 use App\Http\Controllers\Admin\HostingPlanController;
 use App\Http\Controllers\Admin\HostingServerController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -24,10 +25,13 @@ use App\Http\Controllers\Admin\TicketController;
 use App\Http\Controllers\Admin\TicketPriorityController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\AiTokenController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingPortalController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\GalleryController;
+use App\Http\Controllers\GamingAccountController;
+use App\Http\Controllers\GamingController;
 use App\Http\Controllers\InvoiceController as CustomerInvoiceController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\SiteCollaboratorController;
@@ -42,6 +46,11 @@ use App\Http\Middleware\DisableCacheForSiteRender;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
+
+Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+    ->name('auth.social.redirect');
+Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
+    ->name('auth.social.callback');
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -105,6 +114,12 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
     Route::get('webspace-accounts', [WebspaceAccountController::class, 'index'])->name('webspace-accounts.index');
     Route::get('webspace-accounts/{webspace_account}/plesk-login', [WebspaceAccountController::class, 'pleskLogin'])->name('webspace-accounts.plesk-login');
     Route::get('webspace-accounts/{webspace_account}', [WebspaceAccountController::class, 'show'])->name('webspace-accounts.show');
+
+    Route::get('gaming', [GamingController::class, 'index'])->name('gaming.index');
+    Route::get('gaming/checkout', [GamingController::class, 'checkout'])->name('gaming.checkout');
+    Route::post('gaming/checkout', [GamingController::class, 'storeCheckout'])->middleware('billing.profile')->name('gaming.checkout.store');
+    Route::get('gaming-accounts', [GamingAccountController::class, 'index'])->name('gaming-accounts.index');
+    Route::get('gaming-accounts/{game_server_account}', [GamingAccountController::class, 'show'])->name('gaming-accounts.show');
 
     Route::get('invoices/{invoice}/pdf', [CustomerInvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
     Route::get('invoices/{invoice}/xml', [CustomerInvoiceController::class, 'downloadXml'])->name('invoices.xml');
@@ -209,6 +224,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('webspace-accounts', [\App\Http\Controllers\Admin\WebspaceAccountController::class, 'index'])->name('webspace-accounts.index');
     Route::post('webspace-accounts/{webspace_account}/retry-plesk', [\App\Http\Controllers\Admin\WebspaceAccountController::class, 'retryPlesk'])->name('webspace-accounts.retry-plesk');
     Route::get('webspace-accounts/{webspace_account}', [\App\Http\Controllers\Admin\WebspaceAccountController::class, 'show'])->name('webspace-accounts.show');
+    Route::get('gaming-accounts', [GameServerAccountController::class, 'index'])->name('gaming-accounts.index');
+    Route::post('gaming-accounts/{game_server_account}/retry-provisioning', [GameServerAccountController::class, 'retryProvisioning'])->name('gaming-accounts.retry-provisioning');
+    Route::get('gaming-accounts/{game_server_account}', [GameServerAccountController::class, 'show'])->name('gaming-accounts.show');
     Route::resource('templates', TemplateController::class);
     Route::get('templates/{template}/design', [\App\Http\Controllers\Admin\TemplateDesignController::class, 'design'])->name('templates.design');
     Route::put('templates/{template}/design', [\App\Http\Controllers\Admin\TemplateDesignController::class, 'update'])->name('templates.design.update');

@@ -14,6 +14,9 @@ import { ref, computed } from 'vue';
 
 type HostingServer = {
     id: number;
+    brand_id: number | null;
+    panel_type: string;
+    config: Record<string, string> | null;
     name: string | null;
     hostname: string;
     port: number | null;
@@ -23,14 +26,21 @@ type HostingServer = {
     is_active: boolean;
 };
 
+type PanelTypeOption = { value: string; label: string };
+
 type Props = {
     hostingServer: HostingServer;
+    allowedPanelTypes: PanelTypeOption[];
 };
 
 const props = defineProps<Props>();
 
 const isActive = ref(props.hostingServer.is_active);
 const useSsl = ref(props.hostingServer.use_ssl ?? true);
+const panelType = ref(props.hostingServer.panel_type ?? 'plesk');
+const config = ref<Record<string, string>>(props.hostingServer.config ?? {});
+const showPleskFields = computed(() => panelType.value === 'plesk');
+const showPterodactylFields = computed(() => panelType.value === 'pterodactyl');
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -55,7 +65,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <CardHeader>
                     <CardTitle>Server-Details</CardTitle>
                     <CardDescription>
-                    Hostname, Port, API-Zugang. Bei API-Benutzername wird die Plesk REST API v2 (Basic Auth) verwendet.
+                    Panel-Typ, Hostname und API-Zugang. Plesk: REST API. Pterodactyl: Application API.
                 </CardDescription>
                 </CardHeader>
                 <Form
@@ -66,6 +76,60 @@ const breadcrumbs: BreadcrumbItem[] = [
                 >
                     <CardContent class="space-y-4">
                         <input type="hidden" name="_method" value="PUT" />
+                        <div class="space-y-2">
+                            <Label for="panel_type">Panel-Typ *</Label>
+                            <Select
+                                id="panel_type"
+                                name="panel_type"
+                                v-model="panelType"
+                                required
+                            >
+                                <option
+                                    v-for="opt in allowedPanelTypes"
+                                    :key="opt.value"
+                                    :value="opt.value"
+                                >
+                                    {{ opt.label }}
+                                </option>
+                            </Select>
+                            <InputError :message="errors.panel_type" />
+                        </div>
+                        <template v-if="showPterodactylFields">
+                            <div class="space-y-2">
+                                <Label for="config_base_uri">Panel-URL (Base URI) *</Label>
+                                <Input
+                                    id="config_base_uri"
+                                    name="config[base_uri]"
+                                    :model-value="config.base_uri ?? ''"
+                                    placeholder="https://panel.example.com"
+                                    :aria-invalid="!!errors['config.base_uri']"
+                                />
+                                <InputError :message="errors['config.base_uri']" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="config_api_key">Application API Key</Label>
+                                <Input
+                                    id="config_api_key"
+                                    name="config[api_key]"
+                                    type="password"
+                                    :model-value="config.api_key ?? ''"
+                                    placeholder="Leer lassen um beizubehalten"
+                                    :aria-invalid="!!errors['config.api_key']"
+                                />
+                                <InputError :message="errors['config.api_key']" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="config_client_api_key">Client API Key (optional)</Label>
+                                <Input
+                                    id="config_client_api_key"
+                                    name="config[client_api_key]"
+                                    type="password"
+                                    :model-value="config.client_api_key ?? ''"
+                                    placeholder="Für eingebettete Panel-Funktionen"
+                                />
+                                <InputError :message="errors['config.client_api_key']" />
+                            </div>
+                        </template>
                         <div class="space-y-2">
                             <Label for="name">Name (optional)</Label>
                             <Input
@@ -136,7 +200,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                             <Text class="text-sm" muted>Für Plesk Reseller: Muss eine IP aus Ihrem Reseller-IP-Pool sein (Plesk → IP-Adressen).</Text>
                             <InputError :message="errors.ip_address" />
                         </div>
-                        <div class="space-y-2">
+                        <div v-if="showPleskFields" class="space-y-2">
                             <Label for="api_token">API-Token / Passwort</Label>
                             <Input
                                 id="api_token"

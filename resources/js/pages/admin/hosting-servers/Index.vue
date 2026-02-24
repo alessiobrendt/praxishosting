@@ -47,7 +47,7 @@ const handlePagination = (url: string) => {
                 <div>
                     <Heading level="h1">Hosting-Server</Heading>
                     <Text class="mt-2" muted>
-                        Plesk-Server für Webspace-Accounts
+                        Plesk- und Pterodactyl-Server (nicht markenbezogen)
                     </Text>
                 </div>
                 <Link href="/admin/hosting-servers/create">
@@ -104,7 +104,7 @@ const handlePagination = (url: string) => {
                                 </TableCell>
                             </TableRow>
                             <TableRow v-if="props.hostingServers.data.length === 0">
-                                <TableCell colspan="5" class="text-center text-gray-500 dark:text-gray-400">
+                                <TableCell colspan="5" class="text-center text-muted-foreground">
                                     Keine Server vorhanden
                                 </TableCell>
                             </TableRow>

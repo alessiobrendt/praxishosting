@@ -42,6 +42,7 @@ class BrandController extends Controller
             'features.webspace' => ['boolean'],
             'features.domains_shop' => ['boolean'],
             'features.ai_tokens' => ['boolean'],
+            'features.gaming' => ['boolean'],
             'salutation' => ['nullable', 'string', 'in:formal,informal'],
             'mail_header' => ['nullable', 'string', 'max:2000'],
             'mail_footer' => ['nullable', 'string', 'max:2000'],

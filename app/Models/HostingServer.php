@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class HostingServer extends Model
@@ -11,6 +12,9 @@ class HostingServer extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'brand_id',
+        'panel_type',
+        'config',
         'name',
         'hostname',
         'port',
@@ -30,7 +34,13 @@ class HostingServer extends Model
             'port' => 'integer',
             'use_ssl' => 'boolean',
             'is_active' => 'boolean',
+            'config' => 'array',
         ];
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     public function usesRestApi(): bool
@@ -44,5 +54,13 @@ class HostingServer extends Model
     public function webspaceAccounts(): HasMany
     {
         return $this->hasMany(WebspaceAccount::class);
+    }
+
+    /**
+     * @return HasMany<GameServerAccount>
+     */
+    public function gameServerAccounts(): HasMany
+    {
+        return $this->hasMany(GameServerAccount::class, 'hosting_server_id');
     }
 }

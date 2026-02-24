@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Link as TypographyLink, Text } from '@/components/ui/typography';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { store } from '@/routes/register';
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons.vue';
 </script>
 
 <template>
@@ -16,6 +17,8 @@ import { store } from '@/routes/register';
         description="Geben Sie Ihre Daten ein, um ein Konto zu erstellen"
     >
         <Head title="Registrieren" />
+
+        <SocialAuthButtons variant="register" class="mb-6" />
 
         <Form
             v-bind="store.form()"

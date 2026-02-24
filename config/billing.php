@@ -52,6 +52,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Stripe Product ID (Game Server / Pterodactyl)
+    |--------------------------------------------------------------------------
+    |
+    | One Stripe Product under which game server plan prices are created as
+    | Stripe Prices. Used for Pterodactyl HostingPlan sync and gaming checkout.
+    |
+    */
+
+    'stripe_game_server_product_id' => env('STRIPE_GAME_SERVER_PRODUCT_ID'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Additional Domain Price ID
     |--------------------------------------------------------------------------
     |

@@ -26,15 +26,25 @@ class StoreHostingServerRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
+            'brand_id' => ['nullable', 'exists:brands,id'],
+            'panel_type' => ['required', 'string', 'in:plesk,pterodactyl'],
+            'config' => ['nullable', 'array'],
             'name' => ['nullable', 'string', 'max:255'],
             'hostname' => ['required', 'string', 'max:255'],
             'port' => ['nullable', 'integer', 'min:1', 'max:65535'],
             'use_ssl' => ['boolean'],
             'ip_address' => ['nullable', 'string', 'max:45'],
-            'api_token' => ['required', 'string'],
+            'api_token' => ['required_unless:panel_type,pterodactyl', 'nullable', 'string'],
             'api_username' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
         ];
+        if ($this->input('panel_type') === 'pterodactyl') {
+            $rules['config.base_uri'] = ['required', 'string', 'max:500'];
+            $rules['config.api_key'] = ['required', 'string'];
+            $rules['config.client_api_key'] = ['nullable', 'string'];
+        }
+
+        return $rules;
     }
 }

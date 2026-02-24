@@ -10,9 +10,11 @@ import { Link as TypographyLink, Text } from '@/components/ui/typography';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import AuthenticatedSessionController from '@/actions/Laravel/Fortify/Http/Controllers/AuthenticatedSessionController';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons.vue';
 
 defineProps<{
     status?: string;
+    error?: string;
     canResetPassword: boolean;
     canRegister: boolean;
 }>();
@@ -28,6 +30,12 @@ defineProps<{
         <Alert v-if="status" variant="success" class="mb-6">
             <AlertDescription>{{ status }}</AlertDescription>
         </Alert>
+
+        <Alert v-if="error" variant="destructive" class="mb-6">
+            <AlertDescription>{{ error }}</AlertDescription>
+        </Alert>
+
+        <SocialAuthButtons variant="login" class="mb-6" />
 
         <Form
             :action="AuthenticatedSessionController.store.url()"
@@ -103,7 +111,7 @@ defineProps<{
             >
                 <Text variant="small" muted>
                     Noch kein Konto?
-                    <TypographyLink href="/register" :tabindex="5">Registrieren</TypographyLink>
+                    <TypographyLink href="/register" :tabindex="6">Registrieren</TypographyLink>
                 </Text>
             </div>
         </Form>

@@ -13,6 +13,15 @@ class SyncHostingPlanStripePriceService
         protected StripeClient $stripe
     ) {}
 
+    protected function productIdForPlan(HostingPlan $plan): ?string
+    {
+        $panelType = $plan->panel_type ?? 'plesk';
+
+        return $panelType === 'pterodactyl'
+            ? config('billing.stripe_game_server_product_id')
+            : config('billing.stripe_webspace_product_id');
+    }
+
     /**
      * Ensure the hosting plan has a Stripe Price ID. Creates or updates the Stripe Price
      * when the plan has a price set. Stripe Prices are immutable; on price change a new
@@ -20,7 +29,7 @@ class SyncHostingPlanStripePriceService
      */
     public function sync(HostingPlan $plan): void
     {
-        $productId = config('billing.stripe_webspace_product_id');
+        $productId = $this->productIdForPlan($plan);
         if (! $productId) {
             return;
         }
@@ -54,9 +63,11 @@ class SyncHostingPlanStripePriceService
             ]);
         } catch (StripeInvalidRequestException $e) {
             if (str_contains($e->getMessage(), 'No such product')) {
+                $configKey = ($plan->panel_type ?? 'plesk') === 'pterodactyl'
+                    ? 'STRIPE_GAME_SERVER_PRODUCT_ID'
+                    : 'STRIPE_WEBSPACE_PRODUCT_ID';
                 throw new RuntimeException(
-                    'Stripe-Produkt nicht gefunden. Bitte im Stripe-Dashboard ein Produkt anlegen (z. B. "Webspace") '
-                    .'und die Produkt-ID (prod_…) in .env als STRIPE_WEBSPACE_PRODUCT_ID eintragen.',
+                    'Stripe-Produkt nicht gefunden. Bitte im Stripe-Dashboard ein Produkt anlegen und die Produkt-ID (prod_…) in .env als '.$configKey.' eintragen.',
                     0,
                     $e
                 );
@@ -77,7 +88,7 @@ class SyncHostingPlanStripePriceService
             return $plan->stripe_price_id;
         }
 
-        $productId = config('billing.stripe_webspace_product_id');
+        $productId = $this->productIdForPlan($plan);
         if (! $productId) {
             return null;
         }
@@ -100,9 +111,11 @@ class SyncHostingPlanStripePriceService
             ]);
         } catch (StripeInvalidRequestException $e) {
             if (str_contains($e->getMessage(), 'No such product')) {
+                $configKey = ($plan->panel_type ?? 'plesk') === 'pterodactyl'
+                    ? 'STRIPE_GAME_SERVER_PRODUCT_ID'
+                    : 'STRIPE_WEBSPACE_PRODUCT_ID';
                 throw new RuntimeException(
-                    'Stripe-Produkt nicht gefunden. Bitte im Stripe-Dashboard ein Produkt anlegen (z. B. "Webspace") '
-                    .'und die Produkt-ID (prod_…) in .env als STRIPE_WEBSPACE_PRODUCT_ID eintragen.',
+                    'Stripe-Produkt nicht gefunden. Bitte im Stripe-Dashboard ein Produkt anlegen und die Produkt-ID (prod_…) in .env als '.$configKey.' eintragen.',
                     0,
                     $e
                 );

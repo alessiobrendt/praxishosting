@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -8,14 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-    DialogClose,
-} from '@/components/ui/dialog';
 import InputError from '@/components/InputError.vue';
 import { dashboard } from '@/routes';
 import {
@@ -60,28 +53,18 @@ const submit = () => {
     form.put(emailsUpdate.url({ emailTemplate: props.emailTemplate.key }));
 };
 
-const previewOpen = ref(false);
 const previewLoading = ref(false);
 const previewError = ref<string | null>(null);
-const previewData = ref<{
-    subject: string;
-    greeting: string;
-    body: string;
-    action_text: string | null;
-    html?: string;
-} | null>(null);
-
-const previewHtml = computed(() => previewData.value?.html ?? '');
+const previewHtml = ref('');
 
 function getCsrfToken(): string {
     const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
     return match ? decodeURIComponent(match[1]) : '';
 }
 
-async function openPreview() {
+async function fetchPreview() {
     previewError.value = null;
     previewLoading.value = true;
-    previewOpen.value = true;
     try {
         const res = await fetch(emailsPreview.url({ emailTemplate: props.emailTemplate.key }), {
             method: 'POST',
@@ -104,7 +87,7 @@ async function openPreview() {
             previewError.value = data.message ?? 'Vorschau konnte nicht geladen werden.';
             return;
         }
-        previewData.value = data;
+        previewHtml.value = data.html ?? '';
     } catch {
         previewError.value = 'Vorschau konnte nicht geladen werden.';
     } finally {
@@ -112,16 +95,22 @@ async function openPreview() {
     }
 }
 
+const debouncedFetchPreview = useDebounceFn(fetchPreview, 400);
+
+watch(
+    () => [form.subject, form.greeting, form.body, form.action_text],
+    () => debouncedFetchPreview(),
+    { deep: true },
+);
+
+onMounted(() => {
+    fetchPreview();
+});
+
 function sendTestEmail() {
     router.post(emailsSendTest.url({ emailTemplate: props.emailTemplate.key }), {}, {
         preserveScroll: true,
     });
-}
-
-function closePreview() {
-    previewOpen.value = false;
-    previewData.value = null;
-    previewError.value = null;
 }
 </script>
 
@@ -137,91 +126,83 @@ function closePreview() {
                 </Text>
             </div>
 
-            <form class="max-w-2xl space-y-6" @submit.prevent="submit">
-                <Card>
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <form class="space-y-6" @submit.prevent="submit">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Inhalt</CardTitle>
+                            <CardDescription v-if="placeholders.length">
+                                Verfügbare Platzhalter: {{ placeholders.map((p) => `:${p}`).join(', ') }}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-4">
+                            <div class="space-y-2">
+                                <Label for="subject">Betreff</Label>
+                                <Input id="subject" v-model="form.subject" required :aria-invalid="!!form.errors.subject" />
+                                <InputError :message="form.errors.subject" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="greeting">Anrede</Label>
+                                <Input id="greeting" v-model="form.greeting" required :aria-invalid="!!form.errors.greeting" />
+                                <InputError :message="form.errors.greeting" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="body">Nachricht (Zeilenumbrüche bleiben erhalten, **fett** für Markdown)</Label>
+                                <Textarea
+                                    id="body"
+                                    v-model="form.body"
+                                    required
+                                    :rows="12"
+                                    class="font-mono text-sm"
+                                    :aria-invalid="!!form.errors.body"
+                                />
+                                <InputError :message="form.errors.body" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="action_text">Button-Text (optional)</Label>
+                                <Input id="action_text" v-model="form.action_text" :aria-invalid="!!form.errors.action_text" />
+                                <InputError :message="form.errors.action_text" />
+                            </div>
+                        </CardContent>
+                        <CardFooter class="flex flex-wrap gap-2">
+                            <Button type="submit" :disabled="form.processing">Speichern</Button>
+                            <Button type="button" variant="outline" @click="sendTestEmail">
+                                Test senden
+                            </Button>
+                            <Link :href="emailsIndex().url">
+                                <Button type="button" variant="outline">Abbrechen</Button>
+                            </Link>
+                        </CardFooter>
+                    </Card>
+                </form>
+
+                <Card class="xl:sticky xl:top-6 xl:self-start">
                     <CardHeader>
-                        <CardTitle>Inhalt</CardTitle>
-                        <CardDescription v-if="placeholders.length">
-                            Verfügbare Platzhalter: {{ placeholders.map((p) => `:${p}`).join(', ') }}
-                        </CardDescription>
+                        <CardTitle>Live-Vorschau</CardTitle>
+                        <CardDescription>Wie die E-Mail beim Versand aussieht (aktualisiert beim Tippen)</CardDescription>
                     </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div class="space-y-2">
-                            <Label for="subject">Betreff</Label>
-                            <Input id="subject" v-model="form.subject" required :aria-invalid="!!form.errors.subject" />
-                            <InputError :message="form.errors.subject" />
+                    <CardContent>
+                        <div v-if="previewError" class="rounded border border-border bg-muted/30 p-4 text-sm text-destructive">
+                            {{ previewError }}
                         </div>
-                        <div class="space-y-2">
-                            <Label for="greeting">Anrede</Label>
-                            <Input id="greeting" v-model="form.greeting" required :aria-invalid="!!form.errors.greeting" />
-                            <InputError :message="form.errors.greeting" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="body">Nachricht (Zeilenumbrüche bleiben erhalten, **fett** für Markdown)</Label>
-                            <Textarea
-                                id="body"
-                                v-model="form.body"
-                                required
-                                rows="12"
-                                class="font-mono text-sm"
-                                :aria-invalid="!!form.errors.body"
+                        <div
+                            v-else
+                            class="min-h-[400px] overflow-hidden rounded border border-border bg-muted/30"
+                        >
+                            <div v-if="previewLoading && !previewHtml" class="flex h-64 items-center justify-center text-muted-foreground">
+                                Lädt…
+                            </div>
+                            <iframe
+                                v-else
+                                :srcdoc="previewHtml"
+                                title="E-Mail-Vorschau"
+                                class="h-[70vh] min-h-[400px] w-full border-0"
+                                sandbox="allow-same-origin"
                             />
-                            <InputError :message="form.errors.body" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="action_text">Button-Text (optional)</Label>
-                            <Input id="action_text" v-model="form.action_text" :aria-invalid="!!form.errors.action_text" />
-                            <InputError :message="form.errors.action_text" />
                         </div>
                     </CardContent>
-                    <CardFooter class="flex flex-wrap gap-2">
-                        <Button type="submit" :disabled="form.processing">Speichern</Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            :disabled="previewLoading"
-                            @click="openPreview"
-                        >
-                            {{ previewLoading ? 'Laden…' : 'Vorschau' }}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            @click="sendTestEmail"
-                        >
-                            Test senden
-                        </Button>
-                        <Link :href="emailsIndex().url">
-                            <Button type="button" variant="outline">Abbrechen</Button>
-                        </Link>
-                    </CardFooter>
                 </Card>
-            </form>
-
-            <Dialog v-model:open="previewOpen" @update:open="(v: boolean) => !v && closePreview()">
-                <DialogContent class="max-w-2xl max-h-[90vh] flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle>Vorschau (wie die E-Mail beim Versand aussieht)</DialogTitle>
-                    </DialogHeader>
-                    <div v-if="previewError" class="text-destructive text-sm">{{ previewError }}</div>
-                    <div
-                        v-else-if="previewHtml"
-                        class="min-h-0 flex-1 overflow-hidden rounded border border-border bg-muted/30"
-                    >
-                        <iframe
-                            :srcdoc="previewHtml"
-                            title="E-Mail-Vorschau"
-                            class="h-[60vh] w-full border-0"
-                            sandbox="allow-same-origin"
-                        />
-                    </div>
-                    <DialogFooter>
-                        <DialogClose as-child>
-                            <Button variant="outline">Schließen</Button>
-                        </DialogClose>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            </div>
         </div>
     </AppLayout>
 </template>

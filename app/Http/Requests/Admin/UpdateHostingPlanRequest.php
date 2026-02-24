@@ -19,9 +19,12 @@ class UpdateHostingPlanRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
+            'hosting_server_id' => ['required_if:panel_type,pterodactyl', 'nullable', 'exists:hosting_servers,id'],
+            'panel_type' => ['required', 'string', 'in:plesk,pterodactyl'],
+            'config' => ['nullable', 'array'],
             'name' => ['required', 'string', 'max:255'],
-            'plesk_package_name' => ['required', 'string', 'max:255'],
+            'plesk_package_name' => ['required_if:panel_type,plesk', 'nullable', 'string', 'max:255'],
             'disk_gb' => ['integer', 'min:0'],
             'traffic_gb' => ['integer', 'min:0'],
             'domains' => ['integer', 'min:0'],
@@ -33,5 +36,14 @@ class UpdateHostingPlanRequest extends FormRequest
             'is_active' => ['boolean'],
             'sort_order' => ['integer', 'min:0'],
         ];
+        if ($this->input('panel_type') === 'pterodactyl') {
+            $rules['config.nest_id'] = ['required', 'integer', 'min:1'];
+            $rules['config.egg_id'] = ['required', 'integer', 'min:1'];
+            $rules['config.memory'] = ['nullable', 'integer', 'min:0'];
+            $rules['config.disk'] = ['nullable', 'integer', 'min:0'];
+            $rules['config.cpu'] = ['nullable', 'integer', 'min:0'];
+        }
+
+        return $rules;
     }
 }

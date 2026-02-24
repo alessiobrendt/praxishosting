@@ -26,7 +26,9 @@ class UpdateHostingServerRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
+            'panel_type' => ['required', 'string', 'in:plesk,pterodactyl'],
+            'config' => ['nullable', 'array'],
             'name' => ['nullable', 'string', 'max:255'],
             'hostname' => ['required', 'string', 'max:255'],
             'port' => ['nullable', 'integer', 'min:1', 'max:65535'],
@@ -36,5 +38,12 @@ class UpdateHostingServerRequest extends FormRequest
             'api_username' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
         ];
+        if ($this->input('panel_type') === 'pterodactyl') {
+            $rules['config.base_uri'] = ['nullable', 'string', 'max:500'];
+            $rules['config.api_key'] = ['nullable', 'string'];
+            $rules['config.client_api_key'] = ['nullable', 'string'];
+        }
+
+        return $rules;
     }
 }

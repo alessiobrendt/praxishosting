@@ -75,6 +75,9 @@ const sidebarItems = computed<NavItem[]>(() => {
         ...(brandFeatures.value.webspace !== false
             ? [{ title: 'Meine Webspaces', href: '/webspace-accounts', icon: HardDrive }]
             : []),
+        ...(brandFeatures.value.gaming === true
+            ? [{ title: 'Meine Game Server', href: '/gaming-accounts', icon: HardDrive }]
+            : []),
         supportItem,
     ];
     if (activeUserModules.value.length > 0) {
@@ -132,7 +135,12 @@ const sidebarItems = computed<NavItem[]>(() => {
                     children: [
                         { title: 'Hosting-Server', href: '/admin/hosting-servers', icon: GitBranch },
                         { title: 'Hosting-Pläne', href: '/admin/hosting-plans', icon: Package },
-                        { title: 'Webspace-Accounts', href: '/admin/webspace-accounts', icon: LayoutGrid },
+                        ...(brandFeatures.value.webspace !== false
+                            ? [{ title: 'Webspace-Accounts', href: '/admin/webspace-accounts', icon: LayoutGrid }]
+                            : []),
+                        ...(brandFeatures.value.gaming === true
+                            ? [{ title: 'Game-Server-Accounts', href: '/admin/gaming-accounts', icon: LayoutGrid }]
+                            : []),
                     ],
                 },
                 {

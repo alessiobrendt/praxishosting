@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
@@ -12,6 +13,10 @@ class HostingPlan extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'brand_id',
+        'hosting_server_id',
+        'panel_type',
+        'config',
         'name',
         'plesk_package_name',
         'disk_gb',
@@ -34,7 +39,23 @@ class HostingPlan extends Model
         return [
             'price' => 'decimal:2',
             'is_active' => 'boolean',
+            'config' => 'array',
         ];
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    /**
+     * Pterodactyl hosting server to use for provisioning (only for panel_type pterodactyl).
+     *
+     * @return BelongsTo<HostingServer|null, HostingPlan>
+     */
+    public function hostingServer(): BelongsTo
+    {
+        return $this->belongsTo(HostingServer::class);
     }
 
     /**
@@ -53,5 +74,13 @@ class HostingPlan extends Model
     public function webspaceAccounts(): HasMany
     {
         return $this->hasMany(WebspaceAccount::class);
+    }
+
+    /**
+     * @return HasMany<GameServerAccount>
+     */
+    public function gameServerAccounts(): HasMany
+    {
+        return $this->hasMany(GameServerAccount::class);
     }
 }

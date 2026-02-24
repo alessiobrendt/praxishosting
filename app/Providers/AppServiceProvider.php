@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Cashier\Events\WebhookReceived;
+use SocialiteProviders\Manager\SocialiteWasCalled;
 use Stripe\StripeClient;
 
 class AppServiceProvider extends ServiceProvider
@@ -84,6 +85,11 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(WebhookReceived::class, SendPaymentFailedNotification::class);
 
         Event::listen(Login::class, SendLoginNotification::class);
+
+        Event::listen(SocialiteWasCalled::class, function (SocialiteWasCalled $event): void {
+            $event->extendSocialite('google', \SocialiteProviders\Google\Provider::class);
+            $event->extendSocialite('discord', \SocialiteProviders\Discord\Provider::class);
+        });
 
         Notification::extend('transactional_mail', function () {
             return new TransactionalMailChannel;

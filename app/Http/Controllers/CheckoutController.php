@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GameServerAccount;
 use App\Models\HostingPlan;
 use App\Models\HostingServer;
 use App\Models\Invoice;
@@ -13,6 +14,7 @@ use App\Notifications\InvoiceCreatedNotification;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\WebspaceOrderCompletedNotification;
 use App\Services\ControlPanels\PleskClient;
+use App\Services\ControlPanels\PterodactylClient;
 use App\Services\InvoiceEInvoiceService;
 use App\Services\InvoicePdfService;
 use App\Services\SyncHostingPlanStripePriceService;
@@ -42,6 +44,11 @@ class CheckoutController extends Controller
         $webspacePayload = $request->session()->get('checkout_webspace');
         if ($webspacePayload && isset($webspacePayload['hosting_plan_id'], $webspacePayload['domain'])) {
             return $this->buildWebspaceCheckoutRedirect($request, $webspacePayload);
+        }
+
+        $gamingPayload = $request->session()->get('checkout_gaming');
+        if ($gamingPayload && isset($gamingPayload['hosting_plan_id'], $gamingPayload['user_id'])) {
+            return $this->buildGamingCheckoutRedirect($request, $gamingPayload);
         }
 
         $payload = $request->session()->get('checkout_meine_seiten');
@@ -240,6 +247,10 @@ class CheckoutController extends Controller
 
         if ($checkoutType === 'webspace') {
             return $this->handleWebspaceCheckoutSuccess($request, $user, $subscription, $metadata);
+        }
+
+        if ($checkoutType === 'game_server') {
+            return $this->handleGamingCheckoutSuccess($request, $user, $subscription, $metadata);
         }
 
         $templateId = (int) ($metadata['template_id'] ?? 0);
@@ -456,6 +467,192 @@ class CheckoutController extends Controller
 
             return redirect()->route('webspace.checkout', ['plan' => $plan->id])
                 ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Build Stripe Checkout for game server and return redirect.
+     */
+    public function buildGamingCheckoutRedirect(Request $request, array $payload): RedirectResponse|Response
+    {
+        $user = $request->user();
+        $plan = HostingPlan::find($payload['hosting_plan_id'] ?? 0);
+        if (! $plan || ! $plan->is_active || $plan->panel_type !== 'pterodactyl') {
+            $request->session()->forget('checkout_gaming');
+
+            return redirect()->route('gaming.index')->with('error', 'Paket nicht gefunden oder inaktiv.');
+        }
+
+        $priceId = $plan->stripe_price_id;
+        if (! $priceId) {
+            try {
+                $priceId = app(SyncHostingPlanStripePriceService::class)->ensurePriceId($plan);
+            } catch (RuntimeException $e) {
+                $request->session()->forget('checkout_gaming');
+
+                return redirect()->route('gaming.checkout', ['plan' => $plan->id])
+                    ->with('error', $e->getMessage());
+            }
+        }
+        if (! $priceId) {
+            $request->session()->forget('checkout_gaming');
+
+            return redirect()->route('gaming.checkout', ['plan' => $plan->id])
+                ->with('error', 'Kein Stripe-Preis für dieses Paket. Bitte im Admin unter Hosting-Pläne einen Preis angeben.');
+        }
+
+        $serverName = $payload['server_name'] ?? $plan->name.' #'.($user->gameServerAccounts()->count() + 1);
+
+        try {
+            $checkout = Checkout::customer($user)
+                ->allowPromotionCodes()
+                ->create($priceId, [
+                    'mode' => StripeSession::MODE_SUBSCRIPTION,
+                    'success_url' => route('checkout.success').'?session_id={CHECKOUT_SESSION_ID}',
+                    'cancel_url' => route('gaming.checkout', ['plan' => $plan->id]),
+                    'subscription_data' => [
+                        'metadata' => [
+                            'type' => 'game_server',
+                            'hosting_plan_id' => (string) $plan->id,
+                            'user_id' => (string) $user->id,
+                            'server_name' => $serverName,
+                        ],
+                    ],
+                ]);
+
+            $request->session()->forget('checkout_gaming');
+
+            $stripeUrl = $checkout->redirect()->getTargetUrl();
+            $request->session()->put('stripe_checkout_redirect_url', $stripeUrl);
+
+            return redirect()->route('checkout.redirect-to-stripe');
+        } catch (InvalidRequestException $e) {
+            $request->session()->forget('checkout_gaming');
+
+            return redirect()->route('gaming.checkout', ['plan' => $plan->id])
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Create GameServerAccount and Pterodactyl server after successful Stripe checkout.
+     */
+    protected function handleGamingCheckoutSuccess(Request $request, \App\Models\User $user, \Stripe\Subscription $subscription, array $metadata): RedirectResponse
+    {
+        $planId = (int) ($metadata['hosting_plan_id'] ?? 0);
+        $userId = (int) ($metadata['user_id'] ?? 0);
+        $serverName = $metadata['server_name'] ?? $user->name.' Game Server';
+
+        if ($userId !== $user->id || $planId < 1) {
+            Log::debug('Checkout success gaming: invalid metadata');
+
+            return redirect()->route('gaming-accounts.index')->with('error', 'Ungültige Abo-Daten.');
+        }
+
+        $existing = GameServerAccount::where('stripe_subscription_id', $subscription->id)->first();
+        if ($existing) {
+            return redirect()->route('gaming-accounts.show', $existing->id)->with('success', 'Ihr Game-Server ist aktiv.');
+        }
+
+        $plan = HostingPlan::find($planId);
+        if (! $plan || $plan->panel_type !== 'pterodactyl') {
+            return redirect()->route('gaming.index')->with('error', 'Paket nicht gefunden.');
+        }
+
+        $server = null;
+        if ($plan->hosting_server_id) {
+            $server = HostingServer::query()
+                ->where('id', $plan->hosting_server_id)
+                ->where('is_active', true)
+                ->where('panel_type', 'pterodactyl')
+                ->first();
+        }
+        if (! $server) {
+            $server = HostingServer::query()
+                ->where('is_active', true)
+                ->where('panel_type', 'pterodactyl')
+                ->first();
+        }
+
+        if (! $server) {
+            $account = $user->gameServerAccounts()->create([
+                'hosting_plan_id' => $plan->id,
+                'hosting_server_id' => null,
+                'name' => $serverName,
+                'status' => 'pending',
+                'stripe_subscription_id' => $subscription->id,
+                'stripe_price_id' => $subscription->items->data[0]->price->id ?? null,
+                'current_period_ends_at' => isset($subscription->current_period_end) ? Carbon::createFromTimestamp($subscription->current_period_end) : null,
+                'cancel_at_period_end' => (bool) $subscription->cancel_at_period_end,
+                'ends_at' => $subscription->ended_at ? Carbon::createFromTimestamp($subscription->ended_at) : null,
+                'renewal_type' => 'auto',
+            ]);
+
+            return redirect()->route('gaming-accounts.show', $account->id)
+                ->with('error', 'Für dieses Paket ist kein Pterodactyl-Panel-Server zugewiesen. Bitte im Admin unter Hosting-Pakete beim betreffenden Paket einen Panel-Server angeben.');
+        }
+
+        $password = Str::password(20);
+        $config = $plan->config ?? [];
+        $params = [
+            'email' => $user->email,
+            'username' => str_replace([' ', '.'], '_', Str::lower($user->name)).'_'.Str::random(4),
+            'first_name' => $user->name,
+            'last_name' => '',
+            'password' => $password,
+            'server_name' => $serverName,
+            'nest_id' => (int) ($config['nest_id'] ?? 1),
+            'egg_id' => (int) ($config['egg_id'] ?? 1),
+            'memory' => (int) ($config['memory'] ?? 512),
+            'disk' => (int) ($config['disk'] ?? 5120),
+            'cpu' => (int) ($config['cpu'] ?? 0),
+            'databases' => (int) ($config['databases'] ?? 0),
+            'backups' => (int) ($config['backups'] ?? 0),
+            'allocations' => 1,
+        ];
+
+        $account = $user->gameServerAccounts()->create([
+            'hosting_plan_id' => $plan->id,
+            'hosting_server_id' => $server->id,
+            'product_id' => $plan->product?->id,
+            'name' => $serverName,
+            'status' => 'pending',
+            'stripe_subscription_id' => $subscription->id,
+            'stripe_price_id' => $subscription->items->data[0]->price->id ?? null,
+            'current_period_ends_at' => isset($subscription->current_period_end) ? Carbon::createFromTimestamp($subscription->current_period_end) : null,
+            'cancel_at_period_end' => (bool) $subscription->cancel_at_period_end,
+            'ends_at' => $subscription->ended_at ? Carbon::createFromTimestamp($subscription->ended_at) : null,
+            'renewal_type' => 'auto',
+        ]);
+
+        try {
+            $ptero = app(PterodactylClient::class);
+            $ptero->setServer($server);
+            $ptero->createAccount($params);
+            $created = $ptero->getLastCreatedServerData();
+            $account->update([
+                'pterodactyl_server_id' => $created['pterodactyl_server_id'] ?? null,
+                'pterodactyl_user_id' => $created['pterodactyl_user_id'] ?? null,
+                'identifier' => $created['identifier'] ?? null,
+                'credentials_encrypted' => Crypt::encryptString(json_encode([
+                    'email' => $user->email,
+                    'password' => $password,
+                ])),
+                'status' => 'active',
+            ]);
+            Log::debug('Checkout success gaming: Pterodactyl server created', ['account_id' => $account->id]);
+
+            return redirect()->route('gaming-accounts.show', $account->id)
+                ->with('success', 'Ihr Game-Server wurde erfolgreich eingerichtet. Sie können sich im Panel anmelden.');
+        } catch (\Throwable $e) {
+            Log::error('Checkout success gaming: Pterodactyl createAccount exception', [
+                'account_id' => $account->id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->route('gaming-accounts.show', $account->id)
+                ->with('error', 'Der Game-Server konnte nicht automatisch angelegt werden: '.$e->getMessage().'. Bitte kontaktieren Sie uns.');
         }
     }
 

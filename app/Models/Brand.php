@@ -81,6 +81,7 @@ class Brand extends Model
             'webspace' => true,
             'domains_shop' => true,
             'ai_tokens' => true,
+            'gaming' => false,
         ];
         $features = $this->features ?? [];
 

@@ -28,6 +28,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'google_id',
+        'discord_id',
         'is_admin',
         'pin_hash',
         'pin_length',
@@ -123,6 +125,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Game server accounts (Pterodactyl) owned by this user.
+     *
+     * @return HasMany<GameServerAccount>
+     */
+    public function gameServerAccounts(): HasMany
+    {
+        return $this->hasMany(GameServerAccount::class);
+    }
+
+    /**
      * Sites this user can edit as a collaborator.
      *
      * @return BelongsToMany<Site>
@@ -137,6 +149,32 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return (bool) $this->is_admin;
+    }
+
+    /**
+     * Find a user by social provider and provider user ID.
+     */
+    public static function findByProvider(string $provider, string $id): ?User
+    {
+        $column = match ($provider) {
+            'google' => 'google_id',
+            'discord' => 'discord_id',
+            default => null,
+        };
+
+        if ($column === null) {
+            return null;
+        }
+
+        return static::query()->where($column, $id)->first();
+    }
+
+    /**
+     * Whether the user has a name set (non-empty).
+     */
+    public function hasName(): bool
+    {
+        return $this->name !== null && trim($this->name) !== '';
     }
 
     /**

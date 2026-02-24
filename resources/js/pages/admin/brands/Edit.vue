@@ -62,6 +62,7 @@ const form = useForm({
     feature_webspace: props.brand.features?.webspace ?? true,
     feature_domains_shop: props.brand.features?.domains_shop ?? true,
     feature_ai_tokens: props.brand.features?.ai_tokens ?? true,
+    feature_gaming: props.brand.features?.gaming ?? false,
     salutation: props.brand.salutation ?? 'formal',
     mail_header: props.brand.mail_header ?? '',
     mail_footer: props.brand.mail_footer ?? '',
@@ -86,6 +87,7 @@ const submit = () => {
             webspace: data.feature_webspace,
             domains_shop: data.feature_domains_shop,
             ai_tokens: data.feature_ai_tokens,
+            gaming: data.feature_gaming,
         },
         salutation: data.salutation,
         mail_header: data.mail_header,
@@ -188,6 +190,10 @@ const submit = () => {
                     <div class="flex items-center gap-2">
                         <Checkbox id="feat_ai" v-model="form.feature_ai_tokens" />
                         <Label for="feat_ai">AI-Tokens</Label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <Checkbox id="feat_gaming" v-model="form.feature_gaming" />
+                        <Label for="feat_gaming">Gaming (Game-Server / Pterodactyl)</Label>
                     </div>
                 </CardContent>
             </Card>
