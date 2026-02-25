@@ -120,6 +120,8 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
     Route::post('gaming/checkout', [GamingController::class, 'storeCheckout'])->middleware('billing.profile')->name('gaming.checkout.store');
     Route::get('gaming-accounts', [GamingAccountController::class, 'index'])->name('gaming-accounts.index');
     Route::get('gaming-accounts/{game_server_account}', [GamingAccountController::class, 'show'])->name('gaming-accounts.show');
+    Route::get('gaming-accounts/{game_server_account}/overview', [GamingAccountController::class, 'overview'])->name('gaming-accounts.overview');
+    Route::post('gaming-accounts/{game_server_account}/power', [GamingAccountController::class, 'power'])->name('gaming-accounts.power');
 
     Route::get('invoices/{invoice}/pdf', [CustomerInvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
     Route::get('invoices/{invoice}/xml', [CustomerInvoiceController::class, 'downloadXml'])->name('invoices.xml');
@@ -220,6 +222,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     Route::get('products', [ProductController::class, 'index'])->name('products.index');
     Route::resource('hosting-servers', HostingServerController::class);
+    Route::get('hosting-plans/pterodactyl-options', [HostingPlanController::class, 'pterodactylOptions'])->name('hosting-plans.pterodactyl-options');
     Route::resource('hosting-plans', HostingPlanController::class);
     Route::get('webspace-accounts', [\App\Http\Controllers\Admin\WebspaceAccountController::class, 'index'])->name('webspace-accounts.index');
     Route::post('webspace-accounts/{webspace_account}/retry-plesk', [\App\Http\Controllers\Admin\WebspaceAccountController::class, 'retryPlesk'])->name('webspace-accounts.retry-plesk');

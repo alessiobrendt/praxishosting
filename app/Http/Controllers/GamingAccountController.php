@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\GameServerAccount;
+use App\Services\ControlPanels\PterodactylClient;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -65,9 +67,84 @@ class GamingAccountController extends Controller
             ? $panelUrl.'/server/'.$gameServerAccount->identifier
             : null;
 
+        $serverOverview = null;
+        if ($gameServerAccount->identifier && $gameServerAccount->hostingServer) {
+            try {
+                $client = app(PterodactylClient::class);
+                $serverOverview = $client->getServerOverview($gameServerAccount);
+            } catch (\Throwable) {
+                // keep null
+            }
+        }
+
         return Inertia::render('gaming-accounts/Show', [
             'gameServerAccount' => $gameServerAccount,
             'loginUrl' => $loginUrl,
+            'userEmail' => $request->user()->email,
+            'serverOverview' => $serverOverview,
         ]);
+    }
+
+    /**
+     * Send power action (start, stop, restart) to the game server. Only owner.
+     */
+    public function power(Request $request, GameServerAccount $gameServerAccount): RedirectResponse
+    {
+        $redirect = $this->ensureGamingFeature($request);
+        if ($redirect !== null) {
+            return $redirect;
+        }
+
+        if ($gameServerAccount->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        $action = $request->input('action', '');
+        if (! in_array($action, ['start', 'stop', 'restart'], true)) {
+            return redirect()
+                ->route('gaming-accounts.show', $gameServerAccount)
+                ->with('error', 'Ungültige Aktion.');
+        }
+
+        try {
+            $client = app(PterodactylClient::class);
+            $client->sendPowerAction($gameServerAccount, $action);
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('gaming-accounts.show', $gameServerAccount)
+                ->with('error', 'Aktion fehlgeschlagen: '.$e->getMessage());
+        }
+
+        return redirect()
+            ->route('gaming-accounts.show', $gameServerAccount)
+            ->with('success', 'Befehl gesendet.');
+    }
+
+    /**
+     * Return current server overview (for live polling). Only owner.
+     */
+    public function overview(Request $request, GameServerAccount $gameServerAccount): JsonResponse
+    {
+        $redirect = $this->ensureGamingFeature($request);
+        if ($redirect !== null) {
+            return response()->json(['error' => 'unauthorized'], 403);
+        }
+
+        if ($gameServerAccount->user_id !== $request->user()->id) {
+            return response()->json(['error' => 'not found'], 404);
+        }
+
+        $gameServerAccount->load('hostingServer');
+        $serverOverview = null;
+        if ($gameServerAccount->identifier && $gameServerAccount->hostingServer) {
+            try {
+                $client = app(PterodactylClient::class);
+                $serverOverview = $client->getServerOverview($gameServerAccount);
+            } catch (\Throwable) {
+                // keep null
+            }
+        }
+
+        return response()->json(['serverOverview' => $serverOverview]);
     }
 }

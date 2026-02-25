@@ -43,6 +43,23 @@ class StoreHostingPlanRequest extends FormRequest
             $rules['config.memory'] = ['nullable', 'integer', 'min:0'];
             $rules['config.disk'] = ['nullable', 'integer', 'min:0'];
             $rules['config.cpu'] = ['nullable', 'integer', 'min:0'];
+            $rules['config.location_ids'] = ['nullable', 'array'];
+            $rules['config.location_ids.*'] = ['integer', 'min:1'];
+            $rules['config.node'] = ['nullable', 'integer', 'min:1'];
+            $rules['config.swap'] = ['nullable', 'integer', 'min:-1'];
+            $rules['config.io'] = ['nullable', 'integer', 'min:0'];
+            $rules['config.additional_allocations'] = ['nullable', 'integer', 'min:0'];
+            $rules['config.port_array'] = ['nullable', 'string', 'max:2000'];
+            $rules['config.port_range'] = ['nullable', 'array'];
+            $rules['config.port_range.*'] = ['string', 'max:100'];
+            $rules['config.databases'] = ['nullable', 'integer', 'min:0'];
+            $rules['config.backups'] = ['nullable', 'integer', 'min:0'];
+            $rules['config.allow_egg_selection_override'] = ['nullable', 'boolean'];
+            $rules['config.skip_scripts'] = ['nullable', 'boolean'];
+            $rules['config.dedicated_ip'] = ['nullable', 'boolean'];
+            $rules['config.start_on_completion'] = ['nullable', 'boolean'];
+            $rules['config.oom_killer'] = ['nullable', 'boolean'];
+            $rules['config.cpu_pinning'] = ['nullable', 'string', 'max:255'];
         }
 
         return $rules;

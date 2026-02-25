@@ -8,7 +8,9 @@ use App\Http\Requests\Admin\UpdateHostingPlanRequest;
 use App\Models\Brand;
 use App\Models\HostingPlan;
 use App\Models\HostingServer;
+use App\Services\ControlPanels\PterodactylClient;
 use App\Services\SyncHostingPlanStripePriceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -22,6 +24,70 @@ class HostingPlanController extends Controller
         $brand = $request->attributes->get('current_brand');
 
         return $brand ?? Brand::getDefault();
+    }
+
+    /**
+     * Return Pterodactyl API options for the given panel server (locations, nodes, nests, optional eggs).
+     */
+    public function pterodactylOptions(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', HostingPlan::class);
+
+        $serverId = $request->integer('hosting_server_id');
+        if ($serverId < 1) {
+            return response()->json(['message' => 'hosting_server_id is required'], 400);
+        }
+
+        $server = HostingServer::query()
+            ->where('id', $serverId)
+            ->where('panel_type', 'pterodactyl')
+            ->where('is_active', true)
+            ->first();
+
+        if (! $server) {
+            return response()->json(['message' => 'Pterodactyl server not found or inactive'], 404);
+        }
+
+        try {
+            $client = app(PterodactylClient::class);
+            $client->setServer($server);
+
+            $locations = $client->getLocations();
+            $nodes = $client->getNodes();
+            $nestsRaw = $client->getNests();
+            $nests = [];
+            foreach ($nestsRaw as $n) {
+                $attrs = is_array($n) ? ($n['attributes'] ?? $n) : (array) $n;
+                $id = (int) ($attrs['id'] ?? 0);
+                $name = (string) ($attrs['name'] ?? 'Nest '.$id);
+                if ($id > 0) {
+                    $nests[] = ['id' => $id, 'name' => $name];
+                }
+            }
+
+            $eggs = [];
+            $nestId = $request->integer('nest_id');
+            if ($nestId > 0) {
+                $eggsRaw = $client->getEggs($nestId);
+                foreach ($eggsRaw as $e) {
+                    $attrs = is_array($e) ? ($e['attributes'] ?? $e) : (array) $e;
+                    $id = (int) ($attrs['id'] ?? 0);
+                    $name = (string) ($attrs['name'] ?? 'Egg '.$id);
+                    if ($id > 0) {
+                        $eggs[] = ['id' => $id, 'name' => $name];
+                    }
+                }
+            }
+
+            return response()->json([
+                'locations' => $locations,
+                'nodes' => $nodes,
+                'nests' => $nests,
+                'eggs' => $eggs,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Failed to load Pterodactyl options: '.$e->getMessage()], 502);
+        }
     }
 
     public function index(Request $request): Response

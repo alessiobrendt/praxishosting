@@ -594,6 +594,14 @@ class CheckoutController extends Controller
 
         $password = Str::password(20);
         $config = $plan->config ?? [];
+        $locationIds = $config['location_ids'] ?? [];
+        if (! is_array($locationIds)) {
+            $locationIds = $locationIds ? [$locationIds] : [];
+        }
+        $portRange = $config['port_range'] ?? [];
+        if (! is_array($portRange)) {
+            $portRange = $portRange ? [$portRange] : [];
+        }
         $params = [
             'email' => $user->email,
             'username' => str_replace([' ', '.'], '_', Str::lower($user->name)).'_'.Str::random(4),
@@ -605,10 +613,19 @@ class CheckoutController extends Controller
             'egg_id' => (int) ($config['egg_id'] ?? 1),
             'memory' => (int) ($config['memory'] ?? 512),
             'disk' => (int) ($config['disk'] ?? 5120),
+            'swap' => (int) ($config['swap'] ?? 0),
+            'io' => (int) ($config['io'] ?? 500),
             'cpu' => (int) ($config['cpu'] ?? 0),
             'databases' => (int) ($config['databases'] ?? 0),
             'backups' => (int) ($config['backups'] ?? 0),
-            'allocations' => 1,
+            'allocations' => 1 + (int) ($config['additional_allocations'] ?? 0),
+            'location_ids' => $locationIds,
+            'node' => isset($config['node']) ? (int) $config['node'] : null,
+            'dedicated_ip' => (bool) ($config['dedicated_ip'] ?? false),
+            'port_range' => $portRange,
+            'start_on_completion' => ($config['start_on_completion'] ?? true),
+            'skip_scripts' => (bool) ($config['skip_scripts'] ?? false),
+            'oom_killer' => (bool) ($config['oom_killer'] ?? false),
         ];
 
         $account = $user->gameServerAccounts()->create([

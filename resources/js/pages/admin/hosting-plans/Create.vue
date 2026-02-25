@@ -11,11 +11,13 @@ import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 type PanelTypeOption = { value: string; label: string };
 
 type PterodactylServer = { id: number; name: string; hostname: string };
+
+type PterodactylOption = { id: number; name: string };
 
 type Props = {
     allowedPanelTypes: PanelTypeOption[];
@@ -30,6 +32,95 @@ const isActive = ref(true);
 const panelType = ref(props.allowedPanelTypes[0]?.value ?? 'plesk');
 const showPleskFields = computed(() => panelType.value === 'plesk');
 const showPterodactylFields = computed(() => panelType.value === 'pterodactyl');
+
+const hostingServerId = ref<string>('');
+const loadingOptions = ref(false);
+const pterodactylOptions = ref<{
+    locations: PterodactylOption[];
+    nodes: PterodactylOption[];
+    nests: PterodactylOption[];
+    eggs: PterodactylOption[];
+}>({ locations: [], nodes: [], nests: [], eggs: [] });
+
+const config = ref({
+    nest_id: '',
+    egg_id: '',
+    location_ids: [] as number[],
+    node: '',
+    memory: '512',
+    swap: '0',
+    disk: '5120',
+    io: '500',
+    cpu: '0',
+    cpu_pinning: '',
+    databases: '0',
+    backups: '0',
+    additional_allocations: '0',
+    port_array: '',
+    port_range: [] as string[],
+    allow_egg_selection_override: false,
+    skip_scripts: false,
+    dedicated_ip: false,
+    start_on_completion: true,
+    oom_killer: false,
+});
+
+async function fetchPterodactylOptions(nestId?: number) {
+    const sid = hostingServerId.value ? Number(hostingServerId.value) : 0;
+    if (sid < 1) return;
+    loadingOptions.value = true;
+    try {
+        const url = new URL('/admin/hosting-plans/pterodactyl-options', window.location.origin);
+        url.searchParams.set('hosting_server_id', String(sid));
+        if (nestId && nestId > 0) url.searchParams.set('nest_id', String(nestId));
+        const res = await fetch(url.toString());
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        pterodactylOptions.value = {
+            locations: data.locations ?? [],
+            nodes: data.nodes ?? [],
+            nests: data.nests ?? [],
+            eggs: data.eggs ?? [],
+        };
+    } finally {
+        loadingOptions.value = false;
+    }
+}
+
+function onServerChange() {
+    const sid = hostingServerId.value ? Number(hostingServerId.value) : 0;
+    config.value.nest_id = '';
+    config.value.egg_id = '';
+    config.value.location_ids = [];
+    config.value.node = '';
+    pterodactylOptions.value = { locations: [], nodes: [], nests: [], eggs: [] };
+    if (sid > 0) fetchPterodactylOptions();
+}
+
+function onNestChange() {
+    const nestId = config.value.nest_id ? Number(config.value.nest_id) : 0;
+    config.value.egg_id = '';
+    if (nestId > 0 && hostingServerId.value) fetchPterodactylOptions(nestId);
+    else pterodactylOptions.value.eggs = [];
+}
+
+function refreshOptions() {
+    const nestId = config.value.nest_id ? Number(config.value.nest_id) : 0;
+    if (hostingServerId.value) fetchPterodactylOptions(nestId);
+}
+
+const portRangeInput = ref('');
+function addPortRange() {
+    const v = portRangeInput.value.trim();
+    if (v) {
+        config.value.port_range.push(v);
+        portRangeInput.value = '';
+    }
+}
+
+watch(hostingServerId, (val) => {
+    if (val && showPterodactylFields.value) fetchPterodactylOptions();
+});
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -105,64 +196,303 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <template v-if="showPterodactylFields">
                             <input type="hidden" name="plesk_package_name" value="" />
                             <div class="space-y-2">
-                                <Label for="hosting_server_id">Panel-Server (Pterodactyl) *</Label>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <Label for="hosting_server_id" class="mb-0">Panel-Server (Pterodactyl) *</Label>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        :disabled="!hostingServerId || loadingOptions"
+                                        @click="refreshOptions"
+                                    >
+                                        {{ loadingOptions ? 'Laden…' : 'Optionen aktualisieren' }}
+                                    </Button>
+                                </div>
                                 <Select
                                     id="hosting_server_id"
                                     name="hosting_server_id"
+                                    v-model="hostingServerId"
                                     :aria-invalid="!!errors.hosting_server_id"
+                                    @change="onServerChange"
                                 >
                                     <option value="">Bitte wählen – Game-Server werden sonst nicht eingerichtet</option>
                                     <option
                                         v-for="s in pterodactylHostingServers"
                                         :key="s.id"
-                                        :value="s.id"
+                                        :value="String(s.id)"
                                     >
                                         {{ s.name }} ({{ s.hostname }})
                                     </option>
                                 </Select>
                                 <InputError :message="errors.hosting_server_id" />
                                 <p class="text-sm text-muted-foreground">
-                                    Dieser Pterodactyl-Server wird für die Einrichtung neuer Game-Server dieses Pakets verwendet. Ohne Zuordnung erscheint beim Kunden die Meldung „kein Panel-Server zugewiesen“.
+                                    Dieser Pterodactyl-Server wird für die Einrichtung neuer Game-Server dieses Pakets verwendet. Nach Auswahl Optionen laden (oder „Optionen aktualisieren“).
                                 </p>
                             </div>
                             <div class="space-y-2">
-                                <Label for="config_nest_id">Nest ID *</Label>
-                                <Input
+                                <Label for="config_nest_id">Nest *</Label>
+                                <Select
                                     id="config_nest_id"
                                     name="config[nest_id]"
-                                    type="number"
-                                    min="1"
+                                    v-model="config.nest_id"
                                     required
-                                    placeholder="1"
                                     :aria-invalid="!!errors['config.nest_id']"
-                                />
+                                    @change="onNestChange"
+                                >
+                                    <option value="">Bitte wählen</option>
+                                    <option
+                                        v-for="n in pterodactylOptions.nests"
+                                        :key="n.id"
+                                        :value="String(n.id)"
+                                    >
+                                        {{ n.name }}
+                                    </option>
+                                </Select>
                                 <InputError :message="errors['config.nest_id']" />
                             </div>
                             <div class="space-y-2">
-                                <Label for="config_egg_id">Egg ID *</Label>
-                                <Input
+                                <Label for="config_egg_id">Default Egg *</Label>
+                                <Select
                                     id="config_egg_id"
                                     name="config[egg_id]"
-                                    type="number"
-                                    min="1"
+                                    v-model="config.egg_id"
                                     required
-                                    placeholder="1"
                                     :aria-invalid="!!errors['config.egg_id']"
-                                />
+                                >
+                                    <option value="">Bitte Nest wählen</option>
+                                    <option
+                                        v-for="e in pterodactylOptions.eggs"
+                                        :key="e.id"
+                                        :value="String(e.id)"
+                                    >
+                                        {{ e.name }}
+                                    </option>
+                                </Select>
                                 <InputError :message="errors['config.egg_id']" />
                             </div>
-                            <div class="grid grid-cols-3 gap-4">
+                            <div class="space-y-2">
+                                <Label for="config_location_ids">Location(s)</Label>
+                                <select
+                                    id="config_location_ids"
+                                    name="config[location_ids][]"
+                                    multiple
+                                    class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm min-h-[80px]"
+                                    v-model="config.location_ids"
+                                >
+                                    <option
+                                        v-for="loc in pterodactylOptions.locations"
+                                        :key="loc.id"
+                                        :value="loc.id"
+                                    >
+                                        {{ loc.name }}
+                                    </option>
+                                </select>
+                                <p class="text-sm text-muted-foreground">Standorte, in denen der Server installiert werden kann</p>
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="config_node">Node</Label>
+                                <Select
+                                    id="config_node"
+                                    name="config[node]"
+                                    v-model="config.node"
+                                >
+                                    <option value="">Automatisch</option>
+                                    <option
+                                        v-for="n in pterodactylOptions.nodes"
+                                        :key="n.id"
+                                        :value="String(n.id)"
+                                    >
+                                        {{ n.name }}
+                                    </option>
+                                </Select>
+                                <p class="text-sm text-muted-foreground">Optional: Server auf diesem Node installieren</p>
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 <div class="space-y-2">
-                                    <Label for="config_memory">RAM (MB)</Label>
-                                    <Input id="config_memory" name="config[memory]" type="number" min="0" placeholder="512" />
+                                    <Label for="config_memory">RAM (MiB) *</Label>
+                                    <Input
+                                        id="config_memory"
+                                        name="config[memory]"
+                                        type="number"
+                                        min="0"
+                                        v-model="config.memory"
+                                        placeholder="512"
+                                    />
                                 </div>
                                 <div class="space-y-2">
-                                    <Label for="config_disk">Disk (MB)</Label>
-                                    <Input id="config_disk" name="config[disk]" type="number" min="0" placeholder="5120" />
+                                    <Label for="config_swap">Swap (MiB)</Label>
+                                    <Input
+                                        id="config_swap"
+                                        name="config[swap]"
+                                        type="number"
+                                        min="-1"
+                                        v-model="config.swap"
+                                        placeholder="0"
+                                    />
+                                    <p class="text-xs text-muted-foreground">-1 = unbegrenzt</p>
                                 </div>
                                 <div class="space-y-2">
-                                    <Label for="config_cpu">CPU (%)</Label>
-                                    <Input id="config_cpu" name="config[cpu]" type="number" min="0" placeholder="0" />
+                                    <Label for="config_disk">Disk (MiB) *</Label>
+                                    <Input
+                                        id="config_disk"
+                                        name="config[disk]"
+                                        type="number"
+                                        min="0"
+                                        v-model="config.disk"
+                                        placeholder="5120"
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="config_io">IO Weight</Label>
+                                    <Input
+                                        id="config_io"
+                                        name="config[io]"
+                                        type="number"
+                                        min="0"
+                                        v-model="config.io"
+                                        placeholder="500"
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="config_cpu">CPU (%) *</Label>
+                                    <Input
+                                        id="config_cpu"
+                                        name="config[cpu]"
+                                        type="number"
+                                        min="0"
+                                        v-model="config.cpu"
+                                        placeholder="0"
+                                    />
+                                    <p class="text-xs text-muted-foreground">0 = unbegrenzt</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="config_cpu_pinning">CPU Pinning</Label>
+                                    <Input
+                                        id="config_cpu_pinning"
+                                        name="config[cpu_pinning]"
+                                        v-model="config.cpu_pinning"
+                                        placeholder="z. B. 0,2-4,5"
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="config_databases">Databases</Label>
+                                    <Input
+                                        id="config_databases"
+                                        name="config[databases]"
+                                        type="number"
+                                        min="0"
+                                        v-model="config.databases"
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="config_backups">Backups</Label>
+                                    <Input
+                                        id="config_backups"
+                                        name="config[backups]"
+                                        type="number"
+                                        min="0"
+                                        v-model="config.backups"
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="config_additional_allocations">Additional Allocations</Label>
+                                    <Input
+                                        id="config_additional_allocations"
+                                        name="config[additional_allocations]"
+                                        type="number"
+                                        min="0"
+                                        v-model="config.additional_allocations"
+                                    />
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="config_port_array">Port Array (JSON)</Label>
+                                <Input
+                                    id="config_port_array"
+                                    name="config[port_array]"
+                                    v-model="config.port_array"
+                                    placeholder='{"SERVER_PORT": "25565"}'
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <Label>Port ranges</Label>
+                                <div class="flex flex-wrap gap-2 items-center">
+                                    <template v-for="(tag, i) in config.port_range" :key="i">
+                                        <input type="hidden" :name="'config[port_range][]'" :value="tag" />
+                                        <span class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-sm">
+                                            {{ tag }}
+                                            <button type="button" class="hover:text-destructive" @click="config.port_range.splice(i, 1)">×</button>
+                                        </span>
+                                    </template>
+                                    <Input
+                                        v-model="portRangeInput"
+                                        class="w-28"
+                                        placeholder="25565"
+                                        @keydown.enter.prevent="addPortRange"
+                                    />
+                                    <Button type="button" variant="outline" size="sm" @click="addPortRange">Hinzufügen</Button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-6">
+                                <div class="flex items-center gap-2">
+                                    <input type="hidden" name="config[allow_egg_selection_override]" value="0" />
+                                    <input
+                                        type="checkbox"
+                                        id="config_allow_egg"
+                                        name="config[allow_egg_selection_override]"
+                                        value="1"
+                                        :checked="config.allow_egg_selection_override"
+                                        @change="config.allow_egg_selection_override = (($event.target as HTMLInputElement).checked)"
+                                    />
+                                    <Label for="config_allow_egg">Allow Customer Egg Selection</Label>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="hidden" name="config[skip_scripts]" value="0" />
+                                    <input
+                                        type="checkbox"
+                                        id="config_skip_scripts"
+                                        name="config[skip_scripts]"
+                                        value="1"
+                                        :checked="config.skip_scripts"
+                                        @change="config.skip_scripts = (($event.target as HTMLInputElement).checked)"
+                                    />
+                                    <Label for="config_skip_scripts">Skip Egg Install Script</Label>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="hidden" name="config[dedicated_ip]" value="0" />
+                                    <input
+                                        type="checkbox"
+                                        id="config_dedicated_ip"
+                                        name="config[dedicated_ip]"
+                                        value="1"
+                                        :checked="config.dedicated_ip"
+                                        @change="config.dedicated_ip = (($event.target as HTMLInputElement).checked)"
+                                    />
+                                    <Label for="config_dedicated_ip">Dedicated IP</Label>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="hidden" name="config[start_on_completion]" value="0" />
+                                    <input
+                                        type="checkbox"
+                                        id="config_start_on_completion"
+                                        name="config[start_on_completion]"
+                                        value="1"
+                                        :checked="config.start_on_completion"
+                                        @change="config.start_on_completion = (($event.target as HTMLInputElement).checked)"
+                                    />
+                                    <Label for="config_start_on_completion">Start on completion</Label>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="hidden" name="config[oom_killer]" value="0" />
+                                    <input
+                                        type="checkbox"
+                                        id="config_oom_killer"
+                                        name="config[oom_killer]"
+                                        value="1"
+                                        :checked="config.oom_killer"
+                                        @change="config.oom_killer = (($event.target as HTMLInputElement).checked)"
+                                    />
+                                    <Label for="config_oom_killer">Enable OOM Killer</Label>
                                 </div>
                             </div>
                         </template>
