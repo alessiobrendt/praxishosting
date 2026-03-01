@@ -10,7 +10,7 @@ import { Heading, Text } from '@/components/ui/typography';
 import { Switch } from '@/components/ui/switch';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 type HostingServer = {
     id: number;
@@ -39,6 +39,16 @@ const isActive = ref(props.hostingServer.is_active);
 const useSsl = ref(props.hostingServer.use_ssl ?? true);
 const panelType = ref(props.hostingServer.panel_type ?? 'plesk');
 const config = ref<Record<string, string>>(props.hostingServer.config ?? {});
+watch(
+    () => props.hostingServer,
+    (server) => {
+        isActive.value = server.is_active;
+        useSsl.value = server.use_ssl ?? true;
+        panelType.value = server.panel_type ?? 'plesk';
+        config.value = server.config ?? {};
+    },
+    { deep: true },
+);
 const showPleskFields = computed(() => panelType.value === 'plesk');
 const showPterodactylFields = computed(() => panelType.value === 'pterodactyl');
 
@@ -50,7 +60,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :key="hostingServer.id" :breadcrumbs="breadcrumbs">
         <Head title="Hosting-Server bearbeiten" />
 
         <div class="space-y-6">
@@ -78,11 +88,13 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <input type="hidden" name="_method" value="PUT" />
                         <div class="space-y-2">
                             <Label for="panel_type">Panel-Typ *</Label>
-                            <Select
+                            <!-- Native select to test: if this shows correct value, bug is in Select.vue -->
+                            <select
                                 id="panel_type"
                                 name="panel_type"
                                 v-model="panelType"
                                 required
+                                class="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                             >
                                 <option
                                     v-for="opt in allowedPanelTypes"
@@ -91,7 +103,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 >
                                     {{ opt.label }}
                                 </option>
-                            </Select>
+                            </select>
                             <InputError :message="errors.panel_type" />
                         </div>
                         <template v-if="showPterodactylFields">
@@ -151,55 +163,57 @@ const breadcrumbs: BreadcrumbItem[] = [
                             />
                             <InputError :message="errors.hostname" />
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <template v-if="showPleskFields">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <Label for="port">Port (optional)</Label>
+                                    <Input
+                                        id="port"
+                                        name="port"
+                                        type="number"
+                                        min="1"
+                                        max="65535"
+                                        :model-value="hostingServer.port != null ? String(hostingServer.port) : ''"
+                                        placeholder="leer = Standard (443/80)"
+                                    />
+                                    <InputError :message="errors.port" />
+                                </div>
+                                <div class="flex items-center space-x-2 pt-8">
+                                    <input type="hidden" name="use_ssl" value="0" />
+                                    <input
+                                        type="checkbox"
+                                        id="use_ssl"
+                                        name="use_ssl"
+                                        value="1"
+                                        :checked="useSsl"
+                                        @change="useSsl = ($event.target as HTMLInputElement).checked"
+                                        class="rounded"
+                                    />
+                                    <Label for="use_ssl">HTTPS (SSL)</Label>
+                                </div>
+                            </div>
                             <div class="space-y-2">
-                                <Label for="port">Port (optional)</Label>
+                                <Label for="api_username">API-Benutzername (optional)</Label>
                                 <Input
-                                    id="port"
-                                    name="port"
-                                    type="number"
-                                    min="1"
-                                    max="65535"
-                                    :model-value="hostingServer.port != null ? String(hostingServer.port) : ''"
-                                    placeholder="leer = Standard (443/80)"
+                                    id="api_username"
+                                    name="api_username"
+                                    :model-value="hostingServer.api_username ?? ''"
+                                    placeholder="admin"
                                 />
-                                <InputError :message="errors.port" />
+                                <InputError :message="errors.api_username" />
                             </div>
-                            <div class="flex items-center space-x-2 pt-8">
-                                <input type="hidden" name="use_ssl" value="0" />
-                                <input
-                                    type="checkbox"
-                                    id="use_ssl"
-                                    name="use_ssl"
-                                    value="1"
-                                    :checked="useSsl"
-                                    @change="useSsl = ($event.target as HTMLInputElement).checked"
-                                    class="rounded"
+                            <div class="space-y-2">
+                                <Label for="ip_address">IP-Adresse</Label>
+                                <Input
+                                    id="ip_address"
+                                    name="ip_address"
+                                    :model-value="hostingServer.ip_address ?? ''"
+                                    placeholder="z. B. Shared-IP aus dem Reseller-Pool"
                                 />
-                                <Label for="use_ssl">HTTPS (SSL)</Label>
+                                <Text class="text-sm" muted>Für Plesk Reseller: Muss eine IP aus Ihrem Reseller-IP-Pool sein (Plesk → IP-Adressen).</Text>
+                                <InputError :message="errors.ip_address" />
                             </div>
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="api_username">API-Benutzername (optional)</Label>
-                            <Input
-                                id="api_username"
-                                name="api_username"
-                                :model-value="hostingServer.api_username ?? ''"
-                                placeholder="admin"
-                            />
-                            <InputError :message="errors.api_username" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="ip_address">IP-Adresse</Label>
-                            <Input
-                                id="ip_address"
-                                name="ip_address"
-                                :model-value="hostingServer.ip_address ?? ''"
-                                placeholder="z. B. Shared-IP aus dem Reseller-Pool"
-                            />
-                            <Text class="text-sm" muted>Für Plesk Reseller: Muss eine IP aus Ihrem Reseller-IP-Pool sein (Plesk → IP-Adressen).</Text>
-                            <InputError :message="errors.ip_address" />
-                        </div>
+                        </template>
                         <div v-if="showPleskFields" class="space-y-2">
                             <Label for="api_token">API-Token / Passwort</Label>
                             <Input
@@ -213,8 +227,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <div class="flex items-center space-x-2">
                             <Switch
                                 id="is_active"
-                                :checked="isActive"
-                                @update:checked="isActive = $event"
+                                v-model="isActive"
                             />
                             <Label for="is_active">Aktiv</Label>
                         </div>

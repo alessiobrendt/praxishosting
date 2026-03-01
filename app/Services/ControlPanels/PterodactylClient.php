@@ -215,6 +215,27 @@ class PterodactylClient implements ControlPanelContract
     }
 
     /**
+     * Test API connection (Application API). Returns ['success' => bool, 'message' => string].
+     */
+    public function testConnection(): array
+    {
+        if (! $this->server) {
+            return ['success' => false, 'message' => 'Server not configured'];
+        }
+
+        try {
+            $this->apiRequest('/api/application/nodes', ['per_page' => 1]);
+
+            return ['success' => true, 'message' => 'Connection successful'];
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Get locations for dropdown (id => short name).
      *
      * @return array<int, array{id: int, name: string}>
@@ -254,6 +275,44 @@ class PterodactylClient implements ControlPanelContract
         }
 
         return $out;
+    }
+
+    /**
+     * Get nodes with memory/disk totals and allocated resources for admin overview.
+     * Returns null on API failure.
+     *
+     * @return array<int, array{id: int, name: string, fqdn: string, memory_total_mb: int, disk_total_mb: int, memory_allocated_mb: int, disk_allocated_mb: int, maintenance_mode: bool}>|null
+     */
+    public function getNodesOverview(): ?array
+    {
+        try {
+            $data = $this->apiRequest('/api/application/nodes', ['per_page' => 100]);
+            $out = [];
+            foreach ($data['data'] ?? [] as $item) {
+                $attrs = $item['attributes'] ?? $item;
+                $id = (int) ($attrs['id'] ?? 0);
+                if ($id === 0) {
+                    continue;
+                }
+                $allocated = $attrs['allocated_resources'] ?? [];
+                $out[] = [
+                    'id' => $id,
+                    'name' => (string) ($attrs['name'] ?? 'Node '.$id),
+                    'fqdn' => (string) ($attrs['fqdn'] ?? ''),
+                    'memory_total_mb' => (int) ($attrs['memory'] ?? 0),
+                    'disk_total_mb' => (int) ($attrs['disk'] ?? 0),
+                    'memory_allocated_mb' => (int) ($allocated['memory'] ?? 0),
+                    'disk_allocated_mb' => (int) ($allocated['disk'] ?? 0),
+                    'maintenance_mode' => (bool) ($attrs['maintenance_mode'] ?? false),
+                ];
+            }
+
+            return $out;
+        } catch (\Throwable $e) {
+            Log::debug('Pterodactyl getNodesOverview failed', ['error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     /**

@@ -23,6 +23,9 @@ class HostingServer extends Model
         'api_token',
         'api_username',
         'is_active',
+        'api_checked_at',
+        'api_check_status',
+        'api_check_message',
     ];
 
     /**
@@ -35,6 +38,7 @@ class HostingServer extends Model
             'use_ssl' => 'boolean',
             'is_active' => 'boolean',
             'config' => 'array',
+            'api_checked_at' => 'datetime',
         ];
     }
 

@@ -229,6 +229,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::resource('vouchers', VoucherController::class)->except(['show', 'destroy']);
 
     Route::get('products', [ProductController::class, 'index'])->name('products.index');
+    Route::get('hosting-servers/{hosting_server}/check', [HostingServerController::class, 'check'])->name('hosting-servers.check');
     Route::resource('hosting-servers', HostingServerController::class);
     Route::get('hosting-plans/pterodactyl-options', [HostingPlanController::class, 'pterodactylOptions'])->name('hosting-plans.pterodactyl-options');
     Route::resource('hosting-plans', HostingPlanController::class);

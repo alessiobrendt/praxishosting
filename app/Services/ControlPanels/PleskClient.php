@@ -260,7 +260,8 @@ class PleskClient
     }
 
     /**
-     * Test connection (XML API). Returns ['success' => bool, 'message' => string, 'info' => array|null].
+     * Test connection (XML API). Uses service plans list so Reseller API keys work.
+     * Returns ['success' => bool, 'message' => string, 'info' => array|null].
      */
     public function testConnection(): array
     {
@@ -269,15 +270,14 @@ class PleskClient
         }
 
         try {
-            $info = $this->getPleskXmlClient()->server()->getGeneralInfo();
+            $plans = $this->getPleskXmlClient()->servicePlan()->getAll();
+            $count = is_countable($plans) ? count($plans) : 0;
 
             return [
                 'success' => true,
                 'message' => 'Connection successful',
                 'info' => [
-                    'hostname' => $info->serverName ?? null,
-                    'server_guid' => $info->serverGuid ?? null,
-                    'mode' => $info->mode ?? null,
+                    'service_plans_count' => $count,
                 ],
             ];
         } catch (PleskApiException $e) {

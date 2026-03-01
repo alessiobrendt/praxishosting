@@ -2,6 +2,8 @@
 import { computed } from 'vue';
 import { cn } from '@/lib/utils';
 
+defineOptions({ inheritAttrs: false });
+
 interface Props {
     modelValue?: string | number;
     defaultValue?: string | number;
@@ -47,6 +49,7 @@ const selectClasses = computed(() =>
 
 <template>
     <select
+        v-bind="$attrs"
         :id="id"
         :name="name"
         v-model="value"
