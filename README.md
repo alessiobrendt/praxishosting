@@ -1,4 +1,4 @@
-# PraxisHosting
+# neroserv - Customer Dashbord
 
 ![Logo](https://cdn.neroserv.de/branding/logo_schrift.png)
 
