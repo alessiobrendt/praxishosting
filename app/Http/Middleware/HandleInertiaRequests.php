@@ -94,12 +94,15 @@ class HandleInertiaRequests extends Middleware
             $customerBalance = $row ? (float) $row->balance : 0.0;
         }
 
+        $impersonating = $user && app()->bound('impersonate') && app('impersonate')->isImpersonating();
+
         $authPayload = [
             'user' => $user,
             'pinVerifiedAt' => $user && $user->hasPin() ? $request->session()->get('pin_verified_at') : null,
             'openTicketsCount' => $openTicketsCount,
             'adminOpenTicketsCount' => $adminOpenTicketsCount,
             'activeUserModules' => $activeUserModules,
+            'impersonating' => $impersonating,
         ];
         if ($customerBalance !== null) {
             $authPayload['customerBalance'] = $customerBalance;

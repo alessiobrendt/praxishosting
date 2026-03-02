@@ -24,6 +24,7 @@ import {
     PackageCheck,
     GitBranch,
     HardDrive,
+    LogOut,
 } from 'lucide-vue-next';
 import { index as supportIndex } from '@/routes/support';
 import modules from '@/routes/modules';
@@ -44,6 +45,7 @@ const activeUserModules = computed(() => (page.props.auth as { activeUserModules
 const adminOpenTicketsCount = computed(
     () => (page.props.auth as { adminOpenTicketsCount?: number })?.adminOpenTicketsCount ?? 0,
 );
+const impersonating = computed(() => (page.props.auth as { impersonating?: boolean })?.impersonating ?? false);
 const brandFeatures = computed(() => (page.props.brandFeatures as Record<string, boolean>) ?? {});
 const brand = computed(() => page.props.brand as { themeColors?: Record<string, string> } | null);
 const { isLocked, unlock } = useInactivityLock();
@@ -190,6 +192,19 @@ const sidebarItems = computed<NavItem[]>(() => {
 
 <template>
     <div :style="brandThemeStyle">
+        <div
+            v-if="impersonating"
+            class="flex flex-wrap items-center justify-center gap-2 bg-amber-100 px-4 py-2 text-sm font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-200"
+        >
+            <span>Sie sind angemeldet als {{ (page.props.auth?.user as { name?: string })?.name ?? 'Kunde' }}.</span>
+            <a
+                href="/impersonate/leave"
+                class="inline-flex items-center gap-1 rounded border border-amber-600 bg-amber-500 px-2 py-1 text-amber-900 hover:bg-amber-400 dark:border-amber-500 dark:bg-amber-600 dark:text-white dark:hover:bg-amber-500"
+            >
+                <LogOut class="h-3.5 w-3.5" />
+                Impersonation beenden
+            </a>
+        </div>
         <MainLayout :sidebar-items="sidebarItems" :breadcrumbs="breadcrumbs">
             <slot />
             <PinUnlockOverlay

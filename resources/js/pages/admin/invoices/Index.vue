@@ -5,7 +5,6 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,6 +44,32 @@ type Props = {
 };
 
 defineProps<Props>();
+
+const INVOICE_STATUS_LABELS: Record<string, string> = {
+    paid: 'Bezahlt',
+    pending: 'Ausstehend',
+    draft: 'Entwurf',
+    sent: 'Gesendet',
+};
+
+const invoiceStatusLabel = (status: string): string =>
+    INVOICE_STATUS_LABELS[status] ?? status;
+
+const invoiceStatusClass = (status: string): string => {
+    const base = 'inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium';
+    switch (status) {
+        case 'paid':
+            return `${base} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300`;
+        case 'pending':
+            return `${base} bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300`;
+        case 'draft':
+            return `${base} bg-muted text-muted-foreground`;
+        case 'sent':
+            return `${base} bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300`;
+        default:
+            return `${base} bg-muted text-muted-foreground`;
+    }
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -162,9 +187,9 @@ const openExport = () => {
                                 </TableCell>
                                 <TableCell>{{ invoice.amount }} €</TableCell>
                                 <TableCell>
-                                    <Badge :variant="invoice.status === 'paid' ? 'success' : 'secondary'">
-                                        {{ invoice.status }}
-                                    </Badge>
+                                    <span :class="invoiceStatusClass(invoice.status)">
+                                        {{ invoiceStatusLabel(invoice.status) }}
+                                    </span>
                                 </TableCell>
                                 <TableCell>{{ invoice.invoice_date }}</TableCell>
                                 <TableCell class="text-right">

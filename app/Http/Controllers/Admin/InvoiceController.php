@@ -26,10 +26,15 @@ class InvoiceController extends Controller
 {
     public function index(Request $request): Response
     {
-        $invoices = Invoice::query()
+        $query = Invoice::query()
             ->with('user:id,name,email')
-            ->latest('invoice_date')
-            ->paginate(15)
+            ->latest('invoice_date');
+
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->integer('user_id'));
+        }
+
+        $invoices = $query->paginate(15)
             ->withQueryString()
             ->through(fn (Invoice $inv) => array_merge($inv->toArray(), [
                 'invoice_date' => $inv->invoice_date ? Carbon::parse($inv->invoice_date)->format('d.m.Y') : null,

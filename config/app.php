@@ -123,4 +123,10 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'user_ranks' => [
+        'customer' => 'Kunde',
+        'reseller' => 'Reseller',
+        'partner' => 'Partner',
+    ],
+
 ];

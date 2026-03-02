@@ -31,6 +31,17 @@ test('admin users can view customer detail', function () {
 
     $response = $this->get(route('admin.customers.show', $customer));
     $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('admin/customers/Show')
+        ->has('customer')
+        ->where('can_impersonate', true)
+        ->where('can_be_impersonated', true)
+        ->has('customer.invoices')
+        ->has('customer.tickets')
+        ->has('customer.reseller_domains')
+        ->has('customer.webspace_accounts')
+        ->has('customer.game_server_accounts')
+    );
 });
 
 test('admin users can view customer edit form', function () {
@@ -68,6 +79,23 @@ test('admin users can update customer stammdaten', function () {
     expect($customer->name)->toBe('New Name')
         ->and($customer->company)->toBe('Test GmbH')
         ->and($customer->country)->toBe('DE');
+});
+
+test('admin users can update customer is_admin and rank', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $customer = User::factory()->create(['is_admin' => false, 'rank' => null]);
+    $this->actingAs($admin);
+
+    $response = $this->put(route('admin.customers.update', $customer), [
+        'name' => $customer->name,
+        'email' => $customer->email,
+        'is_admin' => true,
+        'rank' => 'reseller',
+    ]);
+    $response->assertRedirect(route('admin.customers.show', $customer));
+    $customer->refresh();
+    expect($customer->is_admin)->toBeTrue()
+        ->and($customer->rank)->toBe('reseller');
 });
 
 test('admin users can store customer note', function () {

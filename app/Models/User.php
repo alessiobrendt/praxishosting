@@ -10,13 +10,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Lab404\Impersonate\Models\Impersonate;
 use Laravel\Cashier\Billable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use Billable, HasFactory, Notifiable, TwoFactorAuthenticatable;
+    use Billable, HasFactory, Impersonate, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -31,6 +32,7 @@ class User extends Authenticatable
         'google_id',
         'discord_id',
         'is_admin',
+        'rank',
         'pin_hash',
         'pin_length',
         'inactivity_lock_minutes',
@@ -149,6 +151,22 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return (bool) $this->is_admin;
+    }
+
+    /**
+     * Whether this user can impersonate other users (only admins).
+     */
+    public function canImpersonate(): bool
+    {
+        return $this->is_admin;
+    }
+
+    /**
+     * Whether this user can be impersonated (no other admins).
+     */
+    public function canBeImpersonated(): bool
+    {
+        return ! $this->is_admin;
     }
 
     /**

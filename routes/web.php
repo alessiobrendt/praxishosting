@@ -45,7 +45,6 @@ use App\Http\Controllers\WorkflowController;
 use App\Http\Middleware\DisableCacheForSiteRender;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\Fortify\Features;
 
 Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
     ->name('auth.social.redirect');
@@ -53,10 +52,11 @@ Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'
     ->name('auth.social.callback');
 
 Route::get('/', function () {
-    
+
     if (Auth::check()) {
         return redirect()->route('dashboard');
     }
+
     return redirect()->route('login');
 
 })->name('home');
@@ -193,7 +193,13 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
     Route::post('support/{ticket}/messages', [SupportController::class, 'storeMessage'])->name('support.messages.store');
 });
 
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('impersonate/leave', [\Lab404\Impersonate\Controllers\ImpersonateController::class, 'leave'])->name('impersonate.leave');
+});
+
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('impersonate/take/{id}/{guardName?}', [\Lab404\Impersonate\Controllers\ImpersonateController::class, 'take'])->name('impersonate');
+
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('search', [SearchController::class, 'index'])->name('search');
     Route::get('activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');

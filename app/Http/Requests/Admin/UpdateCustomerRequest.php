@@ -28,6 +28,8 @@ class UpdateCustomerRequest extends FormRequest
             'postal_code' => ['nullable', 'string', 'max:20'],
             'city' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:2', Rule::in(array_keys(config('countries', [])))],
+            'is_admin' => ['boolean'],
+            'rank' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

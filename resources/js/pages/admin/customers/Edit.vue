@@ -8,12 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import InputError from '@/components/InputError.vue';
 import { index as customersIndex } from '@/routes/admin/customers';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
 type Brand = { id: number; key: string; name: string };
+
+type RankOption = { value: string; label: string };
 
 type Customer = {
     id: number;
@@ -26,12 +29,15 @@ type Customer = {
     country?: string | null;
     brand_id?: number | null;
     brand?: Brand | null;
+    is_admin?: boolean;
+    rank?: string | null;
 };
 
 type Props = {
     customer: Customer;
     brands: Brand[];
     countries: Record<string, string>;
+    ranks: RankOption[];
 };
 
 const props = defineProps<Props>();
@@ -51,6 +57,8 @@ const form = useForm({
     postal_code: props.customer.postal_code ?? '',
     city: props.customer.city ?? '',
     country: props.customer.country ?? '',
+    is_admin: props.customer.is_admin ?? false,
+    rank: props.customer.rank ?? '',
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -84,6 +92,32 @@ function submit() {
                 </CardHeader>
                 <CardContent>
                     <form class="space-y-4" @submit.prevent="submit">
+                        <div class="space-y-2">
+                            <Label for="rank">Rang</Label>
+                            <Select
+                                id="rank"
+                                v-model="form.rank"
+                                name="rank"
+                                :aria-invalid="!!form.errors.rank"
+                            >
+                                <option value="">– Kein Rang –</option>
+                                <option
+                                    v-for="r in ranks"
+                                    :key="r.value"
+                                    :value="r.value"
+                                >
+                                    {{ r.label }}
+                                </option>
+                            </Select>
+                            <InputError :message="form.errors.rank" />
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <Switch
+                                id="is_admin"
+                                v-model="form.is_admin"
+                            />
+                            <Label for="is_admin">Administrator</Label>
+                        </div>
                         <div class="space-y-2">
                             <Label for="brand_id">Marke</Label>
                             <Select

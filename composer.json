@@ -13,6 +13,7 @@
         "dompdf/dompdf": "3.0",
         "hcgcloud/pterodactyl-sdk": "v2.0.0-alpha.2",
         "inertiajs/inertia-laravel": "^2.0",
+        "lab404/laravel-impersonate": "*",
         "laravel/cashier": "^16.2",
         "laravel/fortify": "^1.30",
         "laravel/framework": "^12.0",
