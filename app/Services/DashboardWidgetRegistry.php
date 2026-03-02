@@ -76,12 +76,13 @@ class DashboardWidgetRegistry
 
     /**
      * Default layout when user has not saved one (grid positions for initial widgets).
+     * Positions and heights use 40px row units for finer resize steps.
      *
      * @return array<int, array{i: string, x: int, y: int, w: int, h: int}>
      */
     public static function defaultLayout(): array
     {
-        return [
+        $rows = [
             ['i' => 'global-search', 'x' => 0, 'y' => 0, 'w' => 6, 'h' => 1],
             ['i' => 'recent-items', 'x' => 6, 'y' => 0, 'w' => 6, 'h' => 1],
             ['i' => 'revenue-today', 'x' => 0, 'y' => 1, 'w' => 2, 'h' => 1],
@@ -102,5 +103,13 @@ class DashboardWidgetRegistry
             ['i' => 'expiring-subscriptions', 'x' => 6, 'y' => 5, 'w' => 4, 'h' => 2],
             ['i' => 'overdue-failed-invoices', 'x' => 10, 'y' => 5, 'w' => 4, 'h' => 2],
         ];
+
+        $scale = 2;
+        foreach ($rows as &$item) {
+            $item['y'] = $item['y'] * $scale;
+            $item['h'] = $item['h'] * $scale;
+        }
+
+        return $rows;
     }
 }

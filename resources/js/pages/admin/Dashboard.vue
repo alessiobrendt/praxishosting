@@ -94,7 +94,7 @@ function closeGallery() {
 function addWidget(key: string) {
     const reg = registryByKey.value[key];
     const defaultW = reg?.defaultW ?? 2;
-    const defaultH = reg?.defaultH ?? 1;
+    const defaultH = (reg?.defaultH ?? 1) * 2;
     const maxY = layoutLocal.value.length
         ? Math.max(...layoutLocal.value.map((it) => it.y + it.h), 0)
         : 0;
@@ -208,7 +208,7 @@ const breadcrumbs: BreadcrumbItem[] = [
             <GridLayout
                 :layout="layoutLocal"
                 :col-num="12"
-                :row-height="80"
+                :row-height="20"
                 :is-draggable="isEditMode"
                 :is-resizable="isEditMode"
                 :vertical-compact="true"
