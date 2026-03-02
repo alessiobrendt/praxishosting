@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
 import { dashboard } from '@/routes';
-import hostingServers from '@/routes/admin/hosting-servers';
+import hostingServers from '@/routes/admin/hosting-servers/index';
 import type { BreadcrumbItem } from '@/types';
 import { Edit, Server, HardDrive } from 'lucide-vue-next';
 

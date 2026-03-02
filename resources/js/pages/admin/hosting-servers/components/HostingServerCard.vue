@@ -4,7 +4,7 @@ import { Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import hostingServers from '@/routes/admin/hosting-servers';
+import hostingServers from '@/routes/admin/hosting-servers/index';
 import { Eye, Edit, Server, Gamepad2, CheckCircle2, XCircle, Loader2, Wifi } from 'lucide-vue-next';
 
 export type HostingServerCardData = {

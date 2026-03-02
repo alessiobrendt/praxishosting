@@ -3,7 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TableCell, TableRow } from '@/components/ui/table';
-import hostingServers from '@/routes/admin/hosting-servers';
+import hostingServers from '@/routes/admin/hosting-servers/index';
 import { Eye, Edit } from 'lucide-vue-next';
 
 export type HostingServerRowData = {

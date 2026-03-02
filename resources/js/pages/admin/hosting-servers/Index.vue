@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
-import hostingServers from '@/routes/admin/hosting-servers';
+import hostingServers from '@/routes/admin/hosting-servers/index';
 import type { BreadcrumbItem } from '@/types';
 import PageHeader from './components/PageHeader.vue';
 import HostingServersTable from './components/HostingServersTable.vue';
