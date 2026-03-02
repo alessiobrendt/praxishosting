@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
+use App\Models\Brand;
 use App\Models\Setting;
+use App\Models\TicketCategory;
+use App\Models\TicketPriority;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -40,8 +43,24 @@ class SystemSettingsController extends Controller
             'support_max_open_tickets_per_user' => (string) (Setting::get('support_max_open_tickets_per_user') ?: '0'),
         ];
 
+        $ticketCategories = TicketCategory::query()
+            ->orderBy('sort_order')
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        $ticketPriorities = TicketPriority::query()
+            ->orderBy('sort_order')
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
         return Inertia::render('admin/settings/Index', [
             'settings' => $settings,
+            'brands' => Brand::query()->orderBy('key')->get(),
+            'ticketCategories' => $ticketCategories,
+            'ticketPriorities' => $ticketPriorities,
+            'initialTab' => $request->query('tab', 'allgemein'),
         ]);
     }
 

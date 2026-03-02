@@ -94,7 +94,7 @@ const form = useForm({
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
     { title: 'Admin', href: '/admin' },
-    { title: 'Marken', href: '/admin/brands' },
+    { title: 'Marken', href: '/admin/settings?tab=marken' },
     { title: props.brand.name, href: '#' },
 ];
 
@@ -377,7 +377,7 @@ const submit = () => {
                 </CardContent>
                 <CardFooter>
                     <Button type="submit" :disabled="form.processing">Speichern</Button>
-                    <Link href="/admin/brands">
+                    <Link href="/admin/settings?tab=marken">
                         <Button type="button" variant="outline" class="ml-2">Abbrechen</Button>
                     </Link>
                 </CardFooter>

@@ -13,17 +13,9 @@ use Inertia\Response;
 
 class TicketPriorityController extends Controller
 {
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        $ticketPriorities = TicketPriority::query()
-            ->orderBy('sort_order')
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
-
-        return Inertia::render('admin/ticket-priorities/Index', [
-            'ticketPriorities' => $ticketPriorities,
-        ]);
+        return redirect()->route('admin.settings.index', ['tab' => 'support']);
     }
 
     public function create(): Response
@@ -41,7 +33,7 @@ class TicketPriorityController extends Controller
 
         AdminActivityLog::log($request->user()->id, 'ticket_priority_created', TicketPriority::class, $ticketPriority->id, null, $validated);
 
-        return redirect()->route('admin.ticket-priorities.index')->with('success', 'Priorität angelegt.');
+        return redirect()->route('admin.settings.index', ['tab' => 'support'])->with('success', 'Priorität angelegt.');
     }
 
     public function edit(TicketPriority $ticketPriority): Response
@@ -62,7 +54,7 @@ class TicketPriorityController extends Controller
 
         AdminActivityLog::log($request->user()->id, 'ticket_priority_updated', TicketPriority::class, $ticketPriority->id, $old, $validated);
 
-        return redirect()->route('admin.ticket-priorities.index')->with('success', 'Priorität aktualisiert.');
+        return redirect()->route('admin.settings.index', ['tab' => 'support'])->with('success', 'Priorität aktualisiert.');
     }
 
     public function destroy(TicketPriority $ticketPriority): RedirectResponse
@@ -72,6 +64,6 @@ class TicketPriorityController extends Controller
 
         AdminActivityLog::log(request()->user()->id, 'ticket_priority_deleted', TicketPriority::class, $ticketPriority->id, $old, null);
 
-        return redirect()->route('admin.ticket-priorities.index')->with('success', 'Priorität gelöscht.');
+        return redirect()->route('admin.settings.index', ['tab' => 'support'])->with('success', 'Priorität gelöscht.');
     }
 }

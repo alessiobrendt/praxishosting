@@ -21,7 +21,7 @@ test('admin users can view ticket priorities index', function () {
     $this->actingAs($user);
 
     $response = $this->get(route('admin.ticket-priorities.index'));
-    $response->assertOk();
+    $response->assertRedirect(route('admin.settings.index', ['tab' => 'support']));
 });
 
 test('admin users can create ticket priority', function () {
@@ -35,7 +35,7 @@ test('admin users can create ticket priority', function () {
         'sort_order' => 1,
         'is_active' => true,
     ]);
-    $response->assertRedirect(route('admin.ticket-priorities.index'));
+    $response->assertRedirect(route('admin.settings.index', ['tab' => 'support']));
     $this->assertDatabaseHas('ticket_priorities', ['slug' => 'hoch']);
 });
 
@@ -51,7 +51,7 @@ test('admin users can update ticket priority', function () {
         'sort_order' => 0,
         'is_active' => true,
     ]);
-    $response->assertRedirect(route('admin.ticket-priorities.index'));
+    $response->assertRedirect(route('admin.settings.index', ['tab' => 'support']));
     $priority->refresh();
     expect($priority->name)->toBe('Dringend');
 });
@@ -62,6 +62,6 @@ test('admin users can delete ticket priority', function () {
     $this->actingAs($user);
 
     $response = $this->delete(route('admin.ticket-priorities.destroy', $priority));
-    $response->assertRedirect(route('admin.ticket-priorities.index'));
+    $response->assertRedirect(route('admin.settings.index', ['tab' => 'support']));
     $this->assertDatabaseMissing('ticket_priorities', ['id' => $priority->id]);
 });

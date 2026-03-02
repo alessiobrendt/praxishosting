@@ -21,7 +21,7 @@ test('admin users can view ticket categories index', function () {
     $this->actingAs($user);
 
     $response = $this->get(route('admin.ticket-categories.index'));
-    $response->assertOk();
+    $response->assertRedirect(route('admin.settings.index', ['tab' => 'support']));
 });
 
 test('admin users can create ticket category', function () {
@@ -35,7 +35,7 @@ test('admin users can create ticket category', function () {
         'sort_order' => 0,
         'is_active' => true,
     ]);
-    $response->assertRedirect(route('admin.ticket-categories.index'));
+    $response->assertRedirect(route('admin.settings.index', ['tab' => 'support']));
     $this->assertDatabaseHas('ticket_categories', ['slug' => 'technisch']);
 });
 
@@ -50,7 +50,7 @@ test('admin users can update ticket category', function () {
         'sort_order' => 1,
         'is_active' => true,
     ]);
-    $response->assertRedirect(route('admin.ticket-categories.index'));
+    $response->assertRedirect(route('admin.settings.index', ['tab' => 'support']));
     $category->refresh();
     expect($category->name)->toBe('Updated Category');
 });
@@ -61,6 +61,6 @@ test('admin users can delete ticket category', function () {
     $this->actingAs($user);
 
     $response = $this->delete(route('admin.ticket-categories.destroy', $category));
-    $response->assertRedirect(route('admin.ticket-categories.index'));
+    $response->assertRedirect(route('admin.settings.index', ['tab' => 'support']));
     $this->assertDatabaseMissing('ticket_categories', ['id' => $category->id]);
 });

@@ -13,17 +13,9 @@ use Inertia\Response;
 
 class TicketCategoryController extends Controller
 {
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        $ticketCategories = TicketCategory::query()
-            ->orderBy('sort_order')
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
-
-        return Inertia::render('admin/ticket-categories/Index', [
-            'ticketCategories' => $ticketCategories,
-        ]);
+        return redirect()->route('admin.settings.index', ['tab' => 'support']);
     }
 
     public function create(): Response
@@ -41,7 +33,7 @@ class TicketCategoryController extends Controller
 
         AdminActivityLog::log($request->user()->id, 'ticket_category_created', TicketCategory::class, $ticketCategory->id, null, $validated);
 
-        return redirect()->route('admin.ticket-categories.index')->with('success', 'Kategorie angelegt.');
+        return redirect()->route('admin.settings.index', ['tab' => 'support'])->with('success', 'Kategorie angelegt.');
     }
 
     public function edit(TicketCategory $ticketCategory): Response
@@ -62,7 +54,7 @@ class TicketCategoryController extends Controller
 
         AdminActivityLog::log($request->user()->id, 'ticket_category_updated', TicketCategory::class, $ticketCategory->id, $old, $validated);
 
-        return redirect()->route('admin.ticket-categories.index')->with('success', 'Kategorie aktualisiert.');
+        return redirect()->route('admin.settings.index', ['tab' => 'support'])->with('success', 'Kategorie aktualisiert.');
     }
 
     public function destroy(TicketCategory $ticketCategory): RedirectResponse
@@ -72,6 +64,6 @@ class TicketCategoryController extends Controller
 
         AdminActivityLog::log(request()->user()->id, 'ticket_category_deleted', TicketCategory::class, $ticketCategory->id, $old, null);
 
-        return redirect()->route('admin.ticket-categories.index')->with('success', 'Kategorie gelöscht.');
+        return redirect()->route('admin.settings.index', ['tab' => 'support'])->with('success', 'Kategorie gelöscht.');
     }
 }

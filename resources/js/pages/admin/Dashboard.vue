@@ -1,21 +1,25 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { ref, onMounted } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, computed, onMounted, watch } from 'vue';
+import { GridLayout, GridItem } from 'vue-grid-layout-v3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
 import { Button } from '@/components/ui/button';
-import AdminSearch from '@/components/AdminSearch.vue';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import DashboardWidgetSlot from '@/components/admin/dashboard/DashboardWidgetSlot.vue';
+import WidgetGalleryModal from '@/components/admin/dashboard/WidgetGalleryModal.vue';
 import { getAdminRecent } from '@/composables/useAdminRecent';
 import type { AdminRecentItem } from '@/composables/useAdminRecent';
 import { dashboard } from '@/routes';
+import adminDashboard from '@/routes/admin/dashboard';
 import type { BreadcrumbItem } from '@/types';
-
-const recentItems = ref<AdminRecentItem[]>([]);
-
-onMounted(() => {
-    recentItems.value = getAdminRecent();
-});
+import type { LayoutItem, WidgetRegistryItem } from '@/types/admin/dashboard';
 
 type Stats = {
     activeSubscriptions: number;
@@ -32,51 +36,131 @@ type Stats = {
     cancellationsAtPeriodEnd: number;
 };
 
-type ActionItemExpiring = {
-    site_uuid: string | null;
-    site_name: string | null;
-    current_period_ends_at: string | null;
-};
-
-type ActionItemInvoice = {
-    id: number;
-    number: string;
-    user_id: number;
-    user_name: string | null;
-    status: string;
-    due_date: string | null;
-};
-
-type ActionItemDunning = {
-    id: number;
-    number: string;
-    user_id: number;
-    user_name: string | null;
-    max_level: number;
-};
-
 type ActionItems = {
-    expiringSubscriptions: ActionItemExpiring[];
-    overdueOrFailedInvoices: ActionItemInvoice[];
-    openDunningInvoices: ActionItemDunning[];
+    expiringSubscriptions: Array<{ site_uuid: string | null; site_name: string | null; current_period_ends_at: string | null }>;
+    overdueOrFailedInvoices: Array<{ id: number; number: string; user_id: number; user_name: string | null; status: string; due_date: string | null }>;
+    openDunningInvoices: Array<{ id: number; number: string; user_id: number; user_name: string | null; max_level: number }>;
 };
 
 type Props = {
+    layout: LayoutItem[];
+    defaultLayout: LayoutItem[];
+    widgetRegistry: WidgetRegistryItem[];
     stats: Stats;
     actionItems: ActionItems;
+    lastWebhookMinutesAgo?: number | null;
 };
 
 const props = defineProps<Props>();
 
-const INVOICE_STATUS_LABELS: Record<string, string> = {
-    paid: 'Bezahlt',
-    pending: 'Ausstehend',
-    draft: 'Entwurf',
-    sent: 'Gesendet',
-};
+const recentItems = ref<AdminRecentItem[]>([]);
+const isEditMode = ref(false);
+const layoutLocal = ref<LayoutItem[]>([]);
+const galleryOpen = ref(false);
+const saving = ref(false);
+const saveError = ref<string | null>(null);
 
-const invoiceStatusLabel = (status: string): string =>
-    INVOICE_STATUS_LABELS[status] ?? status;
+onMounted(() => {
+    recentItems.value = getAdminRecent();
+    layoutLocal.value = [...props.layout];
+});
+
+watch(
+    () => props.layout,
+    (newLayout) => {
+        layoutLocal.value = [...newLayout];
+    },
+    { deep: true },
+);
+
+const defaultLayout = computed(() => props.defaultLayout ?? props.layout);
+
+const registryByKey = computed(() => {
+    const map: Record<string, WidgetRegistryItem> = {};
+    for (const w of props.widgetRegistry) {
+        map[w.key] = w;
+    }
+    return map;
+});
+
+function openGallery() {
+    galleryOpen.value = true;
+}
+
+function closeGallery() {
+    galleryOpen.value = false;
+}
+
+function addWidget(key: string) {
+    const reg = registryByKey.value[key];
+    const defaultW = reg?.defaultW ?? 2;
+    const defaultH = reg?.defaultH ?? 1;
+    const maxY = layoutLocal.value.length
+        ? Math.max(...layoutLocal.value.map((it) => it.y + it.h), 0)
+        : 0;
+    const newItem: LayoutItem = {
+        i: key,
+        x: 0,
+        y: maxY,
+        w: defaultW,
+        h: defaultH,
+    };
+    layoutLocal.value = [...layoutLocal.value, newItem];
+    closeGallery();
+}
+
+function onLayoutUpdated(newLayout: LayoutItem[]) {
+    layoutLocal.value = newLayout;
+}
+
+function removeWidget(key: string) {
+    if (!isEditMode.value) return;
+    layoutLocal.value = layoutLocal.value.filter((it) => it.i !== key);
+}
+
+function getCsrfToken(): string {
+    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    if (match) {
+        try {
+            return decodeURIComponent(match[1]);
+        } catch {
+            return '';
+        }
+    }
+    return '';
+}
+
+async function saveLayout() {
+    saving.value = true;
+    saveError.value = null;
+    try {
+        const url = adminDashboard.layout.update.url();
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': getCsrfToken(),
+            },
+            body: JSON.stringify({ layout: layoutLocal.value }),
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message ?? res.statusText);
+        }
+        isEditMode.value = false;
+        router.reload();
+    } catch (e) {
+        saveError.value = e instanceof Error ? e.message : 'Speichern fehlgeschlagen';
+    } finally {
+        saving.value = false;
+    }
+}
+
+function resetToDefault() {
+    layoutLocal.value = [...defaultLayout.value];
+}
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -88,229 +172,75 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Admin Dashboard" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Admin Dashboard</Heading>
-                <Text class="mt-2" muted>
-                    Übersicht Umsatz, Abos und Webseiten
-                </Text>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Globale Suche</CardTitle>
-                    <CardDescription>Sites, Kunden, Rechnungen, Abos (Stripe-ID) durchsuchen</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <AdminSearch />
-                </CardContent>
-            </Card>
-
-            <Card v-if="recentItems.length">
-                <CardHeader>
-                    <CardTitle>Zuletzt angesehen</CardTitle>
-                    <CardDescription>Zuletzt geöffnete Sites und Kunden</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ul class="flex flex-wrap gap-2">
-                        <li v-for="(item, i) in recentItems" :key="i">
-                            <Link
-                                :href="item.url"
-                                class="rounded-md bg-muted px-2 py-1 text-sm text-primary hover:underline"
-                            >
-                                {{ item.label }}
-                            </Link>
-                        </li>
-                    </ul>
-                </CardContent>
-            </Card>
-
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Umsatz heute</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ stats.revenueToday.toFixed(2) }} €</span>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Umsatz Monat</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ stats.revenueMonth.toFixed(2) }} €</span>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Umsatz Jahr</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ stats.revenueYear.toFixed(2) }} €</span>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Aktive Abos</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ stats.activeSubscriptions }}</span>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Webseiten gesamt</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ stats.sitesTotal }}</span>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Legacy-Webseiten</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ stats.sitesLegacy }}</span>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Gesperrte Webseiten</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ stats.sitesSuspended }}</span>
-                        <div class="mt-2">
-                            <Link :href="`/admin/sites?status=suspended`">
-                                <Button variant="ghost" size="sm">Anzeigen</Button>
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Offene Posten</CardTitle>
-                        <CardDescription>Summe unbezahlter Rechnungen</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ stats.unpaidSum.toFixed(2) }} €</span>
-                        <Text variant="small" muted class="mt-1 block">{{ stats.overdueCount }} überfällig</Text>
-                        <div class="mt-2">
-                            <Link href="/admin/invoices">
-                                <Button variant="ghost" size="sm">Rechnungen</Button>
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Abos diese Woche</CardTitle>
-                        <CardDescription>Laufzeitende in dieser Woche</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ stats.subscriptionsEndingThisWeek }}</span>
-                        <div class="mt-2">
-                            <Link href="/admin/subscriptions">
-                                <Button variant="ghost" size="sm">Abos</Button>
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Kündigungen zum Periodenende</CardTitle>
-                        <CardDescription>Abos mit Kündigung</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ stats.cancellationsAtPeriodEnd }}</span>
-                        <div class="mt-2">
-                            <Link href="/admin/subscriptions">
-                                <Button variant="ghost" size="sm">Abos</Button>
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Card v-if="lastWebhookMinutesAgo !== undefined && lastWebhookMinutesAgo !== null">
-                <CardHeader>
-                    <CardTitle class="text-sm font-medium">Stripe Webhook</CardTitle>
-                    <CardDescription>Letzter empfangener Webhook</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Text v-if="lastWebhookMinutesAgo !== null" class="text-sm">
-                        Vor {{ lastWebhookMinutesAgo }} Minute(n)
+        <div class="space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <Heading level="h1">Admin Dashboard</Heading>
+                    <Text class="mt-2" muted>
+                        Übersicht Umsatz, Abos und Webseiten
                     </Text>
-                    <Text v-else class="text-sm text-muted-foreground">
-                        Kein Webhook empfangen (oder Cache leer)
-                    </Text>
-                </CardContent>
-            </Card>
+                </div>
+                <div class="flex items-center gap-2">
+                    <template v-if="isEditMode">
+                        <Button variant="outline" size="sm" :disabled="saving" @click="resetToDefault">
+                            Zurücksetzen
+                        </Button>
+                        <Button variant="outline" size="sm" @click="openGallery">
+                            Widget hinzufügen
+                        </Button>
+                        <Button size="sm" :disabled="saving" @click="saveLayout">
+                            {{ saving ? 'Speichern…' : 'Speichern' }}
+                        </Button>
+                        <Button variant="ghost" size="sm" @click="isEditMode = false">
+                            Abbrechen
+                        </Button>
+                    </template>
+                    <Button v-else variant="outline" size="sm" @click="isEditMode = true">
+                        Dashboard bearbeiten
+                    </Button>
+                </div>
+            </div>
 
-            <Card v-if="actionItems.expiringSubscriptions?.length || actionItems.overdueOrFailedInvoices?.length || actionItems.openDunningInvoices?.length">
-                <CardHeader>
-                    <CardTitle>Zu erledigen</CardTitle>
-                    <CardDescription>Handlungsbedarf: Abos, Rechnungen, Mahnungen</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-6">
-                    <div v-if="actionItems.expiringSubscriptions?.length">
-                        <Text variant="small" muted class="font-medium">Abos, die in den nächsten 7 Tagen auslaufen</Text>
-                        <ul class="mt-2 space-y-1">
-                            <li v-for="(item, i) in actionItems.expiringSubscriptions" :key="i">
-                                <Link
-                                    v-if="item.site_uuid"
-                                    :href="`/admin/sites/${item.site_uuid}`"
-                                    class="text-primary hover:underline"
-                                >
-                                    {{ item.site_name }} – {{ item.current_period_ends_at }}
-                                </Link>
-                                <span v-else>{{ item.site_name }} – {{ item.current_period_ends_at }}</span>
-                            </li>
-                        </ul>
+            <Text v-if="saveError" variant="small" class="text-destructive">
+                {{ saveError }}
+            </Text>
+
+            <GridLayout
+                :layout="layoutLocal"
+                :col-num="12"
+                :row-height="80"
+                :is-draggable="isEditMode"
+                :is-resizable="isEditMode"
+                :vertical-compact="true"
+                :margin="[12, 12]"
+                @update:layout="onLayoutUpdated"
+            >
+                <GridItem
+                    v-for="item in layoutLocal"
+                    :key="item.i"
+                    :x="item.x"
+                    :y="item.y"
+                    :w="item.w"
+                    :h="item.h"
+                    :i="item.i"
+                    :static="!isEditMode"
+                >
+                    <div class="h-full w-full overflow-auto p-1">
+                        <DashboardWidgetSlot
+                            :widget-key="item.i"
+                            :registry-item="registryByKey[item.i] ?? null"
+                            :preview="false"
+                        />
                     </div>
-                    <div v-if="actionItems.overdueOrFailedInvoices?.length">
-                        <Text variant="small" muted class="font-medium">Rechnungen überfällig oder Zahlung fehlgeschlagen</Text>
-                        <ul class="mt-2 space-y-1">
-                            <li v-for="inv in actionItems.overdueOrFailedInvoices" :key="inv.id">
-                                <Link :href="`/admin/invoices/${inv.id}`" class="text-primary hover:underline">
-                                    Rechnung {{ inv.number }}
-                                </Link>
-                                <span class="text-muted-foreground"> · {{ invoiceStatusLabel(inv.status) }}</span>
-                                <Link
-                                    v-if="inv.user_id"
-                                    :href="`/admin/customers/${inv.user_id}`"
-                                    class="ml-1 text-primary hover:underline"
-                                >
-                                    ({{ inv.user_name }})
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-                    <div v-if="actionItems.openDunningInvoices?.length">
-                        <Text variant="small" muted class="font-medium">Offene Mahnungen (2. oder 3. Mahnung ohne Zahlung)</Text>
-                        <ul class="mt-2 space-y-1">
-                            <li v-for="inv in actionItems.openDunningInvoices" :key="inv.id">
-                                <Link :href="`/admin/invoices/${inv.id}`" class="text-primary hover:underline">
-                                    Rechnung {{ inv.number }} (Mahnstufe {{ inv.max_level }})
-                                </Link>
-                                <Link
-                                    v-if="inv.user_id"
-                                    :href="`/admin/customers/${inv.user_id}`"
-                                    class="ml-1 text-primary hover:underline"
-                                >
-                                    ({{ inv.user_name }})
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-                </CardContent>
-            </Card>
+                </GridItem>
+            </GridLayout>
         </div>
+
+        <WidgetGalleryModal
+            :open="galleryOpen"
+            :widget-registry="widgetRegistry"
+            @close="closeGallery"
+            @add-widget="addWidget"
+        />
     </AppLayout>
 </template>

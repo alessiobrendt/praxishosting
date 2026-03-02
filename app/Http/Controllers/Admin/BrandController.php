@@ -11,13 +11,9 @@ use Inertia\Response;
 
 class BrandController extends Controller
 {
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        $brands = Brand::query()->orderBy('key')->get();
-
-        return Inertia::render('admin/brands/Index', [
-            'brands' => $brands,
-        ]);
+        return redirect()->route('admin.settings.index', ['tab' => 'marken']);
     }
 
     public function edit(Brand $brand): Response
@@ -76,6 +72,6 @@ class BrandController extends Controller
 
         $brand->update($validated);
 
-        return redirect()->route('admin.brands.index')->with('success', 'Marke gespeichert.');
+        return redirect()->route('admin.settings.index', ['tab' => 'marken'])->with('success', 'Marke gespeichert.');
     }
 }

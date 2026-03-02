@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateDashboardLayoutRequest;
 use App\Listeners\LogStripeWebhookReceived;
 use App\Models\Invoice;
 use App\Models\InvoiceDunningLetter;
 use App\Models\Site;
 use App\Models\SiteSubscription;
 use App\Models\User;
+use App\Services\DashboardWidgetRegistry;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -99,7 +102,32 @@ class DashboardController extends Controller
             ? (int) Carbon::parse($lastWebhookAt)->diffInMinutes(now())
             : null;
 
+        $user = $request->user();
+        $savedLayout = $user->admin_dashboard_layout;
+        $defaultLayout = DashboardWidgetRegistry::defaultLayout();
+        $layout = isset($savedLayout['layout']) && is_array($savedLayout['layout'])
+            ? $savedLayout['layout']
+            : $defaultLayout;
+
+        $widgetRegistry = collect(DashboardWidgetRegistry::widgets())->map(function ($w) {
+            $item = [
+                'key' => $w['key'],
+                'title' => $w['title'],
+                'description' => $w['description'],
+                'defaultW' => $w['defaultW'],
+                'defaultH' => $w['defaultH'],
+            ];
+            if (isset($w['demoData'])) {
+                $item['demoData'] = $w['demoData'];
+            }
+
+            return $item;
+        })->values()->all();
+
         return Inertia::render('admin/Dashboard', [
+            'layout' => $layout,
+            'defaultLayout' => $defaultLayout,
+            'widgetRegistry' => $widgetRegistry,
             'stats' => [
                 'activeSubscriptions' => SiteSubscription::whereNotNull('stripe_subscription_id')->count(),
                 'sitesTotal' => Site::count(),
@@ -121,5 +149,26 @@ class DashboardController extends Controller
             ],
             'lastWebhookMinutesAgo' => $lastWebhookMinutesAgo,
         ]);
+    }
+
+    public function updateLayout(UpdateDashboardLayoutRequest $request): JsonResponse
+    {
+        $layout = $request->validated('layout');
+        $user = $request->user();
+        $user->admin_dashboard_layout = ['layout' => $layout];
+        $user->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function widgetData(Request $request, string $widgetKey): JsonResponse
+    {
+        if (! in_array($widgetKey, DashboardWidgetRegistry::keys(), true)) {
+            abort(404);
+        }
+
+        return response()->json(
+            app(\App\Services\DashboardWidgetDataService::class)->getData($widgetKey)
+        );
     }
 }

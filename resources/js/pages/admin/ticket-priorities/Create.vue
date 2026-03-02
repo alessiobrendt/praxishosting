@@ -19,11 +19,13 @@ const form = useForm({
     is_active: true,
 });
 
+const settingsSupportUrl = '/admin/settings?tab=support';
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
     { title: 'Admin', href: '/admin' },
-    { title: 'Ticket-Prioritäten', href: '/admin/ticket-priorities' },
-    { title: 'Neu', href: '#' },
+    { title: 'Einstellungen', href: '/admin/settings' },
+    { title: 'Priorität anlegen', href: '#' },
 ];
 </script>
 
@@ -67,7 +69,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                     </CardContent>
                     <CardFooter>
                         <Button type="submit" :disabled="form.processing">Anlegen</Button>
-                        <Link href="/admin/ticket-priorities"><Button type="button" variant="outline">Abbrechen</Button></Link>
+                        <Link :href="settingsSupportUrl"><Button type="button" variant="outline">Abbrechen</Button></Link>
                     </CardFooter>
                 </form>
             </Card>

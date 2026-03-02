@@ -208,6 +208,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('impersonate/take/{id}/{guardName?}', [\Lab404\Impersonate\Controllers\ImpersonateController::class, 'take'])->name('impersonate');
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::put('dashboard/layout', [DashboardController::class, 'updateLayout'])->name('dashboard.layout.update');
+    Route::get('dashboard/widgets/{widgetKey}', [DashboardController::class, 'widgetData'])->name('dashboard.widgets.show');
     Route::get('search', [SearchController::class, 'index'])->name('search');
     Route::get('activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
     Route::get('cron-statistics', [CronStatisticsController::class, 'index'])->name('cron-statistics.index');

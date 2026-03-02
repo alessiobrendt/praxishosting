@@ -32,10 +32,12 @@ const form = useForm({
     is_active: props.ticketCategory.is_active,
 });
 
+const settingsSupportUrl = '/admin/settings?tab=support';
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
     { title: 'Admin', href: '/admin' },
-    { title: 'Ticket-Kategorien', href: '/admin/ticket-categories' },
+    { title: 'Einstellungen', href: '/admin/settings' },
     { title: props.ticketCategory.name, href: '#' },
 ];
 </script>
@@ -82,7 +84,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                     </CardContent>
                     <CardFooter>
                         <Button type="submit" :disabled="form.processing">Speichern</Button>
-                        <Link href="/admin/ticket-categories"><Button type="button" variant="outline">Abbrechen</Button></Link>
+                        <Link :href="settingsSupportUrl"><Button type="button" variant="outline">Abbrechen</Button></Link>
                     </CardFooter>
                 </form>
             </Card>

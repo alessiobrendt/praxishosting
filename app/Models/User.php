@@ -45,6 +45,7 @@ class User extends Authenticatable
         'company',
         'phone',
         'ticket_signature',
+        'admin_dashboard_layout',
     ];
 
     /**
@@ -73,6 +74,7 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'is_admin' => 'boolean',
             'pin_lockout_until' => 'datetime',
+            'admin_dashboard_layout' => 'array',
         ];
     }
 
