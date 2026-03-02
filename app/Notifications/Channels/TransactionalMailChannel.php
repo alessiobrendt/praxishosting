@@ -4,6 +4,7 @@ namespace App\Notifications\Channels;
 
 use App\Mail\TransactionalTemplateMail;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class TransactionalMailChannel
@@ -20,6 +21,11 @@ class TransactionalMailChannel
 
         $to = $notifiable->routeNotificationFor('mail', $notification);
         if (! $to) {
+            Log::debug('Transactional mail not sent: no email address for notifiable', [
+                'notifiable_type' => $notifiable::class,
+                'notifiable_id' => $notifiable->id ?? null,
+            ]);
+
             return;
         }
 

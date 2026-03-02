@@ -42,6 +42,11 @@ php artisan test --compact
 
 Die Anwendung wird per **Laravel Herd** unter `https://praxishosting.test` bereitgestellt.
 
+## Queue und Scheduler (E-Mails, Jobs)
+
+- **Queue-Worker:** Transaktionale E-Mails und viele Benachrichtigungen laufen über die Queue. Damit E-Mails versendet werden, muss ein Worker laufen, z. B. `php artisan queue:work` (dauerhaft) oder `php artisan queue:work --once` (einmalig, z. B. im Cron).
+- **Scheduler:** Tägliche Jobs (Abo-Verlängerung, Rechnungen, Suspend/Löschung) werden über den Scheduler ausgeführt. Dafür muss `php artisan schedule:work` laufen oder ein Cron-Eintrag: `* * * * * cd /pfad/zum/projekt && php artisan schedule:run >> /dev/null 2>&1`.
+
 ## Code-Style
 
 - **PHP**: Laravel Pint — `vendor/bin/pint --dirty`

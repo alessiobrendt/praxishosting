@@ -206,8 +206,12 @@ class CheckoutController extends Controller
 
         if ($session->mode === 'payment') {
             $metadata = $session->metadata ? $session->metadata->toArray() : [];
-            if (($metadata['type'] ?? '') === 'game_server_renewal') {
+            $type = $metadata['type'] ?? '';
+            if ($type === 'game_server_renewal') {
                 return $this->handleGamingRenewalSuccess($request, $user, $session, $metadata);
+            }
+            if ($type === 'invoice_payment') {
+                return $this->handleInvoicePaymentSuccess($request, $user, $metadata);
             }
         }
 
@@ -620,6 +624,53 @@ class CheckoutController extends Controller
         return redirect()
             ->route('gaming-accounts.show', $account)
             ->with('success', 'Der Game-Server wurde erfolgreich verlängert.');
+    }
+
+    /**
+     * Handle successful Stripe one-time payment for an existing invoice.
+     */
+    protected function handleInvoicePaymentSuccess(Request $request, \App\Models\User $user, array $metadata): RedirectResponse
+    {
+        $invoiceId = (int) ($metadata['invoice_id'] ?? 0);
+        $userId = (int) ($metadata['user_id'] ?? 0);
+
+        if ($userId !== $user->id || $invoiceId < 1) {
+            Log::debug('Checkout success invoice payment: invalid metadata');
+
+            return redirect()->route('billing.index')->with('error', 'Ungültige Zahlungsdaten.');
+        }
+
+        $invoice = Invoice::find($invoiceId);
+        if (! $invoice || $invoice->user_id !== $user->id) {
+            return redirect()->route('billing.index')->with('error', 'Rechnung nicht gefunden.');
+        }
+
+        $invoice->update([
+            'status' => 'paid',
+            'metadata' => array_merge($invoice->metadata ?? [], ['payment_method' => 'stripe']),
+        ]);
+
+        $invoice->refresh();
+        try {
+            $pdfPath = app(InvoicePdfService::class)->generate($invoice->fresh(['user.brand', 'siteSubscription.site', 'lineItems']));
+            if ($pdfPath) {
+                $invoice->update(['pdf_path' => $pdfPath]);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+        try {
+            $xmlPath = app(InvoiceEInvoiceService::class)->generate($invoice->fresh(['user', 'lineItems']));
+            if ($xmlPath) {
+                $invoice->update(['invoice_xml_path' => $xmlPath]);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return redirect()
+            ->route('invoices.show', $invoice)
+            ->with('success', 'Die Rechnung wurde erfolgreich bezahlt.');
     }
 
     /**

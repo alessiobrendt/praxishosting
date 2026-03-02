@@ -12,6 +12,7 @@ use App\Models\InvoiceLineItem;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\DunningPdfService;
+use App\Services\InvoiceEInvoiceService;
 use App\Services\InvoicePdfService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -57,7 +58,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    public function store(StoreManualInvoiceRequest $request, InvoicePdfService $pdfService): RedirectResponse
+    public function store(StoreManualInvoiceRequest $request, InvoicePdfService $pdfService, InvoiceEInvoiceService $eInvoiceService): RedirectResponse
     {
         $data = $request->validated();
         $invoiceDate = Carbon::parse($data['invoice_date']);
@@ -94,9 +95,17 @@ class InvoiceController extends Controller
             ]);
         }
 
-        $pdfPath = $pdfService->generate($invoice->fresh(['user', 'lineItems']));
+        $pdfPath = $pdfService->generate($invoice->fresh(['user.brand', 'siteSubscription.site', 'lineItems']));
         if ($pdfPath) {
             $invoice->update(['pdf_path' => $pdfPath]);
+        }
+        try {
+            $xmlPath = $eInvoiceService->generate($invoice->fresh(['user', 'lineItems']));
+            if ($xmlPath) {
+                $invoice->update(['invoice_xml_path' => $xmlPath]);
+            }
+        } catch (\Throwable $e) {
+            report($e);
         }
 
         AdminActivityLog::log($request->user()->id, 'invoice_created', Invoice::class, $invoice->id, null, ['number' => $invoice->number, 'amount' => $invoice->amount]);
@@ -114,6 +123,47 @@ class InvoiceController extends Controller
                 'due_date' => $invoice->due_date?->format('d.m.Y'),
             ]),
         ]);
+    }
+
+    public function updateStatus(Request $request, Invoice $invoice, InvoicePdfService $pdfService, InvoiceEInvoiceService $eInvoiceService): RedirectResponse
+    {
+        $request->validate([
+            'status' => ['required', 'string', 'in:draft,sent,pending,paid,cancelled'],
+        ]);
+
+        $oldStatus = $invoice->status;
+        $invoice->update(['status' => $request->input('status')]);
+
+        if ($oldStatus !== $invoice->status) {
+            try {
+                $pdfPath = $pdfService->generate($invoice->fresh(['user.brand', 'siteSubscription.site', 'lineItems']));
+                if ($pdfPath) {
+                    $invoice->update(['pdf_path' => $pdfPath]);
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+            try {
+                $xmlPath = $eInvoiceService->generate($invoice->fresh(['user', 'lineItems']));
+                if ($xmlPath) {
+                    $invoice->update(['invoice_xml_path' => $xmlPath]);
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        AdminActivityLog::log($request->user()->id, 'invoice_status_updated', Invoice::class, $invoice->id, ['status' => $oldStatus], ['status' => $invoice->status]);
+
+        $statusLabels = [
+            'draft' => 'Entwurf',
+            'sent' => 'Gesendet',
+            'pending' => 'Ausstehend',
+            'paid' => 'Bezahlt',
+            'cancelled' => 'Storniert',
+        ];
+
+        return redirect()->route('admin.invoices.show', $invoice)->with('success', 'Status wurde auf „'.($statusLabels[$invoice->status] ?? $invoice->status).'“ geändert.');
     }
 
     public function edit(Invoice $invoice): Response|RedirectResponse
@@ -137,7 +187,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    public function update(UpdateManualInvoiceRequest $request, Invoice $invoice, InvoicePdfService $pdfService): RedirectResponse
+    public function update(UpdateManualInvoiceRequest $request, Invoice $invoice, InvoicePdfService $pdfService, InvoiceEInvoiceService $eInvoiceService): RedirectResponse
     {
         if ($invoice->type !== 'manual') {
             return redirect()->route('admin.invoices.index')->with('error', 'Nur manuelle Rechnungen können bearbeitet werden.');
@@ -170,9 +220,17 @@ class InvoiceController extends Controller
             ]);
         }
 
-        $pdfPath = $pdfService->generate($invoice->fresh(['user', 'lineItems']));
+        $pdfPath = $pdfService->generate($invoice->fresh(['user.brand', 'siteSubscription.site', 'lineItems']));
         if ($pdfPath) {
             $invoice->update(['pdf_path' => $pdfPath]);
+        }
+        try {
+            $xmlPath = $eInvoiceService->generate($invoice->fresh(['user', 'lineItems']));
+            if ($xmlPath) {
+                $invoice->update(['invoice_xml_path' => $xmlPath]);
+            }
+        } catch (\Throwable $e) {
+            report($e);
         }
 
         AdminActivityLog::log($request->user()->id, 'invoice_updated', Invoice::class, $invoice->id, $old, $data);

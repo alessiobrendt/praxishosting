@@ -20,6 +20,15 @@
         <div class="text-right">
             <div class="inline-block px-4 py-2 rounded-lg gradient-primary text-white text-lg font-bold uppercase tracking-tight shadow-md">Rechnung</div>
             <div class="mt-2 text-gray-600 font-medium">{{ $invoice->number }}</div>
+            @php
+                $statusLabel = $invoice->status === 'paid' ? 'Bezahlt' : (in_array($invoice->status, ['void', 'cancelled', 'canceled'], true) ? 'Storniert' : 'Offen');
+                $statusStyle = $invoice->status === 'paid'
+                    ? 'background-color:#dcfce7;color:#166534;border:1px solid #86efac;'
+                    : (in_array($invoice->status, ['void', 'cancelled', 'canceled'], true)
+                        ? 'background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;'
+                        : 'background-color:#fef3c7;color:#92400e;border:1px solid #fcd34d;');
+            @endphp
+            <div class="mt-2" style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:0.02em;{{ $statusStyle }}">{{ $statusLabel }}</div>
         </div>
     </div>
 

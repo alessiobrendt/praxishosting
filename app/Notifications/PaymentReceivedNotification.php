@@ -31,7 +31,7 @@ class PaymentReceivedNotification extends Notification implements ShouldQueue
     {
         $amount = number_format((float) $this->invoice->amount, 2, ',', '.').' €';
         $paymentDate = $this->invoice->invoice_date->format('d.m.Y');
-        $pdfUrl = $this->invoice->pdf_path ? route('invoices.pdf', $this->invoice) : null;
+        $invoiceViewUrl = route('invoices.show', $this->invoice);
 
         $template = EmailTemplate::find('payment_received');
         $content = $template?->replace([
@@ -43,7 +43,7 @@ class PaymentReceivedNotification extends Notification implements ShouldQueue
 
         return [
             'content' => $content,
-            'actionUrl' => ($content['action_text'] && $pdfUrl) ? $pdfUrl : null,
+            'actionUrl' => $content['action_text'] ? $invoiceViewUrl : null,
         ];
     }
 

@@ -120,6 +120,12 @@ return [
         'company_city' => env('INVOICE_COMPANY_CITY', ''),
         'company_country' => env('INVOICE_COMPANY_COUNTRY', 'DE'),
         'company_vat_id' => env('INVOICE_COMPANY_VAT_ID', null),
+        'company_tax_id' => env('INVOICE_COMPANY_TAX_ID', null),
+        'company_email' => env('INVOICE_COMPANY_EMAIL', env('MAIL_FROM_ADDRESS', 'rechnung@example.com')),
+        'company_phone' => env('INVOICE_COMPANY_PHONE', ''),
+        'company_iban' => env('INVOICE_COMPANY_IBAN', ''),
+        'company_bic' => env('INVOICE_COMPANY_BIC', ''),
+        'company_bank_name' => env('INVOICE_COMPANY_BANK_NAME', ''),
         'ustg_19_text' => 'Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen (Kleinunternehmerregelung).',
     ],
 

@@ -88,6 +88,47 @@ test('admin users can view invoice show', function () {
     );
 });
 
+test('admin users can update invoice status', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $customer = User::factory()->create();
+    $invoice = Invoice::create([
+        'user_id' => $customer->id,
+        'number' => 'INV-2026-00099',
+        'type' => 'manual',
+        'amount' => 100,
+        'tax' => 0,
+        'status' => 'draft',
+        'invoice_date' => now(),
+    ]);
+    $this->actingAs($admin);
+
+    $response = $this->patch(route('admin.invoices.status.update', $invoice), ['status' => 'paid']);
+
+    $response->assertRedirect(route('admin.invoices.show', $invoice));
+    $response->assertSessionHas('success');
+    expect($invoice->fresh()->status)->toBe('paid');
+});
+
+test('admin invoice status update rejects invalid status', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $customer = User::factory()->create();
+    $invoice = Invoice::create([
+        'user_id' => $customer->id,
+        'number' => 'INV-2026-00098',
+        'type' => 'manual',
+        'amount' => 10,
+        'tax' => 0,
+        'status' => 'draft',
+        'invoice_date' => now(),
+    ]);
+    $this->actingAs($admin);
+
+    $response = $this->patch(route('admin.invoices.status.update', $invoice), ['status' => 'invalid']);
+
+    $response->assertSessionHasErrors('status');
+    expect($invoice->fresh()->status)->toBe('draft');
+});
+
 test('admin users can create dunning letter for invoice', function () {
     $admin = User::factory()->create(['is_admin' => true]);
     $customer = User::factory()->create();

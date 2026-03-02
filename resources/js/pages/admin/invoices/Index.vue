@@ -194,11 +194,19 @@ const openExport = () => {
                                 <TableCell>{{ invoice.invoice_date }}</TableCell>
                                 <TableCell class="text-right">
                                     <a
+                                        :href="`/invoices/${invoice.id}`"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="text-primary hover:underline font-medium"
+                                    >
+                                        Anzeigen
+                                    </a>
+                                    <a
                                         v-if="invoice.pdf_path"
                                         :href="`/invoices/${invoice.id}/pdf`"
                                         target="_blank"
                                         rel="noopener"
-                                        class="text-primary hover:underline mr-2"
+                                        class="text-muted-foreground hover:underline text-sm ml-2"
                                     >
                                         PDF
                                     </a>
@@ -207,11 +215,10 @@ const openExport = () => {
                                         :href="`/invoices/${invoice.id}/xml`"
                                         target="_blank"
                                         rel="noopener"
-                                        class="text-primary hover:underline"
+                                        class="text-muted-foreground hover:underline text-sm ml-1"
                                     >
                                         XML
                                     </a>
-                                    <span v-if="!invoice.pdf_path && !invoice.invoice_xml_path" class="text-muted">–</span>
                                 </TableCell>
                             </TableRow>
                         </TableBody>

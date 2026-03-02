@@ -68,6 +68,16 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const INVOICE_STATUS_LABELS: Record<string, string> = {
+    paid: 'Bezahlt',
+    pending: 'Ausstehend',
+    draft: 'Entwurf',
+    sent: 'Gesendet',
+};
+
+const invoiceStatusLabel = (status: string): string =>
+    INVOICE_STATUS_LABELS[status] ?? status;
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
     { title: 'Admin', href: '#' },
@@ -271,7 +281,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <Link :href="`/admin/invoices/${inv.id}`" class="text-primary hover:underline">
                                     Rechnung {{ inv.number }}
                                 </Link>
-                                <span class="text-muted-foreground"> · {{ inv.status }}</span>
+                                <span class="text-muted-foreground"> · {{ invoiceStatusLabel(inv.status) }}</span>
                                 <Link
                                     v-if="inv.user_id"
                                     :href="`/admin/customers/${inv.user_id}`"

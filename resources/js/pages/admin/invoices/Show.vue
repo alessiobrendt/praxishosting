@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Select } from '@/components/ui/select';
 import { dashboard } from '@/routes';
 import { index as invoicesIndex, edit as invoicesEdit } from '@/routes/admin/invoices';
 import type { BreadcrumbItem } from '@/types';
@@ -54,8 +54,61 @@ type Props = {
 
 const props = defineProps<Props>();
 
+function nextDunningLevel(dunningLetters: { level: number }[]): number {
+    const existing = (dunningLetters ?? []).map((d) => d.level);
+    for (const level of [1, 2, 3]) {
+        if (!existing.includes(level)) {
+            return level;
+        }
+    }
+    return 0;
+}
+
 const dunningForm = useForm({});
 const canCreateDunning = nextDunningLevel(props.invoice.dunning_letters ?? []);
+
+const statusForm = useForm({ status: props.invoice.status });
+const statusUpdateUrl = `/admin/invoices/${props.invoice.id}/status`;
+function submitStatusChange(): void {
+    statusForm.patch(statusUpdateUrl, { preserveScroll: true });
+}
+
+const INVOICE_STATUS_OPTIONS: { value: string; label: string }[] = [
+    { value: 'draft', label: 'Entwurf' },
+    { value: 'sent', label: 'Gesendet' },
+    { value: 'pending', label: 'Ausstehend' },
+    { value: 'paid', label: 'Bezahlt' },
+    { value: 'cancelled', label: 'Storniert' },
+];
+
+const INVOICE_STATUS_LABELS: Record<string, string> = {
+    paid: 'Bezahlt',
+    pending: 'Ausstehend',
+    draft: 'Entwurf',
+    sent: 'Gesendet',
+    cancelled: 'Storniert',
+};
+
+const invoiceStatusLabel = (status: string): string =>
+    INVOICE_STATUS_LABELS[status] ?? status;
+
+const invoiceStatusClass = (status: string): string => {
+    const base = 'inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium';
+    switch (status) {
+        case 'paid':
+            return `${base} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300`;
+        case 'pending':
+            return `${base} bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300`;
+        case 'draft':
+            return `${base} bg-muted text-muted-foreground`;
+        case 'sent':
+            return `${base} bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300`;
+        case 'cancelled':
+            return `${base} bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300`;
+        default:
+            return `${base} bg-muted text-muted-foreground`;
+    }
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -78,6 +131,9 @@ const breadcrumbs: BreadcrumbItem[] = [
                     </Text>
                 </div>
                 <div class="flex flex-wrap gap-2">
+                    <a :href="`/invoices/${invoice.id}`" target="_blank" rel="noopener">
+                        <Button>Rechnung anzeigen</Button>
+                    </a>
                     <Link v-if="invoice.type === 'manual'" :href="invoicesEdit({ invoice: invoice.id }).url">
                         <Button variant="outline">Bearbeiten</Button>
                     </Link>
@@ -87,7 +143,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         target="_blank"
                         rel="noopener"
                     >
-                        <Button variant="outline">PDF</Button>
+                        <Button variant="outline">PDF herunterladen</Button>
                     </a>
                     <a
                         v-if="invoice.invoice_xml_path"
@@ -95,7 +151,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         target="_blank"
                         rel="noopener"
                     >
-                        <Button variant="outline">E-Rechnung (XML)</Button>
+                        <Button variant="outline">XML herunterladen</Button>
                     </a>
                 </div>
             </div>
@@ -110,11 +166,36 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <Text muted>Betrag</Text>
                         <Text class="font-semibold">{{ invoice.amount }} €</Text>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
                         <Text muted>Status</Text>
-                        <Badge :variant="invoice.status === 'paid' ? 'success' : 'secondary'">
-                            {{ invoice.status }}
-                        </Badge>
+                        <div class="flex items-center gap-2">
+                            <Select
+                                v-model="statusForm.status"
+                                class="min-w-[140px]"
+                                @update:model-value="submitStatusChange"
+                            >
+                                <option
+                                    v-for="opt in INVOICE_STATUS_OPTIONS"
+                                    :key="opt.value"
+                                    :value="opt.value"
+                                >
+                                    {{ opt.label }}
+                                </option>
+                            </Select>
+                            <span
+                                v-if="statusForm.processing"
+                                class="text-xs text-muted-foreground"
+                            >
+                                Wird gespeichert…
+                            </span>
+                            <span
+                                v-else
+                                :class="invoiceStatusClass(statusForm.status)"
+                                class="shrink-0"
+                            >
+                                {{ invoiceStatusLabel(statusForm.status) }}
+                            </span>
+                        </div>
                     </div>
                     <div class="flex justify-between">
                         <Text muted>Rechnungsdatum</Text>

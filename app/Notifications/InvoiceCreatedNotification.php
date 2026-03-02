@@ -29,6 +29,7 @@ class InvoiceCreatedNotification extends Notification implements ShouldQueue
      */
     public function toTransactionalMail(object $notifiable): array
     {
+        $invoiceViewUrl = route('invoices.show', $this->invoice);
         $pdfUrl = $this->invoice->pdf_path ? route('invoices.pdf', $this->invoice) : null;
         $amount = number_format((float) $this->invoice->amount, 2, ',', '.').' €';
         $invoiceDate = $this->invoice->invoice_date->format('d.m.Y');
@@ -39,12 +40,12 @@ class InvoiceCreatedNotification extends Notification implements ShouldQueue
             'invoice_number' => $this->invoice->number,
             'amount' => $amount,
             'invoice_date' => $invoiceDate,
-            'pdf_url' => $pdfUrl ?? '',
+            'pdf_url' => $pdfUrl ?? $invoiceViewUrl,
         ]) ?? $this->defaultContent($notifiable, $amount, $invoiceDate);
 
         return [
             'content' => $content,
-            'actionUrl' => ($content['action_text'] && $pdfUrl) ? $pdfUrl : null,
+            'actionUrl' => $content['action_text'] ? $invoiceViewUrl : null,
         ];
     }
 
@@ -57,7 +58,7 @@ class InvoiceCreatedNotification extends Notification implements ShouldQueue
             'subject' => 'Ihre Rechnung '.$this->invoice->number,
             'greeting' => 'Hallo '.$notifiable->name.',',
             'body' => 'Ihre Rechnung **'.$this->invoice->number."** wurde erstellt.\nBetrag: **".$amount."**\nDatum: ".$invoiceDate."\nVielen Dank für Ihr Vertrauen.",
-            'action_text' => 'Rechnung als PDF herunterladen',
+            'action_text' => 'Rechnung anzeigen',
         ];
     }
 }

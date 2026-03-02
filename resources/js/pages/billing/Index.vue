@@ -141,7 +141,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <TableHead>Nummer</TableHead>
                                 <TableHead>Betrag</TableHead>
                                 <TableHead>Datum</TableHead>
-                                <TableHead class="text-right">Download</TableHead>
+                                <TableHead class="text-right">Aktionen</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -153,24 +153,32 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <TableCell>{{ inv.invoice_date }}</TableCell>
                                 <TableCell class="text-right">
                                     <a
-                                        v-if="inv.pdf_path"
-                                        :href="`/invoices/${inv.id}/pdf`"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="mr-2 text-primary hover:underline"
+                                        :href="`/invoices/${inv.id}`"
+                                        class="text-primary hover:underline font-medium"
                                     >
-                                        PDF
+                                        Rechnung anzeigen
                                     </a>
-                                    <a
-                                        v-if="inv.invoice_xml_path"
-                                        :href="`/invoices/${inv.id}/xml`"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="text-primary hover:underline"
-                                    >
-                                        XML
-                                    </a>
-                                    <span v-if="!inv.pdf_path && !inv.invoice_xml_path" class="text-muted">–</span>
+                                    <template v-if="inv.pdf_path || inv.invoice_xml_path">
+                                        <span class="text-muted-foreground mx-1">·</span>
+                                        <a
+                                            v-if="inv.pdf_path"
+                                            :href="`/invoices/${inv.id}/pdf`"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="text-muted-foreground hover:underline text-sm"
+                                        >
+                                            PDF
+                                        </a>
+                                        <a
+                                            v-if="inv.invoice_xml_path"
+                                            :href="`/invoices/${inv.id}/xml`"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="text-muted-foreground hover:underline text-sm ml-1"
+                                        >
+                                            XML
+                                        </a>
+                                    </template>
                                 </TableCell>
                             </TableRow>
                         </TableBody>

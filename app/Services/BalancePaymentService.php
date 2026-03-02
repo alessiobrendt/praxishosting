@@ -104,4 +104,69 @@ class BalancePaymentService
             return $invoice->fresh();
         });
     }
+
+    /**
+     * Pay an existing invoice from the user's balance: debit balance, mark invoice as paid.
+     */
+    public function payExistingInvoice(User $user, Invoice $invoice): void
+    {
+        if ($invoice->user_id !== $user->id) {
+            throw new \InvalidArgumentException('Invoice does not belong to this user.');
+        }
+        if ($invoice->status === 'paid') {
+            return;
+        }
+
+        $amount = (float) $invoice->amount;
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Invoice amount must be positive.');
+        }
+
+        DB::transaction(function () use ($user, $invoice, $amount): void {
+            $balance = CustomerBalance::where('user_id', $user->id)->lockForUpdate()->first();
+            $currentBalance = $balance ? (float) $balance->balance : 0.0;
+
+            if ($currentBalance < $amount) {
+                throw new InsufficientBalanceException('Das Guthaben reicht für diese Rechnung nicht aus.');
+            }
+
+            BalanceTransaction::create([
+                'user_id' => $user->id,
+                'amount' => -$amount,
+                'type' => 'payment_application',
+                'description' => 'Rechnung '.$invoice->number.' bezahlt',
+                'reference_type' => Invoice::class,
+                'reference_id' => $invoice->id,
+            ]);
+
+            $balance = CustomerBalance::firstOrCreate(
+                ['user_id' => $user->id],
+                ['balance' => 0]
+            );
+            $balance->decrement('balance', $amount);
+
+            $invoice->update([
+                'status' => 'paid',
+                'metadata' => array_merge($invoice->metadata ?? [], ['payment_method' => 'balance']),
+            ]);
+        });
+
+        $invoice->refresh();
+        try {
+            $pdfPath = $this->invoicePdfService->generate($invoice->fresh(['user.brand', 'siteSubscription.site', 'lineItems']));
+            if ($pdfPath) {
+                $invoice->update(['pdf_path' => $pdfPath]);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+        try {
+            $xmlPath = $this->invoiceEInvoiceService->generate($invoice->fresh(['user', 'lineItems']));
+            if ($xmlPath) {
+                $invoice->update(['invoice_xml_path' => $xmlPath]);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
 }

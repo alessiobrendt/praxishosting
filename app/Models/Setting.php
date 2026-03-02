@@ -36,7 +36,7 @@ class Setting extends Model
      * Invoice company (Rechnungssteller) for PDF/XML. Settings override config.
      * When $brand is given and has invoice_company data, it overrides. Logo: bei lokalem Pfad wird es als Data-URL eingebettet.
      *
-     * @return array{company_name: string, company_street: string, company_postal_code: string, company_city: string, company_country: string, company_vat_id: string|null, company_logo_url: string|null, company_logo_data_url: string|null, ustg_19_text: string}
+     * @return array{company_name: string, company_street: string, company_postal_code: string, company_city: string, company_country: string, company_vat_id: string|null, company_tax_id: string|null, company_email: string, company_phone: string, company_iban: string, company_bic: string, company_bank_name: string, company_logo_url: string|null, company_logo_data_url: string|null, ustg_19_text: string}
      */
     public static function getInvoiceCompany(?Brand $brand = null): array
     {
@@ -68,12 +68,18 @@ class Setting extends Model
             'company_city' => (string) static::get('invoice_company_city', $config['company_city'] ?? ''),
             'company_country' => (string) static::get('invoice_company_country', $config['company_country'] ?? 'DE'),
             'company_vat_id' => static::get('invoice_company_vat_id', $config['company_vat_id'] ?? null) ?: null,
+            'company_tax_id' => static::get('invoice_company_tax_id', $config['company_tax_id'] ?? null) ?: null,
+            'company_email' => (string) static::get('invoice_company_email', $config['company_email'] ?? config('mail.from.address', '')),
+            'company_phone' => (string) static::get('invoice_company_phone', $config['company_phone'] ?? ''),
+            'company_iban' => (string) static::get('invoice_company_iban', $config['company_iban'] ?? ''),
+            'company_bic' => (string) static::get('invoice_company_bic', $config['company_bic'] ?? ''),
+            'company_bank_name' => (string) static::get('invoice_company_bank_name', $config['company_bank_name'] ?? ''),
             'company_logo_url' => $logoUrl,
             'company_logo_data_url' => $logoDataUrl,
             'ustg_19_text' => (string) static::get('invoice_ustg_19_text', $config['ustg_19_text'] ?? 'Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen (Kleinunternehmerregelung).'),
         ];
 
-        foreach (['company_name', 'company_street', 'company_postal_code', 'company_city', 'company_country', 'company_vat_id', 'ustg_19_text'] as $key) {
+        foreach (['company_name', 'company_street', 'company_postal_code', 'company_city', 'company_country', 'company_vat_id', 'company_tax_id', 'company_email', 'company_phone', 'company_iban', 'company_bic', 'company_bank_name', 'ustg_19_text'] as $key) {
             if (isset($brandOverrides[$key]) && $brandOverrides[$key] !== null && $brandOverrides[$key] !== '') {
                 $base[$key] = (string) $brandOverrides[$key];
             }

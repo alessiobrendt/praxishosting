@@ -131,6 +131,8 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
         ->middleware('billing.profile')
         ->name('gaming-accounts.renew');
 
+    Route::get('invoices/{invoice}', [CustomerInvoiceController::class, 'showView'])->name('invoices.show');
+    Route::post('invoices/{invoice}/pay', [CustomerInvoiceController::class, 'pay'])->name('invoices.pay');
     Route::get('invoices/{invoice}/pdf', [CustomerInvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
     Route::get('invoices/{invoice}/xml', [CustomerInvoiceController::class, 'downloadXml'])->name('invoices.xml');
     Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
@@ -208,6 +210,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
     Route::post('invoices', [InvoiceController::class, 'store'])->name('invoices.store');
     Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::patch('invoices/{invoice}/status', [InvoiceController::class, 'updateStatus'])->name('invoices.status.update');
     Route::post('invoices/{invoice}/dunning-letters', [InvoiceController::class, 'storeDunningLetter'])->name('invoices.dunning-letters.store');
     Route::get('invoices/{invoice}/dunning/{dunning_letter}/pdf', [InvoiceController::class, 'dunningPdf'])->name('invoices.dunning-letters.pdf');
     Route::get('invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
