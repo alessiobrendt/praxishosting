@@ -9,6 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class TransactionalTemplateMail extends Mailable
 {
@@ -105,6 +106,11 @@ class TransactionalTemplateMail extends Mailable
                 return trim($custom);
             }
 
+            $logoImg = $this->buildBrandLogoImg($this->brand);
+            if ($logoImg !== '') {
+                return $logoImg;
+            }
+
             $color = $this->brandPrimaryColor();
 
             return '<span style="font-size: 18px; font-weight: 600; color: '.$color.';">'.e($this->brand->name).'</span>';
@@ -119,6 +125,37 @@ class TransactionalTemplateMail extends Mailable
         $color = $this->brandPrimaryColor();
 
         return '<span style="font-size: 18px; font-weight: 600; color: '.$color.';">'.$appName.'</span>';
+    }
+
+    /**
+     * Build an img tag for the brand logo for use in the email header.
+     * Returns empty string if brand has no logo_url.
+     * SVG URLs are converted to .png for the email, because many clients (e.g. Gmail) do not display SVG images.
+     */
+    private function buildBrandLogoImg(Brand $brand): string
+    {
+        $logoUrl = $brand->logo_url;
+        if ($logoUrl === null || trim($logoUrl) === '') {
+            return '';
+        }
+
+        $logoUrl = trim($logoUrl);
+        if (! Str::startsWith($logoUrl, ['http://', 'https://'])) {
+            $path = ltrim($logoUrl, '/');
+            if (Storage::disk('public')->exists($path)) {
+                $logoUrl = rtrim(config('app.url'), '/').'/storage/'.$path;
+            } else {
+                return '';
+            }
+        }
+
+        if (Str::endsWith(strtolower($logoUrl), '.svg')) {
+            $logoUrl = Str::beforeLast($logoUrl, '.svg').'.png';
+        }
+
+        $alt = e($brand->name);
+
+        return '<img src="'.e($logoUrl).'" alt="'.$alt.'" style="max-height: 48px; height: auto; width: auto; display: block;" />';
     }
 
     private function getGlobalFooter(): string

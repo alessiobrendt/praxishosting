@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
+use App\Notifications\PasswordChangedNotification;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,6 +27,8 @@ class PasswordController extends Controller
         $request->user()->update([
             'password' => $request->password,
         ]);
+
+        $request->user()->notify(new PasswordChangedNotification(now()->format('d.m.Y H:i')));
 
         return back();
     }

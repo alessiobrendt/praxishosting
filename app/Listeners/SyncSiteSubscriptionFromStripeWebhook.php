@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Models\SiteSubscription;
+use App\Notifications\SubscriptionCancelledNotification;
 use Carbon\Carbon;
 use Laravel\Cashier\Events\WebhookReceived;
 
@@ -23,6 +24,7 @@ class SyncSiteSubscriptionFromStripeWebhook
 
         if ($type === 'customer.subscription.deleted') {
             $this->markSubscriptionEnded($object);
+            $this->notifySubscriptionCancelled($object);
         }
     }
 
@@ -67,5 +69,25 @@ class SyncSiteSubscriptionFromStripeWebhook
             'stripe_status' => 'canceled',
             'ends_at' => $endsAt,
         ]);
+    }
+
+    protected function notifySubscriptionCancelled(array $data): void
+    {
+        $siteSubscription = SiteSubscription::with('site.user')
+            ->where('stripe_subscription_id', $data['id'])
+            ->first();
+
+        if (! $siteSubscription?->site?->user) {
+            return;
+        }
+
+        $endsAt = isset($data['ended_at']) && $data['ended_at']
+            ? Carbon::createFromTimestamp($data['ended_at'])->format('d.m.Y')
+            : now()->format('d.m.Y');
+
+        $siteSubscription->site->user->notify(new SubscriptionCancelledNotification(
+            $siteSubscription->site->name,
+            $endsAt
+        ));
     }
 }
