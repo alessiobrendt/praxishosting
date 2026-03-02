@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\ModuleSubmissionController;
+use App\Models\Brand;
 use App\Models\Domain;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -28,12 +29,21 @@ Route::get('verify-domain', function (Request $request) {
         return response('Bad Request', 400);
     }
 
-    $exists = Domain::query()
+    $domain = strtolower(trim($domain));
+
+    $verifiedSiteDomain = Domain::query()
         ->where('domain', $domain)
         ->where('is_verified', true)
         ->exists();
 
-    return $exists
+    $allowedByBrand = Brand::query()
+        ->whereNotNull('domains')
+        ->whereJsonContains('domains', $domain)
+        ->exists();
+
+    $allowed = $verifiedSiteDomain || $allowedByBrand;
+
+    return $allowed
         ? response('', 200)
         : response('', 403);
 })->name('api.verify-domain');

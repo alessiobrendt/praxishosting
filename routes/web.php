@@ -53,9 +53,12 @@ Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'
     ->name('auth.social.callback');
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
+    
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
+
 })->name('home');
 
 Route::get('dashboard', function () {

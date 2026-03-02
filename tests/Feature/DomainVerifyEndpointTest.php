@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Brand;
 use App\Models\Domain;
 use App\Models\Site;
 use App\Models\User;
@@ -56,6 +57,32 @@ test('endpoint is accessible without authentication', function () {
 
     // Don't authenticate - simulate Caddy calling the endpoint
     $response = $this->get('/api/verify-domain?domain=public-check.com');
+
+    $response->assertStatus(200);
+});
+
+test('returns 200 when domain is registered under a brand', function () {
+    Brand::create([
+        'key' => 'test-brand',
+        'name' => 'Test Brand',
+        'domains' => ['shop.example.com', 'main.example.com'],
+        'is_default' => false,
+    ]);
+
+    $response = $this->get('/api/verify-domain?domain=shop.example.com');
+
+    $response->assertStatus(200);
+});
+
+test('returns 200 for brand domain with normalized case', function () {
+    Brand::create([
+        'key' => 'test-brand',
+        'name' => 'Test Brand',
+        'domains' => ['brand-domain.com'],
+        'is_default' => false,
+    ]);
+
+    $response = $this->get('/api/verify-domain?domain=BRAND-DOMAIN.COM');
 
     $response->assertStatus(200);
 });

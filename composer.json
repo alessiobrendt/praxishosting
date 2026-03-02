@@ -77,6 +77,10 @@
             "@test:lint",
             "@php artisan test"
         ],
+        "wayfinder": [
+            "@php artisan route:clear",
+            "@php artisan wayfinder:generate --with-form"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
