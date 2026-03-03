@@ -110,6 +110,8 @@ class HandleInertiaRequests extends Middleware
             $authPayload['customerBalance'] = $customerBalance;
         }
 
+        $discordInviteUrl = config('services.discord.invite_url');
+
         return [
             ...parent::share($request),
             'flash' => $flash,
@@ -119,6 +121,7 @@ class HandleInertiaRequests extends Middleware
             'brandFeatures' => $brandFeatures,
             'auth' => $authPayload,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'discordInviteUrl' => $discordInviteUrl ? (string) $discordInviteUrl : null,
         ];
     }
 }

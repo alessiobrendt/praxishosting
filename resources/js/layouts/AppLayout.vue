@@ -25,8 +25,11 @@ import {
     GitBranch,
     HardDrive,
     LogOut,
+    User,
+    HelpCircle,
 } from 'lucide-vue-next';
 import { index as supportIndex } from '@/routes/support';
+import { create as sitesCreate } from '@/routes/sites';
 import modules from '@/routes/modules';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
@@ -64,27 +67,87 @@ const brandThemeStyle = computed(() => {
     return Object.keys(vars).length ? vars : undefined;
 });
 
+const discordInviteUrl = computed(() => (page.props.discordInviteUrl as string | null) ?? null);
+
 const sidebarItems = computed<NavItem[]>(() => {
-    const supportItem: NavItem = {
-        title: 'Support',
+    const supportTicketsItem: NavItem = {
+        title: 'Support Tickets',
         href: supportIndex().url,
         icon: MessageCircle,
         ...(openTicketsCount.value > 0 && { badge: openTicketsCount.value }),
     };
+    const helpSupportChildren: NavItem[] = [];
+    if (discordInviteUrl.value) {
+        helpSupportChildren.push({
+            title: 'Hilfe der Community',
+            href: discordInviteUrl.value,
+            icon: MessageCircle,
+            external: true,
+        });
+    }
+    helpSupportChildren.push(supportTicketsItem);
+
     const items: NavItem[] = [
         { title: 'Dashboard', href: dashboard().url, icon: LayoutGrid },
         ...(brandFeatures.value.sites_editor !== false
-            ? [{ title: 'Meine Sites', href: sitesIndex().url, icon: Globe }]
+            ? [
+                  {
+                      title: 'Seiten',
+                      icon: Globe,
+                      children: [
+                          { title: 'Seite bestellen', href: sitesCreate().url, icon: Package },
+                          { title: 'Meine Seiten', href: sitesIndex().url, icon: Globe },
+                      ],
+                  },
+              ]
             : []),
-        { title: 'Meine Rechnungen', href: billingIndex().url, icon: FileText },
-        { title: 'Meine Domains', href: '/domains', icon: Globe },
+        {
+            title: 'Domains',
+            icon: Globe,
+            children: [
+                { title: 'Domain bestellen', href: '/domains/search', icon: Globe },
+                { title: 'Domain Portfolio', href: '/domains', icon: FileText },
+            ],
+        },
         ...(brandFeatures.value.webspace !== false
-            ? [{ title: 'Meine Webspaces', href: '/webspace-accounts', icon: HardDrive }]
+            ? [
+                  {
+                      title: 'Webspaces',
+                      icon: HardDrive,
+                      children: [
+                          { title: 'Plesk-Webspace bestellen', href: '/webspace/checkout', icon: Package },
+                          { title: 'Deine Plesk-Webspaces', href: '/webspace-accounts', icon: HardDrive },
+                      ],
+                  },
+              ]
             : []),
         ...(brandFeatures.value.gaming === true
-            ? [{ title: 'Meine Game Server', href: '/gaming-accounts', icon: HardDrive }]
+            ? [
+                  {
+                      title: 'Gameserver',
+                      icon: HardDrive,
+                      children: [
+                          { title: 'Gameserver bestellen', href: '/gaming/checkout', icon: Package },
+                          { title: 'Deine Gameserver', href: '/gaming-accounts', icon: HardDrive },
+                      ],
+                  },
+              ]
             : []),
-        supportItem,
+        {
+            title: 'Hilfe und Support',
+            icon: HelpCircle,
+            children: helpSupportChildren,
+        },
+        {
+            title: 'Account',
+            icon: User,
+            children: [
+                { title: 'Einstellungen', href: '/settings/profile', icon: Settings },
+                { title: 'Guthaben & Rechnungen', href: billingIndex().url, icon: FileText },
+                { title: 'Gutscheincode einlösen', href: '/billing/redeem-voucher', icon: Package },
+                { title: 'Postfach', href: '/account/postfach', icon: Mail },
+            ],
+        },
     ];
     if (activeUserModules.value.length > 0) {
         const moduleChildren: NavItem[] = [];

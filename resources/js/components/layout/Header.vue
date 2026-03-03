@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Avatar } from '@/components/ui/avatar';
 import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
-import { Bell, Search, Settings, LogOut, Menu, Wallet } from 'lucide-vue-next';
+import { Bell, Search, Settings, LogOut, Menu, Wallet, FileText, Mail, Gift } from 'lucide-vue-next';
 import type { Ref } from 'vue';
 import type { BreadcrumbItem } from '@/types';
 
@@ -115,7 +115,25 @@ const headerClasses = computed(() =>
                 <DropdownItem>
                     <Link href="/settings/profile" class="flex items-center gap-2">
                         <Settings class="h-4 w-4" />
-                        Settings
+                        Einstellungen
+                    </Link>
+                </DropdownItem>
+                <DropdownItem>
+                    <Link :href="billingIndex.url()" class="flex items-center gap-2">
+                        <FileText class="h-4 w-4" />
+                        Guthaben & Rechnungen
+                    </Link>
+                </DropdownItem>
+                <DropdownItem>
+                    <Link href="/billing/redeem-voucher" class="flex items-center gap-2">
+                        <Gift class="h-4 w-4" />
+                        Gutscheincode einlösen
+                    </Link>
+                </DropdownItem>
+                <DropdownItem>
+                    <Link href="/account/postfach" class="flex items-center gap-2">
+                        <Mail class="h-4 w-4" />
+                        Postfach
                     </Link>
                 </DropdownItem>
                 <DropdownItem>
@@ -125,7 +143,7 @@ const headerClasses = computed(() =>
                         @click="() => router.post(logout.url())"
                     >
                         <LogOut class="h-4 w-4" />
-                        Logout
+                        Abmelden
                     </button>
                 </DropdownItem>
             </Dropdown>

@@ -6,10 +6,19 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 import { ref, computed } from 'vue';
-import { Eye, EyeOff, Copy, ExternalLink, Mail } from 'lucide-vue-next';
+import { Eye, EyeOff, Copy, ExternalLink, Mail, Server, LayoutDashboard, KeyRound } from 'lucide-vue-next';
 
 type WebspaceAccount = {
     id: number;
@@ -21,13 +30,29 @@ type WebspaceAccount = {
     hosting_plan: { name: string };
 };
 
+type ResourceUsage = {
+    disk_used_bytes: number;
+    disk_limit_bytes: number;
+    domains_used: number;
+    domains_limit: number;
+    subdomains_used: number;
+    subdomains_limit: number;
+    mailboxes_used: number;
+    mailboxes_limit: number;
+    databases_used: number;
+    databases_limit: number;
+};
+
 type Props = {
     webspaceAccount: WebspaceAccount;
     pleskPassword: string | null;
     webmailUrl: string;
+    resourceUsage: ResourceUsage | null;
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    resourceUsage: null,
+});
 
 const showPassword = ref(false);
 
@@ -37,7 +62,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: props.webspaceAccount.domain, href: '#' },
 ];
 
-const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de-DE') : '-');
+const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de-DE') : '–');
 
 const displayPassword = computed(() =>
     props.pleskPassword
@@ -50,136 +75,348 @@ const displayPassword = computed(() =>
 function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
 }
+
+function statusVariant(status: string): 'success' | 'default' | 'error' {
+    const s = status?.toLowerCase() ?? '';
+    if (s === 'active' || s === 'aktiv') return 'success';
+    if (s === 'suspended' || s === 'gesperrt' || s === 'cancelled') return 'error';
+    return 'default';
+}
+
+function displayStatus(status: string): string {
+    const s = status?.toLowerCase() ?? '';
+    if (s === 'active' || s === 'aktiv') return 'Aktiv';
+    if (s === 'pending' || s === 'ausstehend') return 'Ausstehend';
+    if (s === 'suspended' || s === 'gesperrt') return 'Gesperrt';
+    if (s === 'cancelled') return 'Gekündigt';
+    return status || '–';
+}
+
+function formatBytesToGb(bytes: number): string {
+    if (bytes === 0) return '0,00';
+    const gb = bytes / (1024 * 1024 * 1024);
+    return gb.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function resourcePercent(used: number, limit: number): number {
+    if (limit <= 0) return 0;
+    return Math.min(100, Math.round((used / limit) * 100));
+}
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head :title="webspaceAccount.domain" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">{{ webspaceAccount.domain }}</Heading>
-                    <Text class="mt-2" muted>
-                        {{ webspaceAccount.hosting_plan.name }} · Status: {{ webspaceAccount.status }}
-                    </Text>
-                </div>
-                <Link href="/billing/portal">
-                    <Button variant="outline">Abo verwalten</Button>
-                </Link>
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
+            <!-- Sidebar (wie Gaming-Accounts) -->
+            <div class="lg:col-span-1">
+                <Card class="rounded-lg p-4">
+                    <div class="border-b pb-3 text-center">
+                        <div class="mb-3 flex items-center justify-between">
+                            <Badge :variant="statusVariant(webspaceAccount.status)" class="gap-1">
+                                <span
+                                    v-if="statusVariant(webspaceAccount.status) === 'success'"
+                                    class="relative flex h-1.5 w-1.5"
+                                >
+                                    <span
+                                        class="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75"
+                                    />
+                                    <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
+                                </span>
+                                {{ displayStatus(webspaceAccount.status) }}
+                            </Badge>
+                        </div>
+                        <div class="flex justify-center text-muted-foreground">
+                            <Server class="h-12 w-12" />
+                        </div>
+                        <Heading level="h5" class="mt-2">Webspace</Heading>
+                        <Text class="mt-0.5 font-mono text-sm" muted>{{ webspaceAccount.domain }}</Text>
+                        <Text class="mt-0.5 text-xs" muted>{{ webspaceAccount.hosting_plan.name }}</Text>
+                    </div>
+                    <div class="mt-4 flex flex-col gap-3">
+                        <Link
+                            :href="`/webspace-accounts/${webspaceAccount.id}/plesk-login`"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <Button class="w-full justify-start gap-2">
+                                <ExternalLink class="h-4 w-4" />
+                                Zum Plesk-Panel
+                            </Button>
+                        </Link>
+                        <Link href="/billing/portal">
+                            <Button variant="outline" class="w-full justify-start gap-2">
+                                Abo verwalten
+                            </Button>
+                        </Link>
+                    </div>
+                </Card>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Zugangsdaten (Plesk / FTP)</CardTitle>
-                    <CardDescription>
-                        Nutzername und Passwort für Plesk-Kundenpanel und FTP. Mail-Postfächer können eigene Zugänge haben.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <div class="space-y-2">
-                        <label class="text-sm font-medium">Nutzername</label>
-                        <div class="flex gap-2">
-                            <Input
-                                :model-value="webspaceAccount.plesk_username"
-                                readonly
-                                class="font-mono"
-                            />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                title="Kopieren"
-                                @click="copyToClipboard(webspaceAccount.plesk_username)"
-                            >
-                                <Copy class="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-medium">Passwort</label>
-                        <div class="flex gap-2">
-                            <Input
-                                :model-value="displayPassword"
-                                readonly
-                                class="font-mono"
-                                :type="showPassword ? 'text' : 'password'"
-                            />
-                            <Button
-                                v-if="pleskPassword"
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                :title="showPassword ? 'Verbergen' : 'Anzeigen'"
-                                @click="showPassword = !showPassword"
-                            >
-                                <Eye v-if="!showPassword" class="h-4 w-4" />
-                                <EyeOff v-else class="h-4 w-4" />
-                            </Button>
-                            <Button
-                                v-if="pleskPassword"
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                title="Kopieren"
-                                @click="copyToClipboard(pleskPassword)"
-                            >
-                                <Copy class="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Zugang</CardTitle>
-                    <CardDescription>Direkt in Plesk einloggen oder Webmail öffnen</CardDescription>
-                </CardHeader>
-                <CardContent class="flex flex-wrap gap-3">
-                    <a
-                        :href="`/webspace-accounts/${webspaceAccount.id}/plesk-login`"
-                        target="_blank"
-                        rel="noopener noreferrer"
+            <!-- Hauptbereich: Tabs -->
+            <div class="lg:col-span-3">
+                <Tabs default-tab="overview" class="w-full">
+                    <TabsList
+                        class="mb-4 flex h-auto flex-wrap justify-start gap-1 rounded-lg bg-white p-1 dark:bg-muted/50"
                     >
-                        <Button>
-                            <ExternalLink class="mr-2 h-4 w-4" />
-                            In Plesk anmelden
-                        </Button>
-                    </a>
-                    <a
-                        :href="webmailUrl"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        <Button variant="outline">
-                            <Mail class="mr-2 h-4 w-4" />
-                            Webmail öffnen
-                        </Button>
-                    </a>
-                </CardContent>
-            </Card>
+                        <TabsTrigger value="overview" class="gap-2 px-3 py-2">
+                            <LayoutDashboard class="h-4 w-4" />
+                            <span class="hidden sm:inline">Übersicht</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="access" class="gap-2 px-3 py-2">
+                            <KeyRound class="h-4 w-4" />
+                            <span class="hidden sm:inline">Zugang</span>
+                        </TabsTrigger>
+                    </TabsList>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Abo</CardTitle>
-                    <CardDescription>Verlängerung und Kündigung</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-2">
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Nächste Verlängerung</span>
-                        <span>{{ formatDate(webspaceAccount.current_period_ends_at) }}</span>
-                    </div>
-                    <div class="flex justify-between py-2">
-                        <span class="text-muted-foreground">Kündigung zum Periodenende</span>
-                        <Badge v-if="webspaceAccount.cancel_at_period_end" variant="secondary">Ja</Badge>
-                        <span v-else>Nein</span>
-                    </div>
-                    <Link href="/billing/portal" class="inline-block mt-2">
-                        <Button variant="outline">Abo im Kundenbereich verwalten</Button>
-                    </Link>
-                </CardContent>
-            </Card>
+                    <TabsContent value="overview" class="mt-0">
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <!-- Informationen -->
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Informationen</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableBody>
+                                            <TableRow>
+                                                <TableHead class="w-36 font-medium">Domain</TableHead>
+                                                <TableCell class="font-mono text-sm">{{ webspaceAccount.domain }}</TableCell>
+                                            </TableRow>
+                                            <TableRow>
+                                                <TableHead class="font-medium">Plesk-Nutzername</TableHead>
+                                                <TableCell class="font-mono text-sm">
+                                                    {{ webspaceAccount.plesk_username }}
+                                                </TableCell>
+                                            </TableRow>
+                                            <TableRow>
+                                                <TableHead class="font-medium">Status</TableHead>
+                                                <TableCell>
+                                                    <Badge :variant="statusVariant(webspaceAccount.status)">
+                                                        {{ displayStatus(webspaceAccount.status) }}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                            <TableRow>
+                                                <TableHead class="font-medium">Paket</TableHead>
+                                                <TableCell>{{ webspaceAccount.hosting_plan.name }}</TableCell>
+                                            </TableRow>
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+
+                            <!-- Abo -->
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Abo</CardTitle>
+                                    <CardDescription>Verlängerung und Kündigung</CardDescription>
+                                </CardHeader>
+                                <CardContent class="space-y-4">
+                                    <dl class="grid gap-2 text-sm">
+                                        <div class="flex justify-between border-b py-2">
+                                            <dt class="text-muted-foreground">Nächste Verlängerung</dt>
+                                            <dd>{{ formatDate(webspaceAccount.current_period_ends_at) }}</dd>
+                                        </div>
+                                        <div class="flex justify-between py-2">
+                                            <span class="text-muted-foreground">Kündigung zum Periodenende</span>
+                                            <Badge v-if="webspaceAccount.cancel_at_period_end" variant="default">
+                                                Ja
+                                            </Badge>
+                                            <span v-else>Nein</span>
+                                        </div>
+                                    </dl>
+                                    <Link href="/billing/portal">
+                                        <Button variant="outline" class="w-full">Abo im Kundenbereich verwalten</Button>
+                                    </Link>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <!-- Genutzte Ressourcen (Plesk API) -->
+                        <Card v-if="resourceUsage" class="mt-4">
+                            <CardHeader>
+                                <CardTitle>Genutzte Ressourcen</CardTitle>
+                                <CardDescription>
+                                    Speicherplatz und Kontingente aus dem Plesk-Panel
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-6">
+                                <div class="space-y-4">
+                                    <div>
+                                        <div class="mb-1 flex items-center justify-between">
+                                            <span class="text-sm font-semibold">Speicherplatz</span>
+                                            <span class="text-sm text-muted-foreground">
+                                                {{ formatBytesToGb(resourceUsage.disk_used_bytes) }} GB von
+                                                {{ formatBytesToGb(resourceUsage.disk_limit_bytes) }} GB
+                                            </span>
+                                        </div>
+                                        <div class="h-3 overflow-hidden rounded-full bg-muted">
+                                            <div
+                                                class="h-full rounded-full bg-primary transition-all"
+                                                :style="{
+                                                    width: `${resourcePercent(resourceUsage.disk_used_bytes, resourceUsage.disk_limit_bytes)}%`,
+                                                }"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="mb-1 flex items-center justify-between">
+                                            <span class="text-sm font-semibold">Domains</span>
+                                            <span class="text-sm text-muted-foreground">
+                                                {{ resourceUsage.domains_used }} von {{ resourceUsage.domains_limit }}
+                                            </span>
+                                        </div>
+                                        <div class="h-3 overflow-hidden rounded-full bg-muted">
+                                            <div
+                                                class="h-full rounded-full bg-primary transition-all"
+                                                :style="{
+                                                    width: `${resourcePercent(resourceUsage.domains_used, resourceUsage.domains_limit)}%`,
+                                                }"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="mb-1 flex items-center justify-between">
+                                            <span class="text-sm font-semibold">Subdomains</span>
+                                            <span class="text-sm text-muted-foreground">
+                                                {{ resourceUsage.subdomains_used }} von
+                                                {{ resourceUsage.subdomains_limit }}
+                                            </span>
+                                        </div>
+                                        <div class="h-3 overflow-hidden rounded-full bg-muted">
+                                            <div
+                                                class="h-full rounded-full bg-primary transition-all"
+                                                :style="{
+                                                    width: `${resourcePercent(resourceUsage.subdomains_used, resourceUsage.subdomains_limit)}%`,
+                                                }"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="mb-1 flex items-center justify-between">
+                                            <span class="text-sm font-semibold">E-Mail-Postfächer</span>
+                                            <span class="text-sm text-muted-foreground">
+                                                {{ resourceUsage.mailboxes_used }} von
+                                                {{ resourceUsage.mailboxes_limit }}
+                                            </span>
+                                        </div>
+                                        <div class="h-3 overflow-hidden rounded-full bg-muted">
+                                            <div
+                                                class="h-full rounded-full bg-primary transition-all"
+                                                :style="{
+                                                    width: `${resourcePercent(resourceUsage.mailboxes_used, resourceUsage.mailboxes_limit)}%`,
+                                                }"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="mb-1 flex items-center justify-between">
+                                            <span class="text-sm font-semibold">Datenbanken</span>
+                                            <span class="text-sm text-muted-foreground">
+                                                {{ resourceUsage.databases_used }} von
+                                                {{ resourceUsage.databases_limit }}
+                                            </span>
+                                        </div>
+                                        <div class="h-3 overflow-hidden rounded-full bg-muted">
+                                            <div
+                                                class="h-full rounded-full bg-primary transition-all"
+                                                :style="{
+                                                    width: `${resourcePercent(resourceUsage.databases_used, resourceUsage.databases_limit)}%`,
+                                                }"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="access" class="mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Zugangsdaten (Plesk / FTP)</CardTitle>
+                                <CardDescription>
+                                    Nutzername und Passwort für Plesk-Kundenpanel und FTP. Mail-Postfächer können
+                                    eigene Zugänge haben.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent class="space-y-4">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium">Nutzername</label>
+                                    <div class="flex gap-2">
+                                        <Input
+                                            :model-value="webspaceAccount.plesk_username"
+                                            readonly
+                                            class="font-mono bg-muted"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            title="Kopieren"
+                                            @click="copyToClipboard(webspaceAccount.plesk_username)"
+                                        >
+                                            <Copy class="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium">Passwort</label>
+                                    <div class="flex gap-2">
+                                        <Input
+                                            :model-value="displayPassword"
+                                            readonly
+                                            class="font-mono bg-muted"
+                                            :type="showPassword ? 'text' : 'password'"
+                                        />
+                                        <Button
+                                            v-if="pleskPassword"
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            :title="showPassword ? 'Verbergen' : 'Anzeigen'"
+                                            @click="showPassword = !showPassword"
+                                        >
+                                            <Eye v-if="!showPassword" class="h-4 w-4" />
+                                            <EyeOff v-else class="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            v-if="pleskPassword"
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            title="Kopieren"
+                                            @click="copyToClipboard(pleskPassword)"
+                                        >
+                                            <Copy class="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-3 pt-2">
+                                    <a
+                                        :href="`/webspace-accounts/${webspaceAccount.id}/plesk-login`"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        <Button>
+                                            <ExternalLink class="mr-2 h-4 w-4" />
+                                            In Plesk anmelden
+                                        </Button>
+                                    </a>
+                                    <a :href="webmailUrl" target="_blank" rel="noopener noreferrer">
+                                        <Button variant="outline">
+                                            <Mail class="mr-2 h-4 w-4" />
+                                            Webmail öffnen
+                                        </Button>
+                                    </a>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </div>
         </div>
     </AppLayout>
 </template>

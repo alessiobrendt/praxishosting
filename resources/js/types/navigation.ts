@@ -15,4 +15,6 @@ export type NavItem = {
     badge?: number | string;
     /** Nested items; when set, this is a group (label only, no direct href). */
     children?: NavItem[];
+    /** When true, open href in new tab (e.g. Discord invite). */
+    external?: boolean;
 };

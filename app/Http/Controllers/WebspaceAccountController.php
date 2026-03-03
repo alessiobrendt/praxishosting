@@ -46,10 +46,35 @@ class WebspaceAccountController extends Controller
             }
         }
 
+        $resourceUsage = null;
+        $server = $webspaceAccount->hostingServer;
+        if ($server) {
+            $plesk = app(PleskClient::class);
+            $plesk->setServer($server);
+            $usage = $plesk->getWebspaceResourceUsage($webspaceAccount->domain);
+            $plan = $webspaceAccount->hostingPlan;
+            if ($usage !== null && $plan) {
+                $diskLimitBytes = $plan->disk_gb ? (int) ($plan->disk_gb * 1024 * 1024 * 1024) : 0;
+                $resourceUsage = [
+                    'disk_used_bytes' => $usage['disk_bytes'],
+                    'disk_limit_bytes' => $diskLimitBytes,
+                    'domains_used' => $usage['domains_used'],
+                    'domains_limit' => (int) ($plan->domains ?? 1),
+                    'subdomains_used' => $usage['subdomains_used'],
+                    'subdomains_limit' => (int) ($plan->subdomains ?? 0),
+                    'mailboxes_used' => $usage['mailboxes_used'],
+                    'mailboxes_limit' => (int) ($plan->mailboxes ?? 0),
+                    'databases_used' => $usage['databases_used'],
+                    'databases_limit' => (int) ($plan->databases ?? 0),
+                ];
+            }
+        }
+
         return Inertia::render('webspace-accounts/Show', [
             'webspaceAccount' => $webspaceAccount,
             'pleskPassword' => $pleskPassword,
             'webmailUrl' => 'https://webmail.'.$webspaceAccount->domain,
+            'resourceUsage' => $resourceUsage,
         ]);
     }
 

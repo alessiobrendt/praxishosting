@@ -47,6 +47,7 @@ return [
         'redirect' => env('DISCORD_REDIRECT_URI'),
         'allow_gif_avatars' => (bool) env('DISCORD_AVATAR_GIF', true),
         'avatar_default_extension' => env('DISCORD_EXTENSION_DEFAULT', 'png'),
+        'invite_url' => env('DISCORD_INVITE_URL'),
     ],
 
 ];

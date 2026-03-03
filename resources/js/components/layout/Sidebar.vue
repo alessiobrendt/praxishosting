@@ -2,7 +2,7 @@
 import { computed, inject, onMounted, ref, watch } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { useMediaQuery } from '@vueuse/core';
-import { cn } from '@/lib/utils';
+import { cn, toUrl } from '@/lib/utils';
 import AppLogo from '@/components/AppLogo.vue';
 import { Avatar } from '@/components/ui/avatar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -222,11 +222,13 @@ const groupTriggerClasses = (item: NavItem) =>
                     />
                     <!-- Leaf: direct link -->
                     <template v-if="!item.children?.length && item.href">
-                        <Link
+                        <component
                             v-if="!effectiveCollapsed"
+                            :is="item.external ? 'a' : Link"
                             :href="item.href"
-                            :class="linkClasses(item.href)"
-                            :aria-current="isCurrentUrl(item.href) ? 'page' : undefined"
+                            :class="linkClasses(toUrl(item.href) ?? '#')"
+                            :aria-current="!item.external && isCurrentUrl(item.href) ? 'page' : undefined"
+                            v-bind="item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {}"
                         >
                             <component :is="item.icon" v-if="item.icon" class="h-5 w-5 shrink-0" />
                             <span>{{ item.title }}</span>
@@ -236,12 +238,14 @@ const groupTriggerClasses = (item: NavItem) =>
                             >
                                 {{ item.badge }}
                             </span>
-                        </Link>
+                        </component>
                         <TooltipRoot v-else>
                             <TooltipTrigger as-child>
-                                <Link
+                                <component
+                                    :is="item.external ? 'a' : Link"
                                     :href="item.href"
-                                    :class="cn(linkClasses(item.href), 'relative flex justify-center')"
+                                    :class="cn(linkClasses(toUrl(item.href) ?? '#'), 'relative flex justify-center')"
+                                    v-bind="item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {}"
                                 >
                                     <component :is="item.icon" v-if="item.icon" class="h-5 w-5 shrink-0" />
                                     <span
@@ -250,7 +254,7 @@ const groupTriggerClasses = (item: NavItem) =>
                                     >
                                         {{ item.badge }}
                                     </span>
-                                </Link>
+                                </component>
                             </TooltipTrigger>
                             <TooltipContent side="right" class="font-medium">
                                 {{ item.title }}
@@ -300,18 +304,20 @@ const groupTriggerClasses = (item: NavItem) =>
                                                 </CollapsibleTrigger>
                                                 <CollapsibleContent>
                                                     <div class="ml-3 mt-0.5 space-y-0.5 border-l border-gray-200 pl-2 dark:border-gray-700">
-                                                        <Link
+                                                        <component
                                                             v-for="(sub, sIdx) in child.children"
                                                             :key="sub.title + String(sIdx)"
                                                             v-show="sub.href"
+                                                            :is="sub.external ? 'a' : Link"
                                                             :href="sub.href!"
                                                             :class="[
                                                                 'flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-modern',
-                                                                isCurrentUrl(sub.href!)
+                                                                !sub.external && isCurrentUrl(sub.href!)
                                                                     ? 'gradient-primary text-white shadow-primary'
                                                                     : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800',
                                                             ]"
-                                                            :aria-current="isCurrentUrl(sub.href!) ? 'page' : undefined"
+                                                            :aria-current="!sub.external && isCurrentUrl(sub.href!) ? 'page' : undefined"
+                                                            v-bind="sub.external ? { target: '_blank', rel: 'noopener noreferrer' } : {}"
                                                         >
                                                             <component :is="sub.icon" v-if="sub.icon" class="h-3.5 w-3.5 shrink-0" />
                                                             {{ sub.title }}
@@ -321,22 +327,24 @@ const groupTriggerClasses = (item: NavItem) =>
                                                             >
                                                                 {{ sub.badge }}
                                                             </span>
-                                                        </Link>
+                                                        </component>
                                                     </div>
                                                 </CollapsibleContent>
                                             </Collapsible>
                                         </template>
                                         <!-- Nested leaf -->
-                                        <Link
+                                        <component
                                             v-else-if="child.href"
+                                            :is="child.external ? 'a' : Link"
                                             :href="child.href"
                                             :class="[
                                                 'flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-modern',
-                                                isCurrentUrl(child.href)
+                                                !child.external && isCurrentUrl(child.href)
                                                     ? 'gradient-primary text-white shadow-primary'
                                                     : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800',
                                             ]"
-                                            :aria-current="isCurrentUrl(child.href) ? 'page' : undefined"
+                                            :aria-current="!child.external && isCurrentUrl(child.href) ? 'page' : undefined"
+                                            v-bind="child.external ? { target: '_blank', rel: 'noopener noreferrer' } : {}"
                                         >
                                             <component :is="child.icon" v-if="child.icon" class="h-3.5 w-3.5 shrink-0" />
                                             {{ child.title }}
@@ -346,7 +354,7 @@ const groupTriggerClasses = (item: NavItem) =>
                                             >
                                                 {{ child.badge }}
                                             </span>
-                                        </Link>
+                                        </component>
                                     </template>
                                 </div>
                             </CollapsibleContent>
@@ -397,14 +405,16 @@ const groupTriggerClasses = (item: NavItem) =>
                                             </CollapsibleTrigger>
                                             <CollapsibleContent>
                                                 <div class="ml-4 mt-0.5 space-y-0.5 border-l border-gray-200 pl-3 dark:border-gray-700">
-                                                    <Link
+                                                    <component
                                                         v-for="(sub, sIdx) in child.children"
                                                         :key="sub.title + String(sIdx)"
                                                         v-show="sub.href"
+                                                        :is="sub.external ? 'a' : Link"
                                                         :href="sub.href!"
                                                         class="flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-modern text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-                                                        :class="isCurrentUrl(sub.href!) && 'gradient-primary text-white shadow-primary'"
-                                                        @click="closeCollapsedGroupModal()"
+                                                        :class="!sub.external && isCurrentUrl(sub.href!) && 'gradient-primary text-white shadow-primary'"
+                                                        v-bind="sub.external ? { target: '_blank', rel: 'noopener noreferrer' } : {}"
+                                                        @click="sub.external ? undefined : closeCollapsedGroupModal()"
                                                     >
                                                         <component :is="sub.icon" v-if="sub.icon" class="h-4 w-4 shrink-0" />
                                                         {{ sub.title }}
@@ -414,16 +424,18 @@ const groupTriggerClasses = (item: NavItem) =>
                                                         >
                                                             {{ sub.badge }}
                                                         </span>
-                                                    </Link>
+                                                    </component>
                                                 </div>
                                             </CollapsibleContent>
                                         </Collapsible>
-                                        <Link
+                                        <component
                                             v-else-if="child.href"
+                                            :is="child.external ? 'a' : Link"
                                             :href="child.href"
                                             class="flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-modern text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-                                            :class="isCurrentUrl(child.href) && 'gradient-primary text-white shadow-primary'"
-                                            @click="closeCollapsedGroupModal()"
+                                            :class="!child.external && isCurrentUrl(child.href) && 'gradient-primary text-white shadow-primary'"
+                                            v-bind="child.external ? { target: '_blank', rel: 'noopener noreferrer' } : {}"
+                                            @click="child.external ? undefined : closeCollapsedGroupModal()"
                                         >
                                             <component :is="child.icon" v-if="child.icon" class="h-4 w-4 shrink-0" />
                                             {{ child.title }}
@@ -433,7 +445,7 @@ const groupTriggerClasses = (item: NavItem) =>
                                             >
                                                 {{ child.badge }}
                                             </span>
-                                        </Link>
+                                        </component>
                                     </template>
                                 </div>
                             </nav>

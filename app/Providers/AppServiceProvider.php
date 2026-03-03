@@ -6,6 +6,7 @@ use App\Listeners\AddAiTokensFromStripeWebhook;
 use App\Listeners\AddBalanceFromStripeWebhook;
 use App\Listeners\CreateLocalInvoiceFromStripeWebhook;
 use App\Listeners\LogStripeWebhookReceived;
+use App\Listeners\LogUserEmailToPostfach;
 use App\Listeners\SendLoginNotification;
 use App\Listeners\SendPaymentFailedNotification;
 use App\Listeners\SyncSiteSubscriptionFromStripeWebhook;
@@ -20,6 +21,7 @@ use App\Observers\SiteObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -103,5 +105,7 @@ class AppServiceProvider extends ServiceProvider
                 $event->message->replyTo(trim($replyTo));
             }
         });
+
+        Event::listen(MessageSent::class, LogUserEmailToPostfach::class);
     }
 }

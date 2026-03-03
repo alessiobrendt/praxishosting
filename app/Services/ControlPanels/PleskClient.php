@@ -327,6 +327,78 @@ class PleskClient
         }
     }
 
+    /**
+     * Get resource usage (stat + disk_usage) for a webspace via Plesk XML API.
+     * Returns null on failure or if server not set.
+     *
+     * @return array{disk_bytes: int, domains_used: int, subdomains_used: int, mailboxes_used: int, databases_used: int}|null
+     */
+    public function getWebspaceResourceUsage(string $domain): ?array
+    {
+        if (! $this->server) {
+            return null;
+        }
+
+        try {
+            $plesk = $this->getPleskXmlClient();
+            $packet = $plesk->getPacket();
+            $webspace = $packet->addChild('webspace');
+            $get = $webspace->addChild('get');
+            $get->addChild('filter')->addChild('name', $domain);
+            $dataset = $get->addChild('dataset');
+            $dataset->addChild('stat');
+            $dataset->addChild('disk_usage');
+
+            $response = $plesk->request($packet, PleskXmlClient::RESPONSE_FULL);
+
+            $result = $response->xpath('//result[status="ok"]');
+            if (! $result || ! isset($result[0]->data)) {
+                return null;
+            }
+
+            $data = $result[0]->data;
+            $diskBytes = 0;
+            if (isset($data->disk_usage)) {
+                $du = $data->disk_usage;
+                foreach (['httpdocs', 'httpsdocs', 'subdomains', 'web_users', 'anonftp', 'logs', 'dbases', 'mailboxes', 'webapps', 'maillists', 'domaindumps', 'configs', 'chroot'] as $key) {
+                    if (isset($du->{$key}) && (string) $du->{$key} !== '') {
+                        $diskBytes += (int) $du->{$key};
+                    }
+                }
+            }
+
+            $stat = $data->stat ?? null;
+            $domainsUsed = 1;
+            $subdomainsUsed = $stat && isset($stat->subdom) ? (int) $stat->subdom : 0;
+            $mailboxesUsed = $stat && isset($stat->box) ? (int) $stat->box : 0;
+            $databasesUsed = $stat && isset($stat->db) ? (int) $stat->db : 0;
+
+            return [
+                'disk_bytes' => $diskBytes,
+                'domains_used' => $domainsUsed,
+                'subdomains_used' => $subdomainsUsed,
+                'mailboxes_used' => $mailboxesUsed,
+                'databases_used' => $databasesUsed,
+            ];
+        } catch (PleskApiException $e) {
+            Log::warning('Plesk getWebspaceResourceUsage failed', [
+                'server' => $this->server->hostname,
+                'domain' => $domain,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        } catch (Exception $e) {
+            Log::warning('Plesk getWebspaceResourceUsage error', [
+                'server' => $this->server->hostname,
+                'domain' => $domain,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
     protected function getBaseUrl(): string
     {
         $protocol = ($this->server->use_ssl ?? true) ? 'https' : 'http';

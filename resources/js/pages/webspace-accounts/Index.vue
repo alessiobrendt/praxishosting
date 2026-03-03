@@ -3,12 +3,11 @@ import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { Server, ExternalLink } from 'lucide-vue-next';
+import { Server, ChevronRight, Calendar, Package } from 'lucide-vue-next';
 
 type HostingPlan = { id: number; name: string };
 
@@ -31,7 +30,23 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Meine Webspace-Accounts', href: '/webspace-accounts' },
 ];
 
-const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de-DE') : '-');
+const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de-DE') : '–');
+
+function statusVariant(status: string): 'success' | 'default' | 'error' {
+    const s = status?.toLowerCase() ?? '';
+    if (s === 'active' || s === 'aktiv') return 'success';
+    if (s === 'suspended' || s === 'gesperrt' || s === 'cancelled') return 'error';
+    return 'default';
+}
+
+function displayStatus(status: string): string {
+    const s = status?.toLowerCase() ?? '';
+    if (s === 'active' || s === 'aktiv') return 'Aktiv';
+    if (s === 'pending' || s === 'ausstehend') return 'Ausstehend';
+    if (s === 'suspended' || s === 'gesperrt') return 'Gesperrt';
+    if (s === 'cancelled') return 'Gekündigt';
+    return status || '–';
+}
 </script>
 
 <template>
@@ -39,11 +54,11 @@ const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de
         <Head title="Meine Webspace-Accounts" />
 
         <div class="space-y-6">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <Heading level="h1">Meine Webspace-Accounts</Heading>
                     <Text class="mt-2" muted>
-                        Ihre Plesk-Webspace-Accounts
+                        Ihre Plesk-Webspace-Accounts – Status, Paket und Verlängerung
                     </Text>
                 </div>
                 <Link href="/webspace">
@@ -54,49 +69,77 @@ const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de
                 </Link>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Alle Accounts</CardTitle>
-                    <CardDescription>Domain, Paket, Status und Abo-Ende</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Domain</TableHead>
-                                <TableHead>Paket</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Verlängerung</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="acc in props.webspaceAccounts" :key="acc.id">
-                                <TableCell>
-                                    <code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">{{ acc.domain }}</code>
-                                </TableCell>
-                                <TableCell>{{ acc.hosting_plan.name }}</TableCell>
-                                <TableCell>
-                                    <Badge variant="secondary">{{ acc.status }}</Badge>
-                                </TableCell>
-                                <TableCell>{{ formatDate(acc.current_period_ends_at) }}</TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="`/webspace-accounts/${acc.id}`">
-                                        <Button variant="ghost" size="sm">
-                                            <ExternalLink class="h-4 w-4" />
-                                        </Button>
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="props.webspaceAccounts.length === 0">
-                                <TableCell colspan="5" class="text-center text-gray-500 dark:text-gray-400">
-                                    Sie haben noch keine Webspace-Accounts.
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+            <div
+                v-if="props.webspaceAccounts.length === 0"
+                class="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-12 text-center"
+            >
+                <Server class="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <Heading level="h2" class="mt-4 text-lg font-semibold">Noch keine Webspace-Accounts</Heading>
+                <Text class="mt-2" muted>
+                    Sie haben noch keine Webspace-Accounts. Buchen Sie Ihren ersten Webspace.
+                </Text>
+                <Link href="/webspace">
+                    <Button class="mt-4">Webspace buchen</Button>
+                </Link>
+            </div>
+
+            <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Link
+                    v-for="acc in props.webspaceAccounts"
+                    :key="acc.id"
+                    :href="`/webspace-accounts/${acc.id}`"
+                    class="group block"
+                >
+                    <Card class="h-full transition-colors hover:border-primary/40 hover:bg-muted/30">
+                        <CardHeader class="pb-2">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex min-w-0 items-center gap-3">
+                                    <div
+                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                                    >
+                                        <Server class="h-5 w-5" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <CardTitle class="truncate font-mono text-base">{{ acc.domain }}</CardTitle>
+                                        <div class="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                                            <Package class="h-3.5 w-3.5 shrink-0" />
+                                            <span class="truncate">{{ acc.hosting_plan.name }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <ChevronRight
+                                    class="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent class="space-y-3 pt-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-sm text-muted-foreground">Status</span>
+                                <Badge :variant="statusVariant(acc.status)" size="sm" class="shrink-0">
+                                    <span
+                                        class="mr-1.5 inline-block h-1.5 w-1.5 rounded-full"
+                                        :class="{
+                                            'bg-green-500': statusVariant(acc.status) === 'success',
+                                            'bg-red-500': statusVariant(acc.status) === 'error',
+                                            'bg-muted-foreground': statusVariant(acc.status) === 'default',
+                                        }"
+                                    />
+                                    {{ displayStatus(acc.status) }}
+                                </Badge>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar class="h-3.5 w-3.5 shrink-0" />
+                                <span>Verlängerung: {{ formatDate(acc.current_period_ends_at) }}</span>
+                            </div>
+                            <div class="flex justify-end pt-1">
+                                <Button variant="ghost" size="sm" class="text-primary" as="span">
+                                    Account öffnen
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
+            </div>
         </div>
     </AppLayout>
 </template>

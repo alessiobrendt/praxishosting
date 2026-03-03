@@ -39,6 +39,8 @@ use App\Http\Controllers\GamingAccountController;
 use App\Http\Controllers\GamingController;
 use App\Http\Controllers\InvoiceController as CustomerInvoiceController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\PostfachController;
+use App\Http\Controllers\RedeemVoucherController;
 use App\Http\Controllers\SiteCollaboratorController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SiteRenderController;
@@ -148,6 +150,11 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
     Route::post('billing/balance/checkout', [BillingController::class, 'balanceCheckout'])
         ->middleware('billing.profile')
         ->name('billing.balance.checkout');
+    Route::get('billing/redeem-voucher', [RedeemVoucherController::class, 'index'])->name('billing.redeem-voucher');
+    Route::post('billing/redeem-voucher', [RedeemVoucherController::class, 'store'])->name('billing.redeem-voucher.store');
+
+    Route::get('account/postfach', [PostfachController::class, 'index'])->name('postfach.index');
+    Route::get('account/postfach/{postfach}', [PostfachController::class, 'show'])->name('postfach.show')->whereNumber('postfach');
 
     Route::middleware('brand.feature.sites')->group(function () {
         Route::get('sites/{site}/design', [SiteController::class, 'design'])->name('sites.design');
