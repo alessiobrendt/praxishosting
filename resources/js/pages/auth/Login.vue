@@ -25,7 +25,7 @@ const isAdminDomain = computed(() => (page.props.isAdminDomain as boolean) ?? fa
 const loginTitle = computed(() => (isAdminDomain.value ? 'Admin-Anmeldung' : 'Anmelden'));
 const loginDescription = computed(() =>
     isAdminDomain.value
-        ? 'Nur Benutzer mit Admin-Berechtigung können sich hier anmelden. Gleiche Zugangsdaten wie im Kundenbereich.'
+        ? 'Gleiche Zugangsdaten wie im Kundenbereich.'
         : 'Geben Sie Ihre E-Mail-Adresse und Ihr Passwort ein, um sich anzumelden',
 );
 </script>
@@ -34,6 +34,7 @@ const loginDescription = computed(() =>
     <AuthBase
         :title="loginTitle"
         :description="loginDescription"
+        :restricted-access="isAdminDomain"
     >
         <Head :title="loginTitle" />
 
