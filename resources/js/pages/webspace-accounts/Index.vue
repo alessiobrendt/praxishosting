@@ -30,7 +30,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Meine Webspace-Accounts', href: '/webspace-accounts' },
 ];
 
-const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de-DE') : '–');
+const formatDate = (d: string | null) =>
+    d ? new Date(d).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '–';
 
 function statusVariant(status: string): 'success' | 'default' | 'error' {
     const s = status?.toLowerCase() ?? '';

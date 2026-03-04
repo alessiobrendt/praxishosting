@@ -55,7 +55,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: props.webspaceAccount.domain, href: '#' },
 ];
 
-const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de-DE') : '-');
+const formatDate = (d: string | null) =>
+    d ? new Date(d).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '–';
 
 const stripeDashboardUrl = (subId: string | null) =>
     subId ? `https://dashboard.stripe.com/subscriptions/${subId}` : null;

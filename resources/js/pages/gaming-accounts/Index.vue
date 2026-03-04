@@ -37,7 +37,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Meine Game Server', href: '/gaming-accounts' },
 ];
 
-const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de-DE') : '–');
+const formatDate = (d: string | null) =>
+    d ? new Date(d).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '–';
 
 function getOverview(acc: GameServerAccount): ServerOverview | null {
     return props.serverOverviews[String(acc.id)] ?? null;

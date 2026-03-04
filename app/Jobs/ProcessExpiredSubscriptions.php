@@ -26,9 +26,16 @@ class ProcessExpiredSubscriptions implements ShouldQueue
 
     public function handle(): void
     {
-        $gracePeriodDays = (int) (Setting::get('billing_grace_period_days') ?? config('billing.grace_period_days', 7));
-        $now = Carbon::now();
-        $graceCutoff = $now->copy()->subDays($gracePeriodDays);
+        $gracePeriodDays = max(1, (int) (Setting::get('billing_grace_period_days') ?? config('billing.grace_period_days', 7)));
+        $now = Carbon::now(config('app.timezone'));
+        // Kulanzfrist in Kalendertagen: Abgelaufen am Tag X → löschbar ab Tag X+7 (Mitternacht)
+        $graceCutoff = $now->copy()->subDays($gracePeriodDays)->endOfDay();
+
+        Log::debug('ProcessExpiredSubscriptions: run', [
+            'now' => $now->toIso8601String(),
+            'grace_period_days' => $gracePeriodDays,
+            'grace_cutoff' => $graceCutoff->toIso8601String(),
+        ]);
 
         $this->processSiteSubscriptions($now, $gracePeriodDays, $graceCutoff);
         $this->processWebspaceAccounts($now, $graceCutoff);
@@ -58,7 +65,7 @@ class ProcessExpiredSubscriptions implements ShouldQueue
             ->with('site.user')
             ->whereHas('site', fn ($q) => $q->where('is_legacy', false)->where('status', 'suspended'))
             ->whereNotNull('current_period_ends_at')
-            ->where('current_period_ends_at', '<', $graceCutoff)
+            ->where('current_period_ends_at', '<', $graceCutoff->format('Y-m-d H:i:s'))
             ->get();
 
         foreach ($toTerminate as $sub) {
@@ -89,6 +96,13 @@ class ProcessExpiredSubscriptions implements ShouldQueue
             ->where('current_period_ends_at', '<', $now)
             ->get();
 
+        if ($toSuspend->isNotEmpty()) {
+            Log::info('ProcessExpiredSubscriptions: webspace accounts to suspend', [
+                'count' => $toSuspend->count(),
+                'ids' => $toSuspend->pluck('id')->all(),
+            ]);
+        }
+
         foreach ($toSuspend as $account) {
             $server = $account->hostingServer;
             if ($server) {
@@ -115,8 +129,15 @@ class ProcessExpiredSubscriptions implements ShouldQueue
             ->with('user', 'hostingServer')
             ->where('status', 'suspended')
             ->whereNotNull('current_period_ends_at')
-            ->where('current_period_ends_at', '<', $graceCutoff)
+            ->where('current_period_ends_at', '<', $graceCutoff->format('Y-m-d H:i:s'))
             ->get();
+
+        if ($toTerminate->isNotEmpty()) {
+            Log::info('ProcessExpiredSubscriptions: webspace accounts to terminate (after grace)', [
+                'count' => $toTerminate->count(),
+                'ids' => $toTerminate->pluck('id')->all(),
+            ]);
+        }
 
         foreach ($toTerminate as $account) {
             $domain = $account->domain;
@@ -152,6 +173,13 @@ class ProcessExpiredSubscriptions implements ShouldQueue
             ->where('current_period_ends_at', '<', $now)
             ->get();
 
+        if ($toSuspend->isNotEmpty()) {
+            Log::info('ProcessExpiredSubscriptions: game servers to suspend', [
+                'count' => $toSuspend->count(),
+                'ids' => $toSuspend->pluck('id')->all(),
+            ]);
+        }
+
         foreach ($toSuspend as $account) {
             if ($account->hostingServer && $account->pterodactyl_server_id) {
                 try {
@@ -176,8 +204,16 @@ class ProcessExpiredSubscriptions implements ShouldQueue
             ->with('user', 'hostingServer')
             ->where('status', 'suspended')
             ->whereNotNull('current_period_ends_at')
-            ->where('current_period_ends_at', '<', $graceCutoff)
+            ->where('current_period_ends_at', '<', $graceCutoff->format('Y-m-d H:i:s'))
             ->get();
+
+        if ($toTerminate->isNotEmpty()) {
+            Log::info('ProcessExpiredSubscriptions: game servers to terminate (after grace)', [
+                'count' => $toTerminate->count(),
+                'ids' => $toTerminate->pluck('id')->all(),
+                'grace_cutoff' => $graceCutoff->toIso8601String(),
+            ]);
+        }
 
         foreach ($toTerminate as $account) {
             $name = $account->name;

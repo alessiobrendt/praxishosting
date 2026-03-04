@@ -45,7 +45,8 @@ const handlePagination = (url: string) => {
     window.location.href = url;
 };
 
-const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de-DE') : '-');
+const formatDate = (d: string | null) =>
+    d ? new Date(d).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '–';
 </script>
 
 <template>

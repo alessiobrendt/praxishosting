@@ -138,7 +138,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: props.gameServerAccount.name, href: '#' },
 ];
 
-const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('de-DE') : '-');
+const formatDate = (d: string | null) =>
+    d ? new Date(d).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '–';
 
 function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);

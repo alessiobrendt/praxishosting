@@ -21,7 +21,9 @@ Schedule::call(function (): void {})->everyMinute()->before(function (): void {
     Cache::put('scheduler_last_run_at', now()->toIso8601String(), now()->addDays(1));
 });
 
-Schedule::job(new ProcessExpiredSubscriptions)->daily();
+Schedule::call(function (): void {
+    (new ProcessExpiredSubscriptions)->handle();
+})->everySixHours()->name('subscriptions:process-expired')->withoutOverlapping();
 Schedule::job(new NotifySubscriptionEndingSoon(14))->daily();
 Schedule::job(new NotifySubscriptionEndingSoon(7))->daily();
 Schedule::job(new NotifySubscriptionEndingSoon(3))->daily();
