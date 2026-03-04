@@ -12,14 +12,18 @@ use App\Http\Requests\Admin\UpdateTicketTodoRequest;
 use App\Models\AdminActivityLog;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use App\Models\TicketMessageAttachment;
+use App\Models\TicketMessageTemplate;
 use App\Models\TicketTimeLog;
 use App\Models\TicketTodo;
 use App\Models\User;
 use App\Notifications\TicketReplyNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TicketController extends Controller
 {
@@ -70,9 +74,7 @@ class TicketController extends Controller
             'site:uuid,name,slug',
             'assignedTo:id,name',
             'tags:id,name,slug,color',
-            'timeLogs' => fn ($q) => $q->with('user:id,name')->orderBy('logged_at', 'desc'),
-            'todos' => fn ($q) => $q->orderBy('sort_order')->orderBy('id'),
-            'messages' => fn ($q) => $q->with('user:id,name,is_admin')->orderBy('created_at'),
+            'messages' => fn ($q) => $q->with(['user:id,name,is_admin', 'attachments'])->orderBy('created_at'),
         ]);
         $lastMessage = $ticket->messages->last();
         $lastMessageFromCustomer = $lastMessage !== null && ! $lastMessage->user?->is_admin;
@@ -88,8 +90,96 @@ class TicketController extends Controller
             ->get(['id', 'subject', 'status', 'created_at']);
         $allTags = \App\Models\Tag::query()->orderBy('name')->get(['id', 'name', 'slug', 'color']);
 
+        $ticketArray = $ticket->toArray();
+        unset($ticketArray['time_logs'], $ticketArray['todos'], $ticketArray['timeLogs'], $ticketArray['todos']);
+        $ticketArray['assigned_to'] = $ticket->getRawOriginal('assigned_to');
+        foreach ($ticketArray['messages'] ?? [] as $i => $msg) {
+            $message = $ticket->messages[$i];
+            $ticketArray['messages'][$i]['attachments'] = $message->attachments->map(fn ($a) => [
+                'id' => $a->id,
+                'name' => $a->name,
+                'download_url' => route('admin.tickets.attachments.download', ['ticket' => $ticket->id, 'attachment' => $a->id]),
+            ])->values()->all();
+        }
+
+        $activityLogs = AdminActivityLog::query()
+            ->where('model_type', Ticket::class)
+            ->where('model_id', $ticket->id)
+            ->whereIn('action', ['ticket_updated', 'ticket_merged'])
+            ->with('user:id,name')
+            ->orderBy('created_at')
+            ->get();
+
+        $statusLabels = [
+            'open' => 'Offen',
+            'in_progress' => 'In Bearbeitung',
+            'waiting_customer' => 'Warte auf Kunde',
+            'resolved' => 'Erledigt',
+            'closed' => 'Geschlossen',
+        ];
+        $ticketActivityLogs = $activityLogs->map(function (AdminActivityLog $log) use ($categories, $priorities, $admins, $statusLabels) {
+            $user = $log->user ? ['id' => $log->user->id, 'name' => $log->user->name] : null;
+            $old = $log->old_values ?? [];
+            $new = $log->new_values ?? [];
+            $descriptions = [];
+            $actionType = 'updated';
+
+            if ($log->action === 'ticket_merged') {
+                return [
+                    'id' => 'log-'.$log->id,
+                    'type' => 'activity',
+                    'action_type' => 'merged',
+                    'created_at' => $log->created_at->toIso8601String(),
+                    'user' => $user,
+                    'description' => 'Ticket zusammengeführt',
+                ];
+            }
+
+            if (isset($new['status']) && ($old['status'] ?? null) !== $new['status']) {
+                $descriptions[] = 'Status: '.($statusLabels[$old['status'] ?? ''] ?? $old['status'] ?? '–').' → '.($statusLabels[$new['status']] ?? $new['status']);
+                $actionType = 'status_change';
+            }
+            if (isset($new['ticket_category_id']) && ($old['ticket_category_id'] ?? null) != $new['ticket_category_id']) {
+                $cat = $categories->firstWhere('id', $new['ticket_category_id']);
+                $descriptions[] = 'Kategorie geändert'.($cat ? ' zu '.$cat->name : '');
+                $actionType = 'category_change';
+            }
+            if (array_key_exists('ticket_priority_id', $new) && ($old['ticket_priority_id'] ?? null) != $new['ticket_priority_id']) {
+                $prio = $priorities->firstWhere('id', $new['ticket_priority_id']);
+                $descriptions[] = 'Priorität'.($prio ? ': '.$prio->name : ' geändert');
+                $actionType = 'priority_change';
+            }
+            if (array_key_exists('assigned_to', $new) && ($old['assigned_to'] ?? null) != $new['assigned_to']) {
+                $assigned = $new['assigned_to'] ? $admins->firstWhere('id', $new['assigned_to']) : null;
+                $descriptions[] = $assigned ? 'Zugewiesen an '.$assigned->name : 'Zuweisung entfernt';
+                $actionType = 'assigned_change';
+            }
+            if (array_key_exists('site_id', $new) && ($old['site_id'] ?? null) != $new['site_id']) {
+                $descriptions[] = 'Betroffener Dienst geändert';
+                $actionType = 'site_change';
+            }
+
+            if ($descriptions === []) {
+                return null;
+            }
+
+            return [
+                'id' => 'log-'.$log->id,
+                'type' => 'activity',
+                'action_type' => $actionType,
+                'created_at' => $log->created_at->toIso8601String(),
+                'user' => $user,
+                'description' => implode('; ', $descriptions),
+            ];
+        })->filter()->values()->all();
+
+        $ticketMessageTemplates = TicketMessageTemplate::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'body']);
+
         return Inertia::render('admin/tickets/Show', [
-            'ticket' => $ticket,
+            'ticket' => $ticketArray,
             'categories' => $categories,
             'priorities' => $priorities,
             'admins' => $admins,
@@ -97,7 +187,22 @@ class TicketController extends Controller
             'recentTickets' => $recentTickets,
             'lastMessageFromCustomer' => $lastMessageFromCustomer,
             'allTags' => $allTags,
+            'ticketActivityLogs' => $ticketActivityLogs,
+            'ticketMessageTemplates' => $ticketMessageTemplates,
         ]);
+    }
+
+    public function downloadAttachment(Request $request, Ticket $ticket, TicketMessageAttachment $attachment): StreamedResponse|RedirectResponse
+    {
+        $attachment->load('ticketMessage');
+        if ($attachment->ticketMessage->ticket_id !== $ticket->id) {
+            abort(404);
+        }
+        if (! Storage::disk('local')->exists($attachment->path)) {
+            abort(404);
+        }
+
+        return Storage::disk('local')->download($attachment->path, $attachment->name);
     }
 
     public function update(UpdateTicketRequest $request, Ticket $ticket): RedirectResponse
@@ -113,6 +218,7 @@ class TicketController extends Controller
         if (array_key_exists('due_at', $update) && $update['due_at'] === '') {
             $update['due_at'] = null;
         }
+
         $old = array_intersect_key($ticket->getOriginal(), array_flip($allowed));
         $ticket->update($update);
         if (array_key_exists('tag_ids', $validated)) {
@@ -140,6 +246,7 @@ class TicketController extends Controller
             'user_id' => $request->user()->id,
             'body' => $body,
             'is_internal' => $isInternal,
+            'sent_via_admin' => true,
         ]);
         if (! $isInternal) {
             $ticket->update(['status' => 'waiting_customer']);

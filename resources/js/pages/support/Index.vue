@@ -33,8 +33,8 @@ type Props = {
 const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: dashboard().url },
-    { title: 'Support', href: '#' },
+    { title: 'Start', href: dashboard().url },
+    { title: 'Support Tickets', href: '#' },
 ];
 
 const statusLabels: Record<string, string> = {
@@ -57,11 +57,11 @@ const handlePagination = (url: string) => {
         <div class="space-y-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <Heading level="h1">Meine Tickets</Heading>
-                    <Text class="mt-2" muted>Support-Anfragen und Nachrichtenverlauf</Text>
+                    <Heading level="h1">Support Tickets</Heading>
+                    <Text class="mt-2" muted>Deine Support-Anfragen und Nachrichtenverlauf</Text>
                 </div>
                 <Link :href="supportCreate().url">
-                    <Button><Plus class="mr-2 h-4 w-4" />Neues Ticket</Button>
+                    <Button><Plus class="mr-2 h-4 w-4" />Ticket erstellen</Button>
                 </Link>
             </div>
 

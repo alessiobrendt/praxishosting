@@ -7,6 +7,7 @@ use App\Models\AdminActivityLog;
 use App\Models\Brand;
 use App\Models\Setting;
 use App\Models\TicketCategory;
+use App\Models\TicketMessageTemplate;
 use App\Models\TicketPriority;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,11 +56,17 @@ class SystemSettingsController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $ticketMessageTemplates = TicketMessageTemplate::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'body', 'sort_order']);
+
         return Inertia::render('admin/settings/Index', [
             'settings' => $settings,
             'brands' => Brand::query()->orderBy('key')->get(),
             'ticketCategories' => $ticketCategories,
             'ticketPriorities' => $ticketPriorities,
+            'ticketMessageTemplates' => $ticketMessageTemplates,
             'initialTab' => $request->query('tab', 'allgemein'),
         ]);
     }

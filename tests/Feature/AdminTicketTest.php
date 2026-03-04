@@ -41,6 +41,8 @@ test('admin users can update ticket', function () {
     $ticket = Ticket::factory()->create(['ticket_category_id' => $category->id, 'status' => 'open']);
     $this->actingAs($admin);
 
+    $this->withoutMiddleware(\App\Http\Middleware\EnsureAdminDomainForAdminRoutes::class);
+
     $response = $this->put(route('admin.tickets.update', $ticket), [
         'status' => 'in_progress',
         'ticket_category_id' => $ticket->ticket_category_id,

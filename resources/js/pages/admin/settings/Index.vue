@@ -53,6 +53,13 @@ type Brand = {
 
 type PaginationLink = { url: string | null; label: string; active: boolean };
 
+type TicketMessageTemplate = {
+    id: number;
+    name: string;
+    body: string | null;
+    sort_order: number;
+};
+
 type Props = {
     settings: {
         app_name: string;
@@ -82,12 +89,13 @@ type Props = {
     brands: Brand[];
     ticketCategories: { data: TicketCategory[]; links: PaginationLink[] };
     ticketPriorities: { data: TicketPriority[]; links: PaginationLink[] };
+    ticketMessageTemplates: TicketMessageTemplate[];
     initialTab: string;
 };
 
 const props = defineProps<Props>();
 
-const validTabs = ['allgemein', 'sicherheit', 'rechnung', 'mahnung', 'domains', 'mail', 'support', 'marken'];
+const validTabs = ['allgemein', 'sicherheit', 'rechnung', 'mahnung', 'domains', 'mail', 'support', 'vorlagen', 'marken'];
 const defaultTab = validTabs.includes(props.initialTab) ? props.initialTab : 'allgemein';
 
 const form = useForm({
@@ -132,6 +140,19 @@ function destroyPriority(id: number) {
     if (confirm('Priorität wirklich löschen?')) {
         router.delete(`/admin/ticket-priorities/${id}`);
     }
+}
+
+function destroyTemplate(id: number) {
+    if (confirm('Vorlage wirklich löschen?')) {
+        router.delete(`/admin/ticket-message-templates/${id}`);
+    }
+}
+
+function stripHtml(html: string | null): string {
+    if (!html) return '';
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent?.trim().slice(0, 80) ?? '';
 }
 
 function paginationClick(url: string) {
@@ -195,6 +216,7 @@ function salutationLabel(salutation: string | null): string {
                         <TabsTrigger value="domains">Domains</TabsTrigger>
                         <TabsTrigger value="mail">Mail</TabsTrigger>
                         <TabsTrigger value="support">Support</TabsTrigger>
+                        <TabsTrigger value="vorlagen">Vorlagen</TabsTrigger>
                         <TabsTrigger value="marken">Marken</TabsTrigger>
                     </TabsList>
 
@@ -618,6 +640,55 @@ function salutationLabel(salutation: string | null): string {
                                 </CardContent>
                             </Card>
                         </div>
+                    </TabsContent>
+
+                    <TabsContent value="vorlagen">
+                        <Card>
+                            <CardHeader>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle>Antwort-Vorlagen</CardTitle>
+                                        <CardDescription>
+                                            Vorlagen für Ticket-Antworten. Platzhalter:
+                                            <span v-pre>{{name}}, {{email}}, {{ticket_id}}, {{betreff}}, {{produkt}}, {{zugewiesen}}, {{datum}}</span>.
+                                        </CardDescription>
+                                    </div>
+                                    <Link href="/admin/ticket-message-templates/create">
+                                        <Button size="sm"><Plus class="mr-2 h-4 w-4" />Neu</Button>
+                                    </Link>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Vorschau</TableHead>
+                                            <TableHead>Sortierung</TableHead>
+                                            <TableHead class="text-right">Aktionen</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow v-for="t in ticketMessageTemplates" :key="t.id">
+                                            <TableCell>{{ t.name }}</TableCell>
+                                            <TableCell class="max-w-[300px] truncate text-muted-foreground text-sm">{{ stripHtml(t.body) || '–' }}</TableCell>
+                                            <TableCell>{{ t.sort_order }}</TableCell>
+                                            <TableCell class="text-right">
+                                                <Link :href="`/admin/ticket-message-templates/${t.id}/edit`">
+                                                    <Button variant="ghost" size="sm"><Edit class="h-4 w-4" /></Button>
+                                                </Link>
+                                                <Button variant="ghost" size="sm" class="text-destructive" @click="destroyTemplate(t.id)">
+                                                    <Trash2 class="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow v-if="ticketMessageTemplates.length === 0">
+                                            <TableCell colspan="4" class="text-center text-muted">Keine Vorlagen.</TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
 
                     <TabsContent value="mail">

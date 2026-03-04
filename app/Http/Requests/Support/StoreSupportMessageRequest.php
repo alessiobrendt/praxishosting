@@ -12,12 +12,14 @@ class StoreSupportMessageRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, array<int, string|\Illuminate\Validation\ValidationRule>>
      */
     public function rules(): array
     {
         return [
             'body' => ['required', 'string', 'max:10000'],
+            'attachments' => ['nullable', 'array'],
+            'attachments.*' => ['file', 'max:4096', 'mimes:jpg,jpeg,png,webp,pdf'],
         ];
     }
 }

@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\TemplateController;
 use App\Http\Controllers\Admin\TemplatePageController;
 use App\Http\Controllers\Admin\TicketCategoryController;
 use App\Http\Controllers\Admin\TicketController;
+use App\Http\Controllers\Admin\TicketMessageTemplateController;
 use App\Http\Controllers\Admin\TicketPriorityController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\WaitingJobsController;
@@ -219,6 +220,7 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
     Route::post('support', [SupportController::class, 'store'])->name('support.store');
     Route::get('support/{ticket}', [SupportController::class, 'show'])->name('support.show');
     Route::post('support/{ticket}/messages', [SupportController::class, 'storeMessage'])->name('support.messages.store');
+    Route::get('support/{ticket}/attachments/{attachment}', [SupportController::class, 'downloadAttachment'])->name('support.attachments.download');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -332,7 +334,9 @@ Route::middleware(['admin.domain', 'auth', 'verified', 'admin'])->prefix('admin'
     Route::patch('tickets/{ticket}/todos/{todo}', [TicketController::class, 'updateTodo'])->name('tickets.todos.update');
     Route::delete('tickets/{ticket}/todos/{todo}', [TicketController::class, 'destroyTodo'])->name('tickets.todos.destroy');
     Route::post('tickets/{ticket}/merge', [TicketController::class, 'merge'])->name('tickets.merge');
+    Route::get('tickets/{ticket}/attachments/{attachment}', [TicketController::class, 'downloadAttachment'])->name('tickets.attachments.download');
     Route::resource('ticket-categories', TicketCategoryController::class)->except(['show']);
+    Route::resource('ticket-message-templates', TicketMessageTemplateController::class)->except(['index', 'show']);
     Route::resource('ticket-priorities', TicketPriorityController::class)->except(['show']);
     Route::resource('groups', GroupController::class)->except(['show']);
     Route::resource('permissions', PermissionController::class)->except(['show']);
