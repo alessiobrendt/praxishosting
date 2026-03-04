@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PinVerificationController;
+use App\Http\Controllers\Settings\NotificationSettingsController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecuritySettingsController;
@@ -13,6 +14,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('settings/notifications', [NotificationSettingsController::class, 'show'])->name('notifications.show');
+    Route::patch('settings/notifications', [NotificationSettingsController::class, 'update'])->name('notifications.update');
 
     Route::post('pin/verify', [PinVerificationController::class, 'store'])
         ->middleware('throttle:pin')

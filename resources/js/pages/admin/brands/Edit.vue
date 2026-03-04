@@ -129,13 +129,13 @@ const submit = () => {
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
-        <Head :title="`Marke: ${brand.name}`" />
+        <Head :title="`Marke: ${props.brand.name}`" />
 
         <form @submit.prevent="submit" class="space-y-6">
             <div>
                 <Heading level="h1">Marke bearbeiten</Heading>
                 <Text class="mt-2" muted>
-                    {{ brand.key }} – Name, Domains, Features und E-Mail-Inhalte
+                    {{ props.brand.key }} – Name, Domains, Features und E-Mail-Inhalte
                 </Text>
             </div>
 

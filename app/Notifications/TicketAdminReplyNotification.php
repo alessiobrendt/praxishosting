@@ -20,8 +20,20 @@ class TicketAdminReplyNotification extends Notification implements ShouldQueue
     /**
      * @return array<int, string>
      */
+    public static function notificationType(): string
+    {
+        return 'ticket_admin_reply';
+    }
+
+    /**
+     * @return array<int, string>
+     */
     public function via(object $notifiable): array
     {
+        if (method_exists($notifiable, 'getPreferredNotificationChannels')) {
+            return $notifiable->getPreferredNotificationChannels(self::notificationType());
+        }
+
         return ['transactional_mail'];
     }
 

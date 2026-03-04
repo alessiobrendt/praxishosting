@@ -16,11 +16,20 @@ class OrderCompletedNotification extends Notification implements ShouldQueue
         public Site $site
     ) {}
 
+    public static function notificationType(): string
+    {
+        return 'order_completed';
+    }
+
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
+        if (method_exists($notifiable, 'getPreferredNotificationChannels')) {
+            return $notifiable->getPreferredNotificationChannels(self::notificationType());
+        }
+
         return ['transactional_mail'];
     }
 

@@ -16,11 +16,20 @@ class InvoiceCreatedNotification extends Notification implements ShouldQueue
         public Invoice $invoice
     ) {}
 
+    public static function notificationType(): string
+    {
+        return 'invoice_created';
+    }
+
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
+        if (method_exists($notifiable, 'getPreferredNotificationChannels')) {
+            return $notifiable->getPreferredNotificationChannels(self::notificationType());
+        }
+
         return ['transactional_mail'];
     }
 

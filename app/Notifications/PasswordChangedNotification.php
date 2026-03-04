@@ -18,8 +18,20 @@ class PasswordChangedNotification extends Notification implements ShouldQueue
     /**
      * @return array<int, string>
      */
+    public static function notificationType(): string
+    {
+        return 'password_changed';
+    }
+
+    /**
+     * @return array<int, string>
+     */
     public function via(object $notifiable): array
     {
+        if (method_exists($notifiable, 'getPreferredNotificationChannels')) {
+            return $notifiable->getPreferredNotificationChannels(self::notificationType());
+        }
+
         return ['transactional_mail'];
     }
 

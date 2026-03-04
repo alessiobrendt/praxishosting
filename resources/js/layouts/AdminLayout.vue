@@ -127,6 +127,22 @@ const brandThemeStyle = computed(() => {
     for (const [key, value] of Object.entries(colors)) {
         if (value) vars[`--${key.replace(/_/g, '-')}`] = value;
     }
+    if (colors.primary_dark && !colors.primary) {
+        vars['--primary'] = colors.primary_dark;
+    }
+    if (colors.primary_dark && !colors.primary_hover) {
+        vars['--primary-hover'] = colors.primary_dark;
+    }
+    // Header, sidebar, focus ring and accent use same brand primary
+    const primary = vars['--primary'] ?? colors.primary ?? colors.primary_dark;
+    if (primary) {
+        vars['--sidebar-primary'] = primary;
+        vars['--sidebar-primary-foreground'] = '#ffffff';
+        vars['--ring'] = primary;
+        vars['--accent'] = primary;
+        vars['--accent-foreground'] = '#ffffff';
+        vars['--sidebar-ring'] = primary;
+    }
     return Object.keys(vars).length ? vars : undefined;
 });
 const brandSeo = computed(() => brand.value?.seo ?? null);

@@ -46,6 +46,7 @@ class User extends Authenticatable
         'phone',
         'ticket_signature',
         'admin_dashboard_layout',
+        'notification_preferences',
     ];
 
     /**
@@ -75,6 +76,7 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
             'pin_lockout_until' => 'datetime',
             'admin_dashboard_layout' => 'array',
+            'notification_preferences' => 'array',
         ];
     }
 
@@ -377,5 +379,23 @@ class User extends Authenticatable
         }
 
         return true;
+    }
+
+    /**
+     * Get the notification channels the user prefers for a given notification type.
+     * Used by Notification::via() to respect user preferences (none, email, discord).
+     *
+     * @return array<int, string>
+     */
+    public function getPreferredNotificationChannels(string $type): array
+    {
+        $preference = $this->notification_preferences[$type] ?? 'email';
+
+        return match ($preference) {
+            'none' => [],
+            'discord' => ['discord'],
+            'email' => ['transactional_mail'],
+            default => ['transactional_mail'],
+        };
     }
 }

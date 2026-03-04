@@ -16,11 +16,20 @@ class PaymentFailedNotification extends Notification implements ShouldQueue
         public string $amount = ''
     ) {}
 
+    public static function notificationType(): string
+    {
+        return 'payment_failed';
+    }
+
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
+        if (method_exists($notifiable, 'getPreferredNotificationChannels')) {
+            return $notifiable->getPreferredNotificationChannels(self::notificationType());
+        }
+
         return ['transactional_mail'];
     }
 

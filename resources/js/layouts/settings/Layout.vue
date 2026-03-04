@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
-import { User, Lock, Shield, ShieldCheck, Palette } from 'lucide-vue-next';
+import { Bell, Lock, Palette, Shield, ShieldCheck, User } from 'lucide-vue-next';
 import type { NavItem } from '@/types';
 
 const page = usePage();
@@ -16,6 +16,11 @@ const sidebarNavItems: NavItem[] = [
         title: 'Profil',
         href: '/settings/profile',
         icon: User,
+    },
+    {
+        title: 'Benachrichtigungen',
+        href: '/settings/notifications',
+        icon: Bell,
     },
     {
         title: 'Passwort',
@@ -66,8 +71,8 @@ const sidebarNavItems: NavItem[] = [
 
             <Separator class="my-6 lg:hidden" />
 
-            <div class="flex-1 md:max-w-2xl">
-                <section class="max-w-xl space-y-6">
+            <div class="min-w-0 flex-1">
+                <section class="w-full space-y-6">
                     <slot />
                 </section>
             </div>

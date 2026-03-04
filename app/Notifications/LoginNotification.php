@@ -14,11 +14,20 @@ class LoginNotification extends Notification
         public string $loginAt
     ) {}
 
+    public static function notificationType(): string
+    {
+        return 'login';
+    }
+
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
+        if (method_exists($notifiable, 'getPreferredNotificationChannels')) {
+            return $notifiable->getPreferredNotificationChannels(self::notificationType());
+        }
+
         return ['transactional_mail'];
     }
 
