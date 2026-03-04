@@ -326,12 +326,21 @@ class PterodactylClient implements ControlPanelContract
     {
         $sdk = $this->getSdk();
 
-        $email = (string) ($params['email'] ?? '');
-        $username = (string) ($params['username'] ?? Str::slug($params['server_name'] ?? 'user').'_'.Str::random(4));
-        $firstName = (string) ($params['first_name'] ?? '');
-        $lastName = (string) ($params['last_name'] ?? '');
+        $email = trim((string) ($params['email'] ?? ''));
+        $username = $this->sanitizePterodactylUsername(
+            (string) ($params['username'] ?? Str::slug($params['server_name'] ?? 'user').'_'.Str::random(4))
+        );
+        $firstName = trim((string) ($params['first_name'] ?? ''));
+        $lastName = trim((string) ($params['last_name'] ?? ''));
         $password = (string) ($params['password'] ?? '');
-        $serverName = (string) ($params['server_name'] ?? 'Game Server');
+        $serverName = $this->sanitizePterodactylServerName((string) ($params['server_name'] ?? 'Game Server'));
+
+        if ($firstName === '') {
+            $firstName = $username;
+        }
+        if ($lastName === '') {
+            $lastName = '.';
+        }
 
         if ($email === '') {
             throw new Exception('Pterodactyl: email is required');
@@ -383,9 +392,15 @@ class PterodactylClient implements ControlPanelContract
 
             return true;
         } catch (\Throwable $e) {
+            $paramsForLog = $params;
+            unset($paramsForLog['password']);
+            $previous = $e->getPrevious();
+            $detail = $previous ? $previous->getMessage() : null;
             Log::error('Pterodactyl createAccount error', [
                 'server' => $this->server->name ?? null,
                 'error' => $e->getMessage(),
+                'detail' => $detail,
+                'params' => $paramsForLog,
             ]);
 
             throw new Exception('Pterodactyl: '.$e->getMessage(), (int) $e->getCode(), $e);
@@ -550,6 +565,32 @@ class PterodactylClient implements ControlPanelContract
         } catch (\Throwable) {
         }
         throw new Exception("Pterodactyl: The selected node '{$nodeName}' is not suitable for deployment (insufficient resources, maintenance, or not in selected locations).");
+    }
+
+    /**
+     * Sanitize server name for Pterodactyl (length + allowed chars).
+     */
+    protected function sanitizePterodactylServerName(string $name): string
+    {
+        $name = trim(preg_replace('/[^\p{L}\p{N}\s\-_.]/u', '', $name) ?? '');
+        if ($name === '') {
+            return 'Game Server';
+        }
+
+        return mb_substr($name, 0, 191);
+    }
+
+    /**
+     * Sanitize username for Pterodactyl (alphanumeric + underscore, 1–191 chars).
+     */
+    protected function sanitizePterodactylUsername(string $username): string
+    {
+        $username = preg_replace('/[^a-zA-Z0-9_]/', '', $username);
+        if ($username === '' || strlen($username) < 1) {
+            $username = 'user_'.Str::random(6);
+        }
+
+        return substr($username, 0, 191);
     }
 
     /**
