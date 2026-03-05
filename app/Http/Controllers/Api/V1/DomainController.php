@@ -13,6 +13,8 @@ class DomainController extends ApiV1Controller
 {
     private const TLDs_PER_PAGE = 15;
 
+    private const OTHER_TLDS_PER_PAGE = 5;
+
     /**
      * Priority TLDs shown first (in this order), then all others alphabetically.
      *
@@ -73,21 +75,25 @@ class DomainController extends ApiV1Controller
     }
 
     /**
-     * Check domain availability for given base name and optional TLDs.
+     * Check domain availability: searched domain (if name.tld) first, then .de/.net/.com/.eu/.at/.ch, then other TLDs paginated (5 per page).
      */
     public function checkAvailability(CheckDomainAvailabilityRequest $request, SkrimeApiService $skrime, DomainPricingService $pricing): JsonResponse
     {
-        $baseName = strtolower(trim($request->input('domain')));
-        $tlds = $request->input('tlds', ['de', 'com', 'net', 'io']);
-        $results = [];
+        $input = strtolower(trim($request->input('domain')));
+        $baseName = $input;
+        $searchedTld = null;
+        if (str_contains($input, '.')) {
+            $pos = strrpos($input, '.');
+            $baseName = substr($input, 0, $pos);
+            $searchedTld = substr($input, $pos + 1);
+        }
 
-        foreach ($tlds as $tld) {
-            $tld = strtolower(ltrim((string) $tld, '.'));
-            $domain = $baseName.'.'.$tld;
+        $checkOne = function (string $domain, string $tld) use ($skrime, $pricing): array {
             try {
                 $check = $skrime->checkAvailability($domain);
                 $pricingInfo = $pricing->getPricingForTld($tld, 'create');
-                $results[] = [
+
+                return [
                     'domain' => $domain,
                     'available' => $check['available'],
                     'premium' => $check['premium'] ?? false,
@@ -95,7 +101,7 @@ class DomainController extends ApiV1Controller
                     'purchase_price' => $pricingInfo['purchase_price'],
                 ];
             } catch (\Throwable) {
-                $results[] = [
+                return [
                     'domain' => $domain,
                     'available' => false,
                     'premium' => false,
@@ -104,8 +110,79 @@ class DomainController extends ApiV1Controller
                     'error' => true,
                 ];
             }
+        };
+
+        $searchedDomain = null;
+        if ($searchedTld !== null && $searchedTld !== '') {
+            $searchedDomain = $checkOne($baseName.'.'.$searchedTld, $searchedTld);
         }
 
-        return response()->json(['data' => ['results' => $results]]);
+        $allTlds = $this->getOrderedTldList();
+        $priorityTlds = array_values(array_intersect(self::PRIORITY_TLDS, $allTlds));
+        $otherTlds = array_values(array_diff($allTlds, self::PRIORITY_TLDS));
+
+        $page = max(1, (int) $request->input('page', 1));
+        $otherPage = array_slice($otherTlds, ($page - 1) * self::OTHER_TLDS_PER_PAGE, self::OTHER_TLDS_PER_PAGE);
+        $totalOther = count($otherTlds);
+        $lastPage = $totalOther > 0 ? (int) ceil($totalOther / self::OTHER_TLDS_PER_PAGE) : 1;
+
+        $priorityResults = [];
+        foreach ($priorityTlds as $tld) {
+            $priorityResults[] = $checkOne($baseName.'.'.$tld, $tld);
+        }
+
+        $otherResults = [];
+        foreach ($otherPage as $tld) {
+            $otherResults[] = $checkOne($baseName.'.'.$tld, $tld);
+        }
+
+        $path = $request->url();
+        $query = $request->query();
+        $query['domain'] = $request->input('domain');
+
+        $otherLinks = [
+            'first' => $path.'?'.http_build_query(array_merge($query, ['page' => 1])),
+            'last' => $path.'?'.http_build_query(array_merge($query, ['page' => $lastPage])),
+            'prev' => $page > 1 ? $path.'?'.http_build_query(array_merge($query, ['page' => $page - 1])) : null,
+            'next' => $page < $lastPage ? $path.'?'.http_build_query(array_merge($query, ['page' => $page + 1])) : null,
+        ];
+
+        return response()->json([
+            'data' => [
+                'searched_domain' => $searchedDomain,
+                'priority' => $priorityResults,
+                'other' => [
+                    'data' => $otherResults,
+                    'meta' => [
+                        'current_page' => $page,
+                        'last_page' => $lastPage,
+                        'per_page' => self::OTHER_TLDS_PER_PAGE,
+                        'total' => $totalOther,
+                        'from' => $totalOther === 0 ? null : ($page - 1) * self::OTHER_TLDS_PER_PAGE + 1,
+                        'to' => $totalOther === 0 ? null : min($page * self::OTHER_TLDS_PER_PAGE, $totalOther),
+                    ],
+                    'links' => $otherLinks,
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getOrderedTldList(): array
+    {
+        $cases = [];
+        foreach (self::PRIORITY_TLDS as $i => $tld) {
+            $cases[] = "WHEN '".addslashes($tld)."' THEN ".($i + 1);
+        }
+        $orderCase = 'CASE tld '.implode(' ', $cases).' ELSE '.(count(self::PRIORITY_TLDS) + 1).' END';
+
+        return TldPricelist::query()
+            ->orderByRaw("{$orderCase} ASC")
+            ->orderBy('tld')
+            ->pluck('tld')
+            ->values()
+            ->all();
     }
 }

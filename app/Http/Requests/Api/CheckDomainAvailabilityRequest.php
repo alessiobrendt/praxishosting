@@ -17,9 +17,8 @@ class CheckDomainAvailabilityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'domain' => ['required', 'string', 'max:253', 'regex:/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/i'],
-            'tlds' => ['sometimes', 'array'],
-            'tlds.*' => ['string', 'max:20', 'regex:/^[a-z]{2,}$/i'],
+            'domain' => ['required', 'string', 'max:253', 'regex:/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z]{2,})?$/i'],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ];
     }
 }

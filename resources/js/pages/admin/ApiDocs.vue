@@ -202,41 +202,49 @@ const endpoints: EndpointSpec[] = [
         path: '/domains/check-availability',
         summary: 'Domain-Verfügbarkeit prüfen',
         description:
-            'Prüft für einen Domain-Namen und optionale TLDs, ob die Domains verfügbar sind und liefert Preise.',
+            'Prüft die Verfügbarkeit einer Domain. Eingabe: nur Name (z. B. "beispiel") oder Name mit Endung (z. B. "beispiel.de"). Bei Angabe mit Endung wird diese Domain zuerst ausgegeben (searched_domain), danach die Prioritäts-TLDs .de, .net, .com, .eu, .at, .ch, dann weitere Endungen paginiert (5 pro Seite, Parameter page).',
         parameters: [
             {
                 name: 'domain',
                 in: 'body',
                 type: 'string',
                 required: true,
-                description: 'Domain-Name ohne TLD (z. B. "beispiel")',
+                description: 'Domain-Name mit oder ohne TLD (z. B. "beispiel" oder "beispiel.de")',
             },
             {
-                name: 'tlds',
+                name: 'page',
                 in: 'body',
-                type: 'string[]',
+                type: 'integer',
                 required: false,
-                description: 'TLDs zum Prüfen (Standard: ["de", "com", "net", "io"])',
+                description: 'Seite für weitere TLDs (Standard: 1, 5 pro Seite)',
             },
         ],
         requestBody: {
-            schema: '{ "domain": "string", "tlds": ["string"] }',
+            schema: '{ "domain": "string", "page": 1 }',
             example: `{
-  "domain": "meine-domain",
-  "tlds": ["de", "com", "net"]
+  "domain": "beispiel.de"
 }`,
         },
         responseExample: `{
   "data": {
-    "results": [
-      {
-        "domain": "meine-domain.de",
-        "available": true,
-        "premium": false,
-        "sale_price": 6.00,
-        "purchase_price": 5.00
-      }
-    ]
+    "searched_domain": {
+      "domain": "beispiel.de",
+      "available": true,
+      "premium": false,
+      "sale_price": 6.00,
+      "purchase_price": 5.00
+    },
+    "priority": [
+      { "domain": "beispiel.de", "available": true, "premium": false, "sale_price": 6.00, "purchase_price": 5.00 },
+      { "domain": "beispiel.net", "available": false, "premium": false, "sale_price": 8.00, "purchase_price": 7.00 }
+    ],
+    "other": {
+      "data": [
+        { "domain": "beispiel.io", "available": true, "premium": false, "sale_price": 35.00, "purchase_price": 30.00 }
+      ],
+      "meta": { "current_page": 1, "last_page": 3, "per_page": 5, "total": 12, "from": 1, "to": 5 },
+      "links": { "first": "...", "last": "...", "prev": null, "next": "..." }
+    }
   }
 }`,
     },

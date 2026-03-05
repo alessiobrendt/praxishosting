@@ -4,6 +4,7 @@ use App\Models\Brand;
 use App\Models\HostingPlan;
 use App\Models\TldPricelist;
 use App\Models\User;
+use App\Services\SkrimeApiService;
 
 test('api v1 requires authentication', function () {
     $this->getJson('/api/v1/stats')->assertUnauthorized();
@@ -108,6 +109,97 @@ test('api v1 domains tlds paginates at 15 per page', function () {
     expect($page2->json('data'))->toHaveCount(5);
     expect($page1->json('meta.total'))->toBe(20);
     expect($page1->json('meta.last_page'))->toBe(2);
+});
+
+test('api v1 domains check-availability returns searched_domain first when domain has tld', function () {
+    foreach (['de', 'net', 'com', 'eu', 'at', 'ch', 'io'] as $tld) {
+        TldPricelist::create([
+            'tld' => $tld,
+            'create_price' => 5.00,
+            'renew_price' => 5.00,
+            'transfer_price' => 5.00,
+            'restore_price' => 10.00,
+            'margin_type' => 'fixed',
+            'margin_value' => 1.00,
+        ]);
+    }
+    $this->mock(SkrimeApiService::class, function ($mock) {
+        $mock->shouldReceive('checkAvailability')
+            ->andReturnUsing(fn (string $domain) => [
+                'available' => $domain === 'beispiel.de',
+                'premium' => false,
+                'domain' => $domain,
+            ]);
+    });
+    $user = User::factory()->create();
+    $token = $user->createToken('test')->plainTextToken;
+
+    $response = $this->withHeader('Authorization', 'Bearer '.$token)
+        ->postJson('/api/v1/domains/check-availability', ['domain' => 'beispiel.de']);
+
+    $response->assertOk();
+    $response->assertJsonPath('data.searched_domain.domain', 'beispiel.de');
+    $response->assertJsonPath('data.searched_domain.available', true);
+    $response->assertJsonPath('data.priority.0.domain', 'beispiel.de');
+    $tlds = collect($response->json('data.priority'))->pluck('domain')->map(fn ($d) => substr($d, strrpos($d, '.') + 1))->all();
+    expect($tlds)->toBe(['de', 'net', 'com', 'eu', 'at', 'ch']);
+});
+
+test('api v1 domains check-availability accepts name without tld and returns priority then paginated other', function () {
+    foreach (['de', 'net', 'com', 'eu', 'at', 'ch', 'io', 'org', 'info', 'biz', 'xyz'] as $tld) {
+        TldPricelist::firstOrCreate(['tld' => $tld], [
+            'create_price' => 5.00,
+            'renew_price' => 5.00,
+            'transfer_price' => 5.00,
+            'restore_price' => 10.00,
+            'margin_type' => 'fixed',
+            'margin_value' => 1.00,
+        ]);
+    }
+    $this->mock(SkrimeApiService::class, function ($mock) {
+        $mock->shouldReceive('checkAvailability')
+            ->andReturn(['available' => false, 'premium' => false, 'domain' => 'test.de']);
+    });
+    $user = User::factory()->create();
+    $token = $user->createToken('test')->plainTextToken;
+
+    $response = $this->withHeader('Authorization', 'Bearer '.$token)
+        ->postJson('/api/v1/domains/check-availability', ['domain' => 'test']);
+
+    $response->assertOk();
+    $response->assertJsonPath('data.searched_domain', null);
+    expect($response->json('data.priority'))->toHaveCount(6);
+    expect($response->json('data.other.meta.per_page'))->toBe(5);
+    expect($response->json('data.other.data'))->toHaveCount(5);
+});
+
+test('api v1 domains check-availability other tlds paginate with page param', function () {
+    foreach (['de', 'net', 'com', 'eu', 'at', 'ch', 'io', 'org', 'info', 'biz', 'xyz'] as $tld) {
+        TldPricelist::firstOrCreate(['tld' => $tld], [
+            'create_price' => 5.00,
+            'renew_price' => 5.00,
+            'transfer_price' => 5.00,
+            'restore_price' => 10.00,
+            'margin_type' => 'fixed',
+            'margin_value' => 1.00,
+        ]);
+    }
+    $this->mock(SkrimeApiService::class, function ($mock) {
+        $mock->shouldReceive('checkAvailability')
+            ->andReturn(['available' => false, 'premium' => false, 'domain' => 'x']);
+    });
+    $user = User::factory()->create();
+    $token = $user->createToken('test')->plainTextToken;
+
+    $page1 = $this->withHeader('Authorization', 'Bearer '.$token)
+        ->postJson('/api/v1/domains/check-availability', ['domain' => 'test', 'page' => 1]);
+    $page2 = $this->withHeader('Authorization', 'Bearer '.$token)
+        ->postJson('/api/v1/domains/check-availability', ['domain' => 'test', 'page' => 2]);
+
+    $page1->assertOk();
+    $page2->assertOk();
+    expect($page1->json('data.other.data'))->toHaveCount(5);
+    expect($page2->json('data.other.data'))->toHaveCount(0);
 });
 
 test('api v1 hosting-plans returns plans with valid token', function () {
