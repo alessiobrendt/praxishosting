@@ -1,19 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { dashboard } from '@/routes';
-import billing from '@/routes/billing';
-import postfach from '@/routes/postfach';
-import type { BreadcrumbItem } from '@/types';
-import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-    CardContent,
-} from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
 import {
     Activity,
     Wallet,
@@ -31,6 +17,19 @@ import {
     Globe,
     Gamepad2,
 } from 'lucide-vue-next';
+import { computed } from 'vue';
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardContent,
+} from '@/components/ui/card';
+import { Heading, Text } from '@/components/ui/typography';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
+import billing from '@/routes/billing';
+import postfach from '@/routes/postfach';
+import type { BreadcrumbItem } from '@/types';
 
 type Stats = {
     activeServicesCount: number;

@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { useMediaQuery } from '@vueuse/core';
+import { LogOut, Menu, Settings } from 'lucide-vue-next';
+import { computed, inject } from 'vue';
+import type { Ref } from 'vue';
+import { Avatar } from '@/components/ui/avatar';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
+import { cn } from '@/lib/utils';
 import { logout } from '@/routes';
 import { dashboard } from '@/routes';
 import profile from '@/routes/profile';
-import { cn } from '@/lib/utils';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { Avatar } from '@/components/ui/avatar';
-import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
-import { LogOut, Menu, Settings } from 'lucide-vue-next';
-import type { Ref } from 'vue';
 import type { BreadcrumbItem } from '@/types';
 
 type GroupLabelWithColor = { label: string; color: string | null };
@@ -75,7 +75,7 @@ const headerClasses = computed(() =>
 
         <div class="flex items-center gap-3">
             <Dropdown v-if="user" align="right">
-                <template #trigger="{ isOpen }">
+                <template #trigger="{ isOpen: _isOpen }">
                     <button
                         class="flex items-center gap-2 rounded-lg p-1.5 pr-2 transition-modern hover:bg-gray-100 dark:hover:bg-gray-800"
                     >

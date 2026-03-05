@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch, provide, nextTick } from 'vue';
+import draggable from 'vuedraggable';
 import { acceptsChildren } from '@/templates/handyso/combined-registry';
+import LayoutBlock from '@/templates/handyso/LayoutBlock.vue';
 import type { LayoutComponentEntry } from '@/types/layout-components';
 import type { LayoutComponentType } from '@/types/layout-components';
-import LayoutBlock from '@/templates/handyso/LayoutBlock.vue';
-import draggable from 'vuedraggable';
 
 const props = withDefaults(
     defineProps<{

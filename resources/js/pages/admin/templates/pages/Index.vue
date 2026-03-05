@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading } from '@/components/ui/typography';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import JsonViewer from '@/components/JsonViewer.vue';
-import templates from '@/routes/admin/templates';
-import { dashboard } from '@/routes';
-import type { BreadcrumbItem } from '@/types';
-import { getTemplateEntry } from '@/templates/template-registry';
 import { Plus, ArrowLeft, FileText, ChevronDown, Layout } from 'lucide-vue-next';
 import { computed } from 'vue';
+import JsonViewer from '@/components/JsonViewer.vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Heading } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { dashboard } from '@/routes';
+import templates from '@/routes/admin/templates';
+import { getTemplateEntry } from '@/templates/template-registry';
+import type { BreadcrumbItem } from '@/types';
 
 type TemplatePage = {
     id: number;

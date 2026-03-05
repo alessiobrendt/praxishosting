@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { onMounted } from 'vue';
-import AppLayout from '@/layouts/AppLayout.vue';
 import LoadingAnimation from '@/components/LoadingAnimation.vue';
 import { Text } from '@/components/ui/typography';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 

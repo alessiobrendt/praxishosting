@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DashboardWidgetSlot from '@/components/admin/dashboard/DashboardWidgetSlot.vue';
 import {
     Dialog,
     DialogContent,
@@ -6,7 +7,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import DashboardWidgetSlot from '@/components/admin/dashboard/DashboardWidgetSlot.vue';
 import type { WidgetRegistryItem } from '@/types/admin/dashboard';
 
 defineProps<{

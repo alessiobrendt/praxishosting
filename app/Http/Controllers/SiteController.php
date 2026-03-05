@@ -138,9 +138,14 @@ class SiteController extends Controller
         $site->unsetRelation('template');
         $site->load(['template.pages']);
 
+        $sitePayload = $site->only(['id', 'uuid', 'name', 'slug', 'domain_type', 'domain', 'custom_colors', 'favicon_url', 'custom_page_data', 'status', 'has_page_designer', 'use_normalized_pages', 'template_id', 'published_version_id', 'draft_version_id']);
+        $sitePayload['template'] = $site->relationLoaded('template') && $site->template
+            ? $site->template->toArray()
+            : null;
+
         return Inertia::render('PageDesigner/PageDesigner', [
             'mode' => 'site',
-            'site' => $site->makeHidden('id'),
+            'site' => $sitePayload,
             'baseDomain' => \App\Models\Setting::getBaseDomain(),
         ]);
     }

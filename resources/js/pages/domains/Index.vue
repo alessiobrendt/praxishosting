@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Search, Globe, ChevronRight, Calendar } from 'lucide-vue-next';
 import { watch } from 'vue';
-import AppLayout from '@/layouts/AppLayout.vue';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { notify } from '@/composables/useNotify';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { Search, Globe, ChevronRight, Calendar } from 'lucide-vue-next';
 
 type Domain = {
     id: number;

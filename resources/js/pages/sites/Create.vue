@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { watch } from 'vue';
-import { store as sitesStore } from '@/routes/sites';
 import InputError from '@/components/InputError.vue';
-import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Heading, Text } from '@/components/ui/typography';
-import { index as sitesIndex } from '@/routes/sites';
-import { dashboard } from '@/routes';
 import { notify } from '@/composables/useNotify';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
+import { index as sitesIndex } from '@/routes/sites';
+import { store as sitesStore } from '@/routes/sites';
 import type { BreadcrumbItem } from '@/types';
 
 type Template = {

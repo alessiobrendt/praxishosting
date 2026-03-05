@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Head, usePage } from '@inertiajs/vue3';
-import PinUnlockOverlay from '@/components/PinUnlockOverlay.vue';
-import { MainLayout } from '@/components/layout';
-import AdminHeader from '@/components/layout/AdminHeader.vue';
-import { useInactivityLock } from '@/composables/useInactivityLock';
-import { index as adminTemplatesIndex } from '@/routes/admin/templates';
-import { index as adminCustomersIndex } from '@/routes/admin/customers';
 import {
     LayoutGrid,
     Globe,
@@ -22,13 +15,20 @@ import {
     GitBranch,
     Activity,
 } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { MainLayout } from '@/components/layout';
+import AdminHeader from '@/components/layout/AdminHeader.vue';
+import PinUnlockOverlay from '@/components/PinUnlockOverlay.vue';
+import { useInactivityLock } from '@/composables/useInactivityLock';
+import { index as adminCustomersIndex } from '@/routes/admin/customers';
+import { index as adminTemplatesIndex } from '@/routes/admin/templates';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 });
 

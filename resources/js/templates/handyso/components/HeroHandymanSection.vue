@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { LayoutComponentEntry } from '@/types/layout-components';
-import HeroSubheading from '@/templates/handyso/components/hero/HeroSubheading.vue';
-import HeroHeadline from '@/templates/handyso/components/hero/HeroHeadline.vue';
-import HeroText from '@/templates/handyso/components/hero/HeroText.vue';
 import HeroButton from '@/templates/handyso/components/hero/HeroButton.vue';
-import HeroReviews from '@/templates/handyso/components/hero/HeroReviews.vue';
+import HeroHeadline from '@/templates/handyso/components/hero/HeroHeadline.vue';
 import HeroImage from '@/templates/handyso/components/hero/HeroImage.vue';
+import HeroReviews from '@/templates/handyso/components/hero/HeroReviews.vue';
 import HeroServiceCard from '@/templates/handyso/components/hero/HeroServiceCard.vue';
+import HeroSubheading from '@/templates/handyso/components/hero/HeroSubheading.vue';
+import HeroText from '@/templates/handyso/components/hero/HeroText.vue';
+import type { LayoutComponentEntry } from '@/types/layout-components';
 
 const props = withDefaults(
     defineProps<{

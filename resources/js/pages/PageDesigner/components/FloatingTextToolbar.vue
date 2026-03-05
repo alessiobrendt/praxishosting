@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Bold, Italic, Underline, RemoveFormatting, Sparkles } from 'lucide-vue-next';
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import { useAiGenerateText, PROMPT_TEMPLATES, type PromptTemplateValue } from '@/pages/PageDesigner/composables/useAiGenerateText';
-import { Bold, Italic, Underline, RemoveFormatting, Sparkles } from 'lucide-vue-next';
 
 const props = withDefaults(
     defineProps<{
@@ -99,7 +99,7 @@ function updatePosition(): void {
     }
 }
 
-function restoreSelection(): boolean {
+function _restoreSelection(): boolean {
     const range = savedRange.value;
     const el = savedEditable.value;
     if (!range || !el) return false;

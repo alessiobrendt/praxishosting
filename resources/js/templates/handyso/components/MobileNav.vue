@@ -6,7 +6,7 @@ interface NavLink {
     label: string;
 }
 
-const props = withDefaults(
+withDefaults(
     defineProps<{
         links: NavLink[];
         siteName?: string;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue';
 import { Cropper } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
-import images from '@/routes/sites/images';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -9,7 +9,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { ref, watch } from 'vue';
+import images from '@/routes/sites/images';
 
 const props = defineProps<{
     open: boolean;

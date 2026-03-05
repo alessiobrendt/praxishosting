@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch, provide, nextTick } from 'vue';
-import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
-import { normalizeLayoutTree } from '@/lib/layout-tree';
-import type { LayoutComponentEntry, LayoutComponentType } from '@/types/layout-components';
-import LayoutBlock from '@/templates/praxisemerald/LayoutBlock.vue';
 import draggable from 'vuedraggable';
+import { normalizeLayoutTree } from '@/lib/layout-tree';
+import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
+import LayoutBlock from '@/templates/praxisemerald/LayoutBlock.vue';
+import type { LayoutComponentEntry, LayoutComponentType } from '@/types/layout-components';
 
 const props = withDefaults(
     defineProps<{

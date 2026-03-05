@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import RevenueKpiWidget from '@/components/admin/dashboard/widgets/RevenueKpiWidget.vue';
+import ActionItemsWidget from '@/components/admin/dashboard/widgets/ActionItemsWidget.vue';
 import CountWidget from '@/components/admin/dashboard/widgets/CountWidget.vue';
+import GenericCardWidget from '@/components/admin/dashboard/widgets/GenericCardWidget.vue';
+import GenericDataWidget from '@/components/admin/dashboard/widgets/GenericDataWidget.vue';
+import GenericListWidget from '@/components/admin/dashboard/widgets/GenericListWidget.vue';
+import GlobalSearchWidget from '@/components/admin/dashboard/widgets/GlobalSearchWidget.vue';
+import LastWebhookWidget from '@/components/admin/dashboard/widgets/LastWebhookWidget.vue';
+import RecentItemsWidget from '@/components/admin/dashboard/widgets/RecentItemsWidget.vue';
+import RevenueKpiWidget from '@/components/admin/dashboard/widgets/RevenueKpiWidget.vue';
+import SimpleChartWidget from '@/components/admin/dashboard/widgets/SimpleChartWidget.vue';
 import SitesStatsWidget from '@/components/admin/dashboard/widgets/SitesStatsWidget.vue';
 import UnpaidOverdueWidget from '@/components/admin/dashboard/widgets/UnpaidOverdueWidget.vue';
-import LastWebhookWidget from '@/components/admin/dashboard/widgets/LastWebhookWidget.vue';
-import ActionItemsWidget from '@/components/admin/dashboard/widgets/ActionItemsWidget.vue';
-import GlobalSearchWidget from '@/components/admin/dashboard/widgets/GlobalSearchWidget.vue';
-import RecentItemsWidget from '@/components/admin/dashboard/widgets/RecentItemsWidget.vue';
-import GenericListWidget from '@/components/admin/dashboard/widgets/GenericListWidget.vue';
-import GenericDataWidget from '@/components/admin/dashboard/widgets/GenericDataWidget.vue';
-import GenericCardWidget from '@/components/admin/dashboard/widgets/GenericCardWidget.vue';
-import SimpleChartWidget from '@/components/admin/dashboard/widgets/SimpleChartWidget.vue';
 import type { WidgetRegistryItem } from '@/types/admin/dashboard';
 
 const props = defineProps<{

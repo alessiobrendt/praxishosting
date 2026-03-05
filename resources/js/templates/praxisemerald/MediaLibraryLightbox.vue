@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { inject, onMounted, onUnmounted } from 'vue';
 import { Check } from 'lucide-vue-next';
+import { inject, onMounted, onUnmounted } from 'vue';
 
 const props = withDefaults(
     defineProps<{

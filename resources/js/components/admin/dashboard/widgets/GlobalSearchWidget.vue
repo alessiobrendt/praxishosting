@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import AdminSearch from '@/components/AdminSearch.vue';
+import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 </script>
 
 <template>

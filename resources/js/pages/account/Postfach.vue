@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
+import { Inbox } from 'lucide-vue-next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { Inbox } from 'lucide-vue-next';
 
 type EmailListItem = {
     id: number;

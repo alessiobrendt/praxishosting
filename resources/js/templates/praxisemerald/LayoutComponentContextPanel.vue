@@ -1,25 +1,24 @@
 <script setup lang="ts">
-import images from '@/routes/sites/images';
+import { ImagePlus, Plus, Trash2, Upload } from 'lucide-vue-next';
+import { inject, ref, computed } from 'vue';
+import LinkPicker from '@/components/LinkPicker.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import RichTextEditor from '@/components/ui/RichTextEditor.vue';
 import { Select } from '@/components/ui/select';
-import type { LayoutComponentEntry } from '@/types/layout-components';
-import { getEditorForType, getMetaForType } from '@/templates/praxisemerald/page_components/loader';
-import type { PageComponentField } from '@/templates/praxisemerald/page_components/loader';
-import { inject, ref, computed } from 'vue';
-import { ImagePlus, Plus, Trash2, Upload } from 'lucide-vue-next';
-import AnimationPicker from '@/templates/shared/components/AnimationPicker.vue';
-import IconPicker from '@/templates/shared/components/IconPicker.vue';
-import LinkPicker from '@/components/LinkPicker.vue';
-import { usePageAnchors } from '@/composables/usePageAnchors';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { usePageAnchors } from '@/composables/usePageAnchors';
 import {
     hasResponsiveValues as hasResponsiveValuesFromLib,
     getEffectiveDataAtBreakpoint,
     type ResponsiveBreakpoint,
 } from '@/lib/responsive-styles';
+import images from '@/routes/sites/images';
+import { getEditorForType, getMetaForType } from '@/templates/praxisemerald/page_components/loader';
+import AnimationPicker from '@/templates/shared/components/AnimationPicker.vue';
+import IconPicker from '@/templates/shared/components/IconPicker.vue';
+import type { LayoutComponentEntry } from '@/types/layout-components';
 
 const openMediaLibrary = inject<((callback: (url: string) => void) => void) | null>('openMediaLibrary', null);
 const designer = inject<{
@@ -168,7 +167,7 @@ function getPaddingSelectValue(entryId: string, paddingValue: string | undefined
     return paddingValue;
 }
 
-function showPaddingCustomInput(entryId: string, paddingValue: string | undefined, side: 'left' | 'right'): boolean {
+function _showPaddingCustomInput(entryId: string, paddingValue: string | undefined, side: 'left' | 'right'): boolean {
     const isCustom = side === 'left' ? (customPaddingLeft.value?.[entryId] ?? false) : (customPaddingRight.value?.[entryId] ?? false);
     // If custom flag is set, always show input (even if value is empty)
     if (isCustom) return true;
@@ -422,7 +421,7 @@ function removeCtaLink(i: number) {
 /** Open media library to set image.src (Hero / Bild-URL). Debug-logged. */
 function openMediaLibraryForImageSrc(): void {
     const entryId = props.entry?.id != null ? String(props.entry.id) : '';
-    const hasNested = !!designer?.updateBlockFieldNested;
+    const _hasNested = !!designer?.updateBlockFieldNested;
     openMediaLibrary?.((url) => {
         if (designer?.updateBlockFieldNested && entryId) {
             designer.updateBlockFieldNested(entryId, 'image.src', url);

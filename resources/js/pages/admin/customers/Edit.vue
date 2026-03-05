@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
-import InputError from '@/components/InputError.vue';
-import { index as customersIndex } from '@/routes/admin/customers';
+import { Heading, Text } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
+import { index as customersIndex } from '@/routes/admin/customers';
 import type { BreadcrumbItem } from '@/types';
 
 type Brand = { id: number; key: string; name: string };

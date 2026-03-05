@@ -1,33 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import InputError from '@/components/InputError.vue';
-import { Avatar } from '@/components/ui/avatar';
-import TicketReplyEditor from '@/components/TicketReplyEditor.vue';
-import { sanitizeHtml, isHtml } from '@/lib/sanitize';
-import { dashboard } from '@/routes';
-import adminCustomers from '@/routes/admin/customers';
-import adminSites from '@/routes/admin/sites';
-import adminTickets from '@/routes/admin/tickets';
-import type { BreadcrumbItem } from '@/types';
 import {
     ArrowLeft,
     Info,
@@ -44,6 +16,33 @@ import {
     Maximize2,
     Minimize2,
 } from 'lucide-vue-next';
+import { ref, computed, onMounted, nextTick } from 'vue';
+import InputError from '@/components/InputError.vue';
+import TicketReplyEditor from '@/components/TicketReplyEditor.vue';
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Text } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { sanitizeHtml, isHtml } from '@/lib/sanitize';
+import { dashboard } from '@/routes';
+import adminCustomers from '@/routes/admin/customers';
+import adminSites from '@/routes/admin/sites';
+import adminTickets from '@/routes/admin/tickets';
+import type { BreadcrumbItem } from '@/types';
 
 type UserType = { id: number; name: string; email?: string; is_admin?: boolean; avatar?: string };
 type Site = { uuid: string; name: string; slug: string };
@@ -507,7 +506,7 @@ onMounted(() => {
                     <!-- Timeline -->
                     <div ref="ticketMessagesRef" class="ticket_messages relative space-y-6">
                     <div
-                        v-for="(item, idx) in timeline"
+                        v-for="(item, _idx) in timeline"
                         :key="item.type === 'message' ? `msg-${(item.data as Message).id}` : (item.data as ActivityLog).id"
                         class="ticket_message_row flex gap-4"
                     >

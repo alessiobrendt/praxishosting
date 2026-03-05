@@ -1,26 +1,26 @@
 <script setup lang="ts">
 import { router, Head, Link, usePage } from '@inertiajs/vue3';
+import { Upload, ChevronDown, ArrowLeft, Sparkles } from 'lucide-vue-next';
+import { ref, computed, watch, onMounted } from 'vue';
+import DynamicFormField from '@/components/DynamicFormField.vue';
 import InputError from '@/components/InputError.vue';
-import AdminLayout from '@/layouts/AdminLayout.vue';
+import JsonViewer from '@/components/JsonViewer.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading } from '@/components/ui/typography';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import DynamicFormField from '@/components/DynamicFormField.vue';
-import JsonViewer from '@/components/JsonViewer.vue';
-import templates from '@/routes/admin/templates';
+import { Textarea } from '@/components/ui/textarea';
+import { Heading } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
+import templates from '@/routes/admin/templates';
 import type { BreadcrumbItem } from '@/types';
-import { ref, computed, watch, onMounted } from 'vue';
-import { Upload, ChevronDown, ArrowLeft, Sparkles } from 'lucide-vue-next';
 
 type TemplatePage = {
     id: number;
@@ -42,7 +42,7 @@ type Props = {
 };
 
 const props = defineProps<Props>();
-const page = usePage();
+const inertiaPage = usePage();
 
 // Dynamisches data-Objekt, das sich aus der JSON erweitert
 const pageData = ref<Record<string, any>>({});
@@ -83,7 +83,7 @@ watch(() => props.page.data, () => {
     initializePageData();
 }, { immediate: true });
 
-const errors = computed(() => (page.props.errors as Record<string, string>) ?? {});
+const errors = computed(() => (inertiaPage.props.errors as Record<string, string>) ?? {});
 const processing = ref(false);
 
 const jsonImport = ref('');

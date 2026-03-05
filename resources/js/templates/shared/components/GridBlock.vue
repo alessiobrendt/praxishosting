@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
-import type { GridComponentData } from '@/types/layout-components';
 import { inject } from 'vue';
 import {
     generateResponsiveCSS,
@@ -8,6 +7,7 @@ import {
     hasResponsiveValues,
     getEffectiveDataAtBreakpoint,
 } from '@/lib/responsive-styles';
+import type { GridComponentData } from '@/types/layout-components';
 
 const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
 

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import WorkflowNode from './WorkflowNode.vue';
 import type { WorkflowNode as WorkflowNodeType, WorkflowEdge } from '@/types/workflow';
 import type { NodeTypeDef } from '@/types/workflow';
+import WorkflowNode from './WorkflowNode.vue';
 
-const NODE_WIDTH = 260;
+const _NODE_WIDTH = 260;
 const PORT_OFFSET_X_IN = 19;
 const PORT_OFFSET_X_OUT = 246;
 const PORT_OFFSET_Y_IN = 147;

@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { useMediaQuery } from '@vueuse/core';
+import { LogOut, Menu, Wallet, FileText, Mail, Gift, Settings, PiggyBank } from 'lucide-vue-next';
+import { computed, inject } from 'vue';
+import type { Ref } from 'vue';
+import { Avatar } from '@/components/ui/avatar';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
+import { cn } from '@/lib/utils';
 import { logout } from '@/routes';
 import { index as billingIndex } from '@/routes/billing';
-import { create as supportCreate } from '@/routes/support';
 import profile from '@/routes/profile';
-import { cn } from '@/lib/utils';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { Avatar } from '@/components/ui/avatar';
-import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
-import { LogOut, Menu, Wallet, FileText, Mail, Gift, Settings, PiggyBank } from 'lucide-vue-next';
-import type { Ref } from 'vue';
+import { create as supportCreate } from '@/routes/support';
 import type { BreadcrumbItem } from '@/types';
 
 interface Props {
@@ -23,7 +23,7 @@ interface Props {
     };
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 });
 
@@ -75,7 +75,7 @@ const headerClasses = computed(() =>
         <div class="flex items-center gap-2">
             <!-- User Menu: Profil, Name, Guthaben (wie Referenz) -->
             <Dropdown v-if="user" align="right">
-                <template #trigger="{ isOpen }">
+                <template #trigger="{ isOpen: _isOpen }">
                     <button
                         class="flex items-center gap-2 rounded-lg p-1.5 pr-2 transition-modern hover:bg-gray-100 dark:hover:bg-gray-800"
                     >

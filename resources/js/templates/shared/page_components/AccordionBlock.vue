@@ -15,7 +15,7 @@ export const Editor = AccordionBlockEditor as Component;
 </script>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref } from 'vue'; // eslint-disable-line import/order -- vue before ./editors in other block
 
 const props = defineProps<{ data: Record<string, unknown> }>();
 

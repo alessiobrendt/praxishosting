@@ -21,8 +21,8 @@ export const Editor = ContactFormBlockEditor as Component;
 </script>
 
 <script setup lang="ts">
-import { inject, computed } from 'vue';
-import ContactFormModule from '@/templates/shared/page_components/modules/ContactFormModule.vue';
+import ContactFormModule from '@/templates/shared/page_components/modules/ContactFormModule.vue'; // eslint-disable-line import/order
+import { inject, computed } from 'vue'; // eslint-disable-line import/order
 
 const props = defineProps<{ data: Record<string, unknown>; designMode?: boolean }>();
 

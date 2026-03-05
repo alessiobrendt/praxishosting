@@ -1,29 +1,5 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { watch, computed } from 'vue';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { notify } from '@/composables/useNotify';
-import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-    CardContent,
-} from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import {
-    Table,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableHead,
-    TableCell,
-} from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { dashboard } from '@/routes';
-import billing from '@/routes/billing';
-import type { BreadcrumbItem } from '@/types';
 import {
     ExternalLink,
     Sparkles,
@@ -38,8 +14,32 @@ import {
     Headset,
     Receipt,
 } from 'lucide-vue-next';
+import { watch, computed } from 'vue';
 import { ref } from 'vue';
 import PaymentMethodLogo from '@/components/PaymentMethodLogo.vue';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardContent,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+    Table,
+    TableHeader,
+    TableBody,
+    TableRow,
+    TableHead,
+    TableCell,
+} from '@/components/ui/table';
+import { Heading, Text } from '@/components/ui/typography';
+import { notify } from '@/composables/useNotify';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
+import billing from '@/routes/billing';
+import type { BreadcrumbItem } from '@/types';
 
 const QUICK_AMOUNTS = [
     { value: 5 },

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { cn } from '@/lib/utils';
 import { Text } from '@/components/ui/typography';
+import { cn } from '@/lib/utils';
 
 interface Props {
     message?: string;

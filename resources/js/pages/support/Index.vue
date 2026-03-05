@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Pagination } from '@/components/ui/pagination';
-import { dashboard } from '@/routes';
-import { index as supportIndex, create as supportCreate, show as supportShow } from '@/routes/support';
-import type { BreadcrumbItem } from '@/types';
 import { Plus, MessageCircle } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Pagination } from '@/components/ui/pagination';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Heading, Text } from '@/components/ui/typography';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
+import { index as _supportIndex, create as supportCreate, show as supportShow } from '@/routes/support';
+import type { BreadcrumbItem } from '@/types';
 
 type Site = { id: number; name: string; slug: string } | null;
 type TicketCategory = { id: number; name: string; slug: string };
@@ -30,7 +30,7 @@ type Props = {
     tickets: { data: Ticket[]; links: { url: string | null; label: string; active: boolean }[] };
 };
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Start', href: dashboard().url },

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Button } from '@/components/ui/button';
-import { dashboard } from '@/routes';
-import hostingServers from '@/routes/admin/hosting-servers/index';
-import type { BreadcrumbItem } from '@/types';
-import PageHeader from './components/PageHeader.vue';
-import HostingServersTable from './components/HostingServersTable.vue';
 import { Plus } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { dashboard } from '@/routes';
+import hostingServersRoutes from '@/routes/admin/hosting-servers/index';
+import type { BreadcrumbItem } from '@/types';
+import HostingServersTable from './components/HostingServersTable.vue';
+import PageHeader from './components/PageHeader.vue';
 
 type HostingServer = {
     id: number;
@@ -29,7 +29,7 @@ const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
-    { title: 'Hosting-Server', href: hostingServers.index.url() },
+    { title: 'Hosting-Server', href: hostingServersRoutes.index.url() },
 ];
 </script>
 
@@ -43,7 +43,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                 description="Plesk- und Pterodactyl-Server (nicht markenbezogen)"
             >
                 <template #action>
-                    <Link :href="hostingServers.create.url()">
+                    <Link :href="hostingServersRoutes.create.url()">
                         <Button>
                             <Plus class="mr-2 h-4 w-4" />
                             Neuer Server

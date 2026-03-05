@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { reactive } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { MessageCircle } from 'lucide-vue-next';
+import { reactive } from 'vue';
 import { Badge } from '@/components/ui/badge';
-import { Select } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Pagination } from '@/components/ui/pagination';
+import { Select } from '@/components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Heading, Text } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import adminTickets from '@/routes/admin/tickets';
 import type { BreadcrumbItem } from '@/types';
-import { MessageCircle } from 'lucide-vue-next';
 
 type User = { id: number; name: string; email?: string };
 type Site = { id: number; name: string; slug: string } | null;
@@ -38,7 +38,7 @@ type Props = {
     admins: User[];
 };
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },

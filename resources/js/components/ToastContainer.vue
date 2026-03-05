@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { CheckCircle2, AlertCircle, Info, X } from 'lucide-vue-next';
+import { AnimatePresence, motion } from 'motion-v';
 import { useNotify } from '@/composables/useNotify';
 import type { Toast, ToastType } from '@/composables/useNotify';
-import { AnimatePresence, motion } from 'motion-v';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-vue-next';
 
 const { toasts, removeToast } = useNotify();
 

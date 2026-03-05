@@ -1,21 +1,14 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { ref, computed, onMounted, watch } from 'vue';
 import { GridLayout, GridItem } from 'vue-grid-layout-v3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Heading, Text } from '@/components/ui/typography';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import DashboardWidgetSlot from '@/components/admin/dashboard/DashboardWidgetSlot.vue';
 import WidgetGalleryModal from '@/components/admin/dashboard/WidgetGalleryModal.vue';
+import { Button } from '@/components/ui/button';
+import { Heading, Text } from '@/components/ui/typography';
 import { getAdminRecent } from '@/composables/useAdminRecent';
 import type { AdminRecentItem } from '@/composables/useAdminRecent';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import adminDashboard from '@/routes/admin/dashboard';
 import type { BreadcrumbItem } from '@/types';
@@ -113,7 +106,7 @@ function onLayoutUpdated(newLayout: LayoutItem[]) {
     layoutLocal.value = newLayout;
 }
 
-function removeWidget(key: string) {
+function _removeWidget(key: string) {
     if (!isEditMode.value) return;
     layoutLocal.value = layoutLocal.value.filter((it) => it.i !== key);
 }

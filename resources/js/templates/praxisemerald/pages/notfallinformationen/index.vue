@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Ambulance, Phone, Clock } from 'lucide-vue-next';
+import { Ambulance, Clock, Phone } from 'lucide-vue-next';
 import { motion } from 'motion-v';
 import Card from '@/templates/praxisemerald/components/ui/Card.vue';
 import HeaderAnimation from '@/templates/praxisemerald/components/ui/HeaderAnimation.vue';

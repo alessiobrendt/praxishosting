@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { X, Pencil, Palette, Settings } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import type { SitePageData } from '@/types/site-page-data';
 import type { DesignerStore } from '@/pages/PageDesigner/stores/useDesignerStore';
-import { X, Pencil, Palette, Settings } from 'lucide-vue-next';
+import type { SitePageData } from '@/types/site-page-data';
 
 defineProps<{ designer: DesignerStore }>();
 </script>

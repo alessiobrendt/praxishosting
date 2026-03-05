@@ -1,23 +1,23 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { ShieldAlert, RefreshCw } from 'lucide-vue-next';
 import { provide, onMounted, onUnmounted } from 'vue';
+import { Button } from '@/components/ui/button';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import AddPageModal from '@/pages/PageDesigner/AddPageModal.vue';
+import BlockToolbar from '@/pages/PageDesigner/components/BlockToolbar.vue';
+import DesignerCanvas from '@/pages/PageDesigner/components/DesignerCanvas.vue';
+import DesignerOnboarding from '@/pages/PageDesigner/components/DesignerOnboarding.vue';
+import DesignerSidebar from '@/pages/PageDesigner/components/DesignerSidebar.vue';
+import DesignerToolbar from '@/pages/PageDesigner/components/DesignerToolbar.vue';
+import { useAiBalance } from '@/pages/PageDesigner/composables/useAiBalance';
+import { useDesignerAutosave } from '@/pages/PageDesigner/composables/useDesignerAutosave';
 import {
     useDesignerStore,
     type DesignerProps,
 } from '@/pages/PageDesigner/stores/useDesignerStore';
-import { useAiBalance } from '@/pages/PageDesigner/composables/useAiBalance';
-import { useDesignerAutosave } from '@/pages/PageDesigner/composables/useDesignerAutosave';
-import DesignerToolbar from '@/pages/PageDesigner/components/DesignerToolbar.vue';
-import DesignerSidebar from '@/pages/PageDesigner/components/DesignerSidebar.vue';
-import DesignerCanvas from '@/pages/PageDesigner/components/DesignerCanvas.vue';
-import BlockToolbar from '@/pages/PageDesigner/components/BlockToolbar.vue';
-import DesignerOnboarding from '@/pages/PageDesigner/components/DesignerOnboarding.vue';
 import ComponentGalleryModal from '@/templates/praxisemerald/ComponentGalleryModal.vue';
 import MediaLibraryModal from '@/templates/praxisemerald/MediaLibraryModal.vue';
-import AddPageModal from '@/pages/PageDesigner/AddPageModal.vue';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
-import { ShieldAlert, RefreshCw } from 'lucide-vue-next';
 
 const props = defineProps<DesignerProps>();
 const designer = useDesignerStore(props);

@@ -95,8 +95,7 @@ watch(canEdit, (active) => {
 </script>
 
 <template>
-    <component
-        :is="tag"
+    <div
         v-if="!canEdit && html"
         :class="[props.class, 'prose prose-sm max-w-none', designMode && 'cursor-text rounded px-0.5 py-0 hover:bg-primary/10']"
         v-html="modelValue || placeholder || '\u200B'"

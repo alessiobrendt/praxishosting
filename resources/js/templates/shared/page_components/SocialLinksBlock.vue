@@ -44,7 +44,7 @@ const links = () => [
     { platform: props.data.platform4, url: props.data.url4 },
 ].filter((l) => l.url);
 
-const iconComponent = (): LucideIcon => Share2;
+const _iconComponent = (): LucideIcon => Share2;
 </script>
 
 <template>

@@ -1,5 +1,5 @@
-import type { Component } from 'vue';
 import type { InertiaLinkProps } from '@inertiajs/vue3';
+import type { Component } from 'vue';
 
 export type BreadcrumbItem = {
     title: string;

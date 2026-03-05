@@ -60,8 +60,7 @@ const highlightJson = (text: string): string => {
     }
     
     const tokens: Token[] = [];
-    let i = 0;
-    
+
     // Step 1: Find strings first (they have highest priority)
     const stringRegex = /("(?:[^"\\]|\\.)*")/g;
     let match;
@@ -278,7 +277,7 @@ const updateHighlight = () => {
         // The textarea has pl-14 (56px) total, but highlight is at left-12 (48px)
         // So highlight needs to be: textarea width - 48px (left offset)
         const textareaRect = textareaRef.value.getBoundingClientRect();
-        const containerRect = highlightRef.value.parentElement?.getBoundingClientRect();
+        highlightRef.value.parentElement?.getBoundingClientRect();
         const highlightWidth = textareaRect.width - 48; // Subtract left-12 offset
         
         highlightRef.value.style.width = `${highlightWidth}px`;

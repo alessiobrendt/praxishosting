@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { GripVertical, MoreVertical } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
-import type { LayoutComponentEntry } from '@/types/layout-components';
 import draggable from 'vuedraggable';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,7 +10,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { GripVertical, MoreVertical } from 'lucide-vue-next';
+import type { LayoutComponentEntry } from '@/types/layout-components';
 
 const props = withDefaults(
     defineProps<{

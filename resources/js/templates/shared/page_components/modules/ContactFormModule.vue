@@ -25,14 +25,14 @@ const fieldsConfig = computed(() => {
     return Array.isArray(f) ? f : [];
 });
 
-const defaultFields = computed(() => {
+const _defaultFields = computed(() => {
     if (fieldsConfig.value.length > 0) {
         return fieldsConfig.value.map((f: { key: string }) => f.key);
     }
     return ['name', 'email', 'message'];
 });
 
-function getFieldLabel(key: string): string {
+function _getFieldLabel(key: string): string {
     const field = fieldsConfig.value.find((f: { key: string; label?: string }) => f.key === key);
     return (field as { label?: string } | undefined)?.label ?? key;
 }

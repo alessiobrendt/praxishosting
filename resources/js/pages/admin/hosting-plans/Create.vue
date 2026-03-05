@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
-import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Heading, Text } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { ref, computed, watch } from 'vue';
 
 type PanelTypeOption = { value: string; label: string };
 

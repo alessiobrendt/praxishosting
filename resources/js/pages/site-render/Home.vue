@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
-import HeroSection from '@/components/site/HeroSection.vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
+import type { Component } from 'vue';
 import AboutSection from '@/components/site/AboutSection.vue';
-import HoursSection from '@/components/site/HoursSection.vue';
 import CTASection from '@/components/site/CTASection.vue';
+import HeroSection from '@/components/site/HeroSection.vue';
+import HoursSection from '@/components/site/HoursSection.vue';
 import { getTemplateEntry } from '@/templates/template-registry';
 
 type Props = {
@@ -72,7 +73,7 @@ const layoutComponent = computed(() => {
     const e = templateEntry.value;
     if (!e) return null;
     if (typeof e.Layout === 'function') {
-        return defineAsyncComponent(e.Layout as () => Promise<{ default: import('vue').Component }>);
+        return defineAsyncComponent(e.Layout as () => Promise<{ default: Component }>);
     }
     return e.Layout;
 });

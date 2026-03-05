@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { dashboard, login, register } from '@/routes';
+import { ArrowRight, Sparkles, Globe, Zap } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
-import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Sparkles, Globe, Zap } from 'lucide-vue-next';
+import { dashboard, login, register } from '@/routes';
 
 withDefaults(
     defineProps<{

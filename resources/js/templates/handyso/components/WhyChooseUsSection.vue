@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { LayoutComponentEntry } from '@/types/layout-components';
-import WhyChooseUsSubheading from '@/templates/handyso/components/why-choose-us/WhyChooseUsSubheading.vue';
-import WhyChooseUsHeadline from '@/templates/handyso/components/why-choose-us/WhyChooseUsHeadline.vue';
 import WhyChooseUsBenefit from '@/templates/handyso/components/why-choose-us/WhyChooseUsBenefit.vue';
+import WhyChooseUsHeadline from '@/templates/handyso/components/why-choose-us/WhyChooseUsHeadline.vue';
+import WhyChooseUsSubheading from '@/templates/handyso/components/why-choose-us/WhyChooseUsSubheading.vue';
+import type { LayoutComponentEntry } from '@/types/layout-components';
 
 const props = withDefaults(
     defineProps<{

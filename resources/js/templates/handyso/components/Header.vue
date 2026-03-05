@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import MobileNav from '@/templates/handyso/components/MobileNav.vue';
+import { computed, inject } from 'vue';
 import type { Ref } from 'vue';
+import MobileNav from '@/templates/handyso/components/MobileNav.vue';
 
 interface NavLink {
     href: string;

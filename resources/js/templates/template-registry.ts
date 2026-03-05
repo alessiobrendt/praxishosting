@@ -1,20 +1,20 @@
 import type { Component } from 'vue';
 import {
+    LAYOUT_COMPONENT_REGISTRY as HANDYSO_REGISTRY,
+    getDefaultDataForType as handysoGetDefaultDataForType,
+    generateLayoutComponentId as handysoGenerateLayoutComponentId,
+    acceptsChildren as handysoAcceptsChildren,
+} from '@/templates/handyso/combined-registry';
+import { getLayoutComponent as handysoGetLayoutComponent } from '@/templates/handyso/component-map';
+import { getDefaultLayoutComponents } from '@/templates/handyso/component-registry';
+import HandysoLayoutComponentContextPanel from '@/templates/handyso/LayoutComponentContextPanel.vue';
+import {
     LAYOUT_COMPONENT_REGISTRY as PRAXISEMERALD_REGISTRY,
     getDefaultDataForType as praxisemeraldGetDefaultDataForType,
     generateLayoutComponentId as praxisemeraldGenerateLayoutComponentId,
     acceptsChildren as praxisemeraldAcceptsChildren,
 } from '@/templates/praxisemerald/combined-registry';
 import { getLayoutComponent as praxisemeraldGetLayoutComponent } from '@/templates/praxisemerald/component-map';
-import {
-    LAYOUT_COMPONENT_REGISTRY as HANDYSO_REGISTRY,
-    getDefaultDataForType as handysoGetDefaultDataForType,
-    generateLayoutComponentId as handysoGenerateLayoutComponentId,
-    acceptsChildren as handysoAcceptsChildren,
-} from '@/templates/handyso/combined-registry';
-import { getDefaultLayoutComponents } from '@/templates/handyso/component-registry';
-import { getLayoutComponent as handysoGetLayoutComponent } from '@/templates/handyso/component-map';
-import HandysoLayoutComponentContextPanel from '@/templates/handyso/LayoutComponentContextPanel.vue';
 
 export interface ComponentRegistryAdapter {
     LAYOUT_COMPONENT_REGISTRY: Array<{ type: string; label: string; placement: string; defaultData: Record<string, unknown> }>;

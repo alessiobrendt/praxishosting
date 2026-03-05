@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useEditor, EditorContent } from '@tiptap/vue-3';
-import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { watch, onBeforeUnmount, ref } from 'vue';
+import StarterKit from '@tiptap/starter-kit';
+import { useEditor, EditorContent } from '@tiptap/vue-3';
 import { Bold, Italic, Underline, Quote, Code, RemoveFormatting, LayoutTemplate } from 'lucide-vue-next';
+import { watch, onBeforeUnmount, ref } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export type TicketMessageTemplateItem = {

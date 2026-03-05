@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
-import { Button } from '@/components/ui/button';
+import { Eye, Edit, Server, Gamepad2, CheckCircle2, XCircle, Loader2, Wifi } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import hostingServers from '@/routes/admin/hosting-servers/index';
-import { Eye, Edit, Server, Gamepad2, CheckCircle2, XCircle, Loader2, Wifi } from 'lucide-vue-next';
 
 export type HostingServerCardData = {
     id: number;

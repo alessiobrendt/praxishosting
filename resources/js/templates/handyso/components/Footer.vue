@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { Mail, MapPin, Phone } from 'lucide-vue-next';
 import { computed } from 'vue';
-import { Clock, Mail, Phone, MapPin } from 'lucide-vue-next';
 
 const props = withDefaults(
     defineProps<{

@@ -1,28 +1,24 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { inject } from 'vue';
-import { Button } from '@/components/ui/button';
-import { TooltipContent, TooltipRoot, TooltipTrigger } from '@/components/ui/tooltip';
-import { show as sitesShow } from '@/routes/sites';
-import billing from '@/routes/billing';
-import templates from '@/routes/admin/templates';
-import type { DesignerStore } from '@/pages/PageDesigner/stores/useDesignerStore';
 import { Sparkles } from 'lucide-vue-next';
 import {
     ArrowLeft,
     Save,
     Undo2,
     Redo2,
-    Monitor,
-    Tablet,
-    Smartphone,
-    Maximize2,
     Minimize2,
     Eye,
     GraduationCap,
     Zap,
     BookOpen,
 } from 'lucide-vue-next';
+import { inject } from 'vue';
+import { Button } from '@/components/ui/button';
+import { TooltipContent, TooltipRoot, TooltipTrigger } from '@/components/ui/tooltip';
+import type { DesignerStore } from '@/pages/PageDesigner/stores/useDesignerStore';
+import templates from '@/routes/admin/templates';
+import billing from '@/routes/billing';
+import { show as sitesShow } from '@/routes/sites';
 
 defineProps<{ designer: DesignerStore }>();
 

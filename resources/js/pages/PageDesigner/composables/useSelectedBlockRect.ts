@@ -3,8 +3,8 @@
  * Updates on selectedModuleId change, scroll, and resize.
  */
 
-import { ref, watch, nextTick, type Ref } from 'vue';
 import { useEventListener } from '@vueuse/core';
+import { ref, watch, nextTick, type Ref } from 'vue';
 
 const TOOLBAR_OFFSET = 10;
 

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, provide, onMounted, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import Sidebar from './Sidebar.vue';
-import Header from './Header.vue';
-import type { BreadcrumbItem, NavItem } from '@/types';
+import { ref, computed, provide, onMounted, watch } from 'vue';
 import type { Component } from 'vue';
+import type { BreadcrumbItem, NavItem } from '@/types';
+import Header from './Header.vue';
+import Sidebar from './Sidebar.vue';
 
 const SIDEBAR_COLLAPSED_KEY = 'app-sidebar-collapsed';
 

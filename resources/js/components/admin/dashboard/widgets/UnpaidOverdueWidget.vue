@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
+import { Button } from '@/components/ui/button';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Text } from '@/components/ui/typography';
-import { Button } from '@/components/ui/button';
-import { Link } from '@inertiajs/vue3';
 
 defineProps<{
     data?: { unpaidSum?: number; overdueCount?: number } | null;

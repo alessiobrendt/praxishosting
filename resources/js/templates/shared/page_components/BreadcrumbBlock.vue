@@ -12,8 +12,8 @@ export const meta = {
 </script>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import { ChevronRight } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 const props = withDefaults(
     defineProps<{ data: Record<string, unknown>; designMode?: boolean }>(),

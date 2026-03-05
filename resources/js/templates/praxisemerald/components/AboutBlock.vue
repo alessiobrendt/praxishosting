@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { HeartPulse, ShieldCheck, Stethoscope, Syringe, Clock } from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { AboutComponentData } from '@/types/layout-components';
-import { HeartPulse, ShieldCheck, Stethoscope, Syringe, Clock } from 'lucide-vue-next';
 
 const props = defineProps<{
     data: Partial<AboutComponentData>;

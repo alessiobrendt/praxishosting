@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import DashboardIcon from '@/components/icons/DashboardIcon.vue';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next';
+import { BookOpen, Folder, Menu, Search } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
+import DashboardIcon from '@/components/icons/DashboardIcon.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -112,7 +112,7 @@ const rightNavItems: NavItem[] = [
                                         class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
                                         :class="
                                             whenCurrentUrl(
-                                                item.href,
+                                                item.href ?? '',
                                                 activeItemStyles,
                                             )
                                         "
@@ -129,7 +129,7 @@ const rightNavItems: NavItem[] = [
                                     <a
                                         v-for="item in rightNavItems"
                                         :key="item.title"
-                                        :href="toUrl(item.href)"
+                                        :href="toUrl(item.href ?? '')"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         class="flex items-center space-x-2 text-sm font-medium"
@@ -166,7 +166,7 @@ const rightNavItems: NavItem[] = [
                                     :class="[
                                         navigationMenuTriggerStyle(),
                                         whenCurrentUrl(
-                                            item.href,
+                                            item.href ?? '',
                                             activeItemStyles,
                                         ),
                                         'h-9 cursor-pointer px-3',
@@ -181,7 +181,7 @@ const rightNavItems: NavItem[] = [
                                     {{ item.title }}
                                 </Link>
                                 <div
-                                    v-if="isCurrentUrl(item.href)"
+                                    v-if="isCurrentUrl(item.href ?? '')"
                                     class="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"
                                 ></div>
                             </NavigationMenuItem>
@@ -216,7 +216,7 @@ const rightNavItems: NavItem[] = [
                                                 class="group h-9 w-9 cursor-pointer"
                                             >
                                                 <a
-                                                    :href="toUrl(item.href)"
+                                                    :href="toUrl(item.href ?? '')"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                 >

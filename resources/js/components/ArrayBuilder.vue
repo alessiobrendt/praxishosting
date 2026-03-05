@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import ColorPicker from '@/components/ColorPicker.vue';
 import { Plus, Trash2, HelpCircle, Edit } from 'lucide-vue-next';
-import Tooltip from '@/components/ui/tooltip/Tooltip.vue';
+import { ref, computed, watch } from 'vue';
+import ColorPicker from '@/components/ColorPicker.vue';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -14,6 +10,10 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import Tooltip from '@/components/ui/tooltip/Tooltip.vue';
 
 interface Props {
     id: string;

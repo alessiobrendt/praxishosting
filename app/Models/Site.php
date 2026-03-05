@@ -54,19 +54,33 @@ class Site extends Model
 
     /**
      * Resolve custom_page_data: when use_normalized_pages, build from site_pages/site_blocks.
+     * Uses a re-entry guard to avoid stack overflow when the getter is re-entered (e.g. via isDirty).
+     * When the attribute was set in memory (array) and differs from original, return it so updates save the intended payload.
      */
     protected function customPageData(): Attribute
     {
         return Attribute::make(
             get: function (mixed $value): ?array {
-                if ($this->use_normalized_pages ?? false) {
-                    return app(SitePageDataResolver::class)->buildFromRelational($this);
+                static $resolving = false;
+                if ($resolving) {
+                    return $value === null ? null : (is_string($value) ? json_decode($value, true) : $value);
                 }
-                if ($value === null) {
-                    return null;
+                if (array_key_exists('custom_page_data', $this->attributes) && is_array($this->attributes['custom_page_data'])) {
+                    $orig = $this->original['custom_page_data'] ?? null;
+                    if ($orig !== $this->attributes['custom_page_data']) {
+                        return $this->attributes['custom_page_data'];
+                    }
                 }
+                $resolving = true;
+                try {
+                    if ($this->use_normalized_pages ?? false) {
+                        return app(SitePageDataResolver::class)->buildFromRelational($this);
+                    }
 
-                return is_string($value) ? json_decode($value, true) : $value;
+                    return $value === null ? null : (is_string($value) ? json_decode($value, true) : $value);
+                } finally {
+                    $resolving = false;
+                }
             },
         );
     }
@@ -244,7 +258,7 @@ class Site extends Model
             'created_by' => $userId,
         ]);
 
-        $this->update(['draft_version_id' => $version->id]);
+        $this->updateQuietly(['draft_version_id' => $version->id]);
 
         return $version;
     }

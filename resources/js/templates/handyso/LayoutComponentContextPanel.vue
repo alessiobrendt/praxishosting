@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import images from '@/routes/sites/images';
+import { ImagePlus, Plus, Trash2, Upload } from 'lucide-vue-next';
+import { inject, ref, computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import type { LayoutComponentEntry } from '@/types/layout-components';
-import { getEditorForType, getMetaForType } from '@/templates/shared/page_components/loader';
-import { inject, ref, computed } from 'vue';
-import { ImagePlus, Plus, Trash2, Upload } from 'lucide-vue-next';
-import AnimationPicker from '@/templates/shared/components/AnimationPicker.vue';
-import IconPicker from '@/templates/shared/components/IconPicker.vue';
-import { isSlotContainer } from '@/templates/handyso/component-registry';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
     hasResponsiveValues as hasResponsiveValuesFromLib,
     getEffectiveDataAtBreakpoint,
     type ResponsiveBreakpoint,
 } from '@/lib/responsive-styles';
+import images from '@/routes/sites/images';
+import { isSlotContainer } from '@/templates/handyso/component-registry';
+import AnimationPicker from '@/templates/shared/components/AnimationPicker.vue';
+import IconPicker from '@/templates/shared/components/IconPicker.vue';
+import { getEditorForType, getMetaForType } from '@/templates/shared/page_components/loader';
+import type { LayoutComponentEntry } from '@/types/layout-components';
 
 const openMediaLibrary = inject<((callback: (url: string) => void) => void) | null>('openMediaLibrary', null);
 
@@ -206,7 +206,7 @@ function getPaddingSelectValue(entryId: string, paddingValue: string | undefined
     return paddingValue;
 }
 
-function showPaddingCustomInput(entryId: string, paddingValue: string | undefined, side: 'left' | 'right'): boolean {
+function _showPaddingCustomInput(entryId: string, paddingValue: string | undefined, side: 'left' | 'right'): boolean {
     const isCustom = side === 'left' ? (customPaddingLeft.value?.[entryId] ?? false) : (customPaddingRight.value?.[entryId] ?? false);
     // If custom flag is set, always show input (even if value is empty)
     if (isCustom) return true;

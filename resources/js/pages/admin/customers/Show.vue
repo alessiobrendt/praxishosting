@@ -1,30 +1,5 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed, onMounted, ref } from 'vue';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { pushAdminRecent } from '@/composables/useAdminRecent';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Heading, Text } from '@/components/ui/typography';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import InputError from '@/components/InputError.vue';
-import { index as customersIndex } from '@/routes/admin/customers/index';
-import { impersonate } from '@/routes/admin';
-import { show as sitesShow } from '@/routes/sites';
-import { dashboard } from '@/routes';
-import type { BreadcrumbItem } from '@/types';
 import {
     ExternalLink,
     Pencil,
@@ -36,6 +11,31 @@ import {
     HardDrive,
     Server,
 } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
+import InputError from '@/components/InputError.vue';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Heading, Text } from '@/components/ui/typography';
+import { pushAdminRecent } from '@/composables/useAdminRecent';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { dashboard } from '@/routes';
+import { impersonate } from '@/routes/admin';
+import { index as customersIndex } from '@/routes/admin/customers/index';
+import { show as sitesShow } from '@/routes/sites';
+import type { BreadcrumbItem } from '@/types';
 
 type Site = {
     uuid: string;

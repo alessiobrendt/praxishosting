@@ -1,15 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Head, usePage } from '@inertiajs/vue3';
-import PinUnlockOverlay from '@/components/PinUnlockOverlay.vue';
-import { MainLayout } from '@/components/layout';
-import { useInactivityLock } from '@/composables/useInactivityLock';
-import { dashboard } from '@/routes';
-import { index as billingIndex } from '@/routes/billing';
-import { index as sitesIndex } from '@/routes/sites';
-import DashboardIcon from '@/components/icons/DashboardIcon.vue';
 import {
-    LayoutGrid,
     Globe,
     FileText,
     Package,
@@ -22,16 +13,24 @@ import {
     HelpCircle,
     Settings,
 } from 'lucide-vue-next';
-import { index as supportIndex } from '@/routes/support';
-import { create as sitesCreate } from '@/routes/sites';
+import { computed } from 'vue';
+import DashboardIcon from '@/components/icons/DashboardIcon.vue';
+import { MainLayout } from '@/components/layout';
+import PinUnlockOverlay from '@/components/PinUnlockOverlay.vue';
+import { useInactivityLock } from '@/composables/useInactivityLock';
+import { dashboard } from '@/routes';
+import { index as billingIndex } from '@/routes/billing';
 import modules from '@/routes/modules';
+import { index as sitesIndex } from '@/routes/sites';
+import { create as sitesCreate } from '@/routes/sites';
+import { index as supportIndex } from '@/routes/support';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 });
 

@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { Plus, Trash2 } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { LayoutComponentEntry } from '@/types/layout-components';
 import IconPicker from '@/templates/shared/components/IconPicker.vue';
-import { Plus, Trash2 } from 'lucide-vue-next';
+import type { LayoutComponentEntry } from '@/types/layout-components';
 
 const props = defineProps<{
     entry: LayoutComponentEntry;

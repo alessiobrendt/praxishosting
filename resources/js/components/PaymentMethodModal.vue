@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
+import { Wallet } from 'lucide-vue-next';
+import { ref, watch, computed } from 'vue';
+import PaymentMethodLogo from '@/components/PaymentMethodLogo.vue';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -9,9 +12,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Wallet } from 'lucide-vue-next';
-import PaymentMethodLogo from '@/components/PaymentMethodLogo.vue';
 
 export interface PeriodOption {
     months: number;

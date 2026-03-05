@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
-import Button from '@/templates/praxisemerald/components/ui/Button.vue';
 import { HeartPulse, ShieldCheck, Stethoscope, Syringe, Clock } from 'lucide-vue-next';
+import { computed } from 'vue';
+import Button from '@/templates/praxisemerald/components/ui/Button.vue';
+import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
 import type { SitePageData } from '@/types/site-page-data';
 
 const props = defineProps<{

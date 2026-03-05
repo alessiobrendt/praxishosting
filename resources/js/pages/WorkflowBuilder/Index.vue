@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { Plus, Download, Upload, Save, FolderOpen, Play, LayoutGrid, Trash2 } from 'lucide-vue-next';
 import { onMounted, onUnmounted } from 'vue';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { useWorkflowBuilder } from '@/composables/useWorkflowBuilder';
-import { dashboard } from '@/routes';
 import { Button } from '@/components/ui/button';
+import { useWorkflowBuilder } from '@/composables/useWorkflowBuilder';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
+import type { BreadcrumbItem } from '@/types';
+import NodeInspector from './NodeInspector.vue';
 import NodePalette from './NodePalette.vue';
 import WorkflowCanvas from './WorkflowCanvas.vue';
-import NodeInspector from './NodeInspector.vue';
-import type { BreadcrumbItem } from '@/types';
-import { Plus, Download, Upload, Save, FolderOpen, Play, LayoutGrid, Trash2 } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },

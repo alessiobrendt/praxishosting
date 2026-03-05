@@ -12,6 +12,7 @@ import {
     getBaseComponentRegistry,
     getDefaultDataForBaseType,
 } from '@/templates/shared/base-registry';
+import type { LayoutComponentType } from '@/types/layout-components';
 
 const baseRegistry = getBaseComponentRegistry();
 const pageRegistry = getPageComponentRegistry();
@@ -51,7 +52,7 @@ export function getDefaultDataForType(type: string): Record<string, unknown> {
     }
     const fromPage = getDefaultDataForTypeFromPageComponents(type);
     if (Object.keys(fromPage).length > 0) return fromPage;
-    return getStaticDefaultDataForType(type as import('@/types/layout-components').LayoutComponentType);
+    return getStaticDefaultDataForType(type as LayoutComponentType);
 }
 
 export { generateLayoutComponentId };

@@ -1,7 +1,7 @@
 import { ref } from 'vue';
+import { notify } from '@/composables/useNotify';
 import designRoutes from '@/routes/admin/templates/design';
 import designer from '@/routes/sites/designer';
-import { notify } from '@/composables/useNotify';
 
 export type DesignerSaveContext = {
     getFullCustomPageData: () => Record<string, unknown>;

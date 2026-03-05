@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import { Plus, Trash2 } from 'lucide-vue-next';
+import { computed, inject } from 'vue';
+import LinkPicker from '@/components/LinkPicker.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import LinkPicker from '@/components/LinkPicker.vue';
 import { usePageAnchors } from '@/composables/usePageAnchors';
 import type { LayoutComponentEntry } from '@/types/layout-components';
-import { Plus, Trash2 } from 'lucide-vue-next';
-import { computed, inject } from 'vue';
 
 const designer = inject<{
     getPageLabel: (slug: string) => string;

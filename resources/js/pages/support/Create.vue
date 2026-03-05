@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Home, MessageCircle } from 'lucide-vue-next';
+import { computed } from 'vue';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import InputError from '@/components/InputError.vue';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { index as supportIndex, store } from '@/routes/support';
 import type { BreadcrumbItem } from '@/types';
-import { Home, MessageCircle } from 'lucide-vue-next';
 
 type Site = { uuid: string; name: string; slug: string };
 type Category = { id: number; name: string; slug: string };

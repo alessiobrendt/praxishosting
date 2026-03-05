@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Form, Head, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import AuthenticatedSessionController from '@/actions/Laravel/Fortify/Http/Controllers/AuthenticatedSessionController';
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons.vue';
 import InputError from '@/components/InputError.vue';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -9,9 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Link as TypographyLink, Text } from '@/components/ui/typography';
 import AuthBase from '@/layouts/AuthLayout.vue';
-import AuthenticatedSessionController from '@/actions/Laravel/Fortify/Http/Controllers/AuthenticatedSessionController';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import SocialAuthButtons from '@/components/auth/SocialAuthButtons.vue';
 
 defineProps<{
     status?: string;

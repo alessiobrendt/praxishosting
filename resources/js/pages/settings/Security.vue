@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
+import { ShieldCheck, KeyRound } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
 import {
     Card,
     CardHeader,
@@ -14,11 +13,12 @@ import {
     CardDescription,
     CardContent,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Heading, Text } from '@/components/ui/typography';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { usePage } from '@inertiajs/vue3';
-import { ShieldCheck, KeyRound } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
 
 const page = usePage();

@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { Chart, registerables } from 'chart.js';
 import { ref, onMounted, watch } from 'vue';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 

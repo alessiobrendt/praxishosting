@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { Plus, Trash2 } from 'lucide-vue-next';
+import { inject } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { LayoutComponentEntry } from '@/types/layout-components';
-import { Plus, Trash2 } from 'lucide-vue-next';
-import { inject } from 'vue';
 
 const props = defineProps<{
     entry: LayoutComponentEntry;

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { LayoutComponentEntry } from '@/types/layout-components';
-import HowWeWorkSubheading from '@/templates/handyso/components/how-we-work/HowWeWorkSubheading.vue';
 import HowWeWorkHeadline from '@/templates/handyso/components/how-we-work/HowWeWorkHeadline.vue';
-import HowWeWorkText from '@/templates/handyso/components/how-we-work/HowWeWorkText.vue';
 import HowWeWorkStep from '@/templates/handyso/components/how-we-work/HowWeWorkStep.vue';
+import HowWeWorkSubheading from '@/templates/handyso/components/how-we-work/HowWeWorkSubheading.vue';
+import HowWeWorkText from '@/templates/handyso/components/how-we-work/HowWeWorkText.vue';
+import type { LayoutComponentEntry } from '@/types/layout-components';
 
 const props = withDefaults(
     defineProps<{

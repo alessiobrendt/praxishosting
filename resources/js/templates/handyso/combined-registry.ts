@@ -4,14 +4,14 @@ import {
     generateLayoutComponentId,
 } from '@/templates/handyso/component-registry';
 import {
-    getPageComponentRegistry,
-    getDefaultDataForTypeFromPageComponents,
-} from '@/templates/shared/page_components/loader';
-import {
     BASE_COMPONENT_TYPES,
     getBaseComponentRegistry,
     getDefaultDataForBaseType,
 } from '@/templates/shared/base-registry';
+import {
+    getPageComponentRegistry,
+    getDefaultDataForTypeFromPageComponents,
+} from '@/templates/shared/page_components/loader';
 
 const baseRegistry = getBaseComponentRegistry();
 const pageRegistry = getPageComponentRegistry();

@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
+import { ArrowLeft } from 'lucide-vue-next';
 import TemplatePageController from '@/actions/App/Http/Controllers/Admin/TemplatePageController';
-import AdminLayout from '@/layouts/AdminLayout.vue';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Heading } from '@/components/ui/typography';
-import InputError from '@/components/InputError.vue';
-import templates from '@/routes/admin/templates';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
+import templates from '@/routes/admin/templates';
 import type { BreadcrumbItem } from '@/types';
-import { ArrowLeft } from 'lucide-vue-next';
 
 type Template = {
     id: number;

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Heading, Text } from '@/components/ui/typography';
 import { router } from '@inertiajs/vue3';
-import { Clock, CheckCircle, FileText } from 'lucide-vue-next';
+import { CheckCircle, FileText } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Text } from '@/components/ui/typography';
 
 type User = {
     id: number;

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { LayoutComponentEntry } from '@/types/layout-components';
 import FeatureBannerText from '@/templates/handyso/components/feature/FeatureBannerText.vue';
 import FeatureCard from '@/templates/handyso/components/feature/FeatureCard.vue';
+import type { LayoutComponentEntry } from '@/types/layout-components';
 
 const props = withDefaults(
     defineProps<{

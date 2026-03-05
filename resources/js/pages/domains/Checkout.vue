@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { watch, ref, computed } from 'vue';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import InputError from '@/components/InputError.vue';
+import PaymentMethodLogo from '@/components/PaymentMethodLogo.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import InputError from '@/components/InputError.vue';
+import { Heading, Text } from '@/components/ui/typography';
 import { notify } from '@/composables/useNotify';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
-import PaymentMethodLogo from '@/components/PaymentMethodLogo.vue';
 
 type Contact = {
     firstname: string;

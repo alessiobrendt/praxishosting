@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Pagination } from '@/components/ui/pagination';
-import templates from '@/routes/admin/templates';
-import { dashboard } from '@/routes';
-import type { BreadcrumbItem } from '@/types';
 import { Plus, Eye, Edit } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Pagination } from '@/components/ui/pagination';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Heading, Text } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { dashboard } from '@/routes';
+import templatesRoutes from '@/routes/admin/templates';
+import type { BreadcrumbItem } from '@/types';
 
 type Template = {
     id: number;
@@ -31,7 +31,7 @@ const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
-    { title: 'Templates', href: templates.index().url },
+    { title: 'Templates', href: templatesRoutes.index().url },
 ];
 
 const handlePagination = (url: string) => {
@@ -51,7 +51,7 @@ const handlePagination = (url: string) => {
                         Verwalten Sie Website-Templates
                     </Text>
                 </div>
-                <Link :href="templates.create().url">
+                <Link :href="templatesRoutes.create().url">
                     <Button>
                         <Plus class="mr-2 h-4 w-4" />
                         Neues Template
@@ -91,12 +91,12 @@ const handlePagination = (url: string) => {
                                 <TableCell>{{ template.price }} €</TableCell>
                                 <TableCell class="text-right">
                                     <div class="flex items-center justify-end gap-2">
-                                        <Link :href="templates.show({ template: template.id }).url">
+                                        <Link :href="templatesRoutes.show({ template: template.id }).url">
                                             <Button variant="ghost" size="sm">
                                                 <Eye class="h-4 w-4" />
                                             </Button>
                                         </Link>
-                                        <Link :href="templates.edit({ template: template.id }).url">
+                                        <Link :href="templatesRoutes.edit({ template: template.id }).url">
                                             <Button variant="ghost" size="sm">
                                                 <Edit class="h-4 w-4" />
                                             </Button>

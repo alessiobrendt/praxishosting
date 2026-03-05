@@ -1,14 +1,14 @@
 <script setup lang="ts">
+import { X, Pencil, Palette, Settings, Copy, Trash2, ClipboardPaste } from 'lucide-vue-next';
 import { ref, computed, watch } from 'vue';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
     DropdownMenuContent,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import type { SitePageData } from '@/types/site-page-data';
 import type { DesignerStore } from '@/pages/PageDesigner/stores/useDesignerStore';
-import { X, Pencil, Palette, Settings, Copy, Trash2, ClipboardPaste } from 'lucide-vue-next';
+import type { SitePageData } from '@/types/site-page-data';
 
 const props = defineProps<{ designer: DesignerStore }>();
 

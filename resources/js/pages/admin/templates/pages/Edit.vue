@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
 import { router, Head, Link, usePage } from '@inertiajs/vue3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Heading } from '@/components/ui/typography';
+import { ArrowLeft } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
 import InputError from '@/components/InputError.vue';
 import JsonEditor from '@/components/JsonEditor.vue';
-import templates from '@/routes/admin/templates';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Heading } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
+import templates from '@/routes/admin/templates';
 import type { BreadcrumbItem } from '@/types';
-import { ArrowLeft } from 'lucide-vue-next';
 
 type TemplatePage = {
     id: number;
@@ -35,7 +35,7 @@ type Props = {
 };
 
 const props = defineProps<Props>();
-const page = usePage();
+const inertiaPage = usePage();
 
 const formData = ref({
     name: props.page.name,
@@ -44,7 +44,9 @@ const formData = ref({
     pageData: JSON.stringify(props.page.data ?? {}, null, 2),
 });
 
-const errors = computed(() => (page.props.errors as Record<string, string>) ?? {});
+const localErrors = ref<Record<string, string>>({});
+const formErrors = computed(() => (inertiaPage.props.errors as Record<string, string>) ?? {});
+const allErrors = computed(() => ({ ...formErrors.value, ...localErrors.value }));
 const processing = ref(false);
 
 const submit = () => {
@@ -55,7 +57,7 @@ const submit = () => {
     try {
         // First try JSON.parse
         parsedData = JSON.parse(formData.value.pageData);
-    } catch (e) {
+    } catch {
         try {
             // If JSON.parse fails, try evaluating as JavaScript object (wrapped in parentheses)
             // This allows JavaScript object syntax without quotes around keys
@@ -72,7 +74,7 @@ const submit = () => {
             JSON.stringify(parsedData);
         } catch (e2) {
             console.error('Invalid JSON/Object:', e2);
-            errors.value = { data: 'Ungültiges Format. Bitte verwenden Sie gültiges JSON oder JavaScript-Objekt-Syntax (ohne Funktionen).' };
+            localErrors.value = { data: 'Ungültiges Format. Bitte verwenden Sie gültiges JSON oder JavaScript-Objekt-Syntax (ohne Funktionen).' };
             processing.value = false;
             return;
         }
@@ -148,7 +150,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 v-model="formData.name"
                                 required
                             />
-                            <InputError :message="errors.name" />
+                            <InputError :message="allErrors.name" />
                         </div>
                         <div class="grid gap-2">
                             <Label for="slug">Slug</Label>
@@ -157,7 +159,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 v-model="formData.slug"
                                 required
                             />
-                            <InputError :message="errors.slug" />
+                            <InputError :message="allErrors.slug" />
                         </div>
                         <div class="grid gap-2">
                             <Label for="order">Reihenfolge</Label>
@@ -167,12 +169,12 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 v-model.number="formData.order"
                                 min="0"
                             />
-                            <InputError :message="errors.order" />
+                            <InputError :message="allErrors.order" />
                         </div>
-                        <div v-if="Object.keys(errors).length > 0" class="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+                        <div v-if="Object.keys(allErrors).length > 0" class="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
                             <p class="text-sm font-semibold text-destructive">Fehler beim Speichern:</p>
                             <ul class="mt-2 list-disc list-inside text-sm text-destructive">
-                                <li v-for="(error, field) in errors" :key="field">
+                                <li v-for="(error, field) in allErrors" :key="field">
                                     {{ field }}: {{ error }}
                                 </li>
                             </ul>
@@ -234,7 +236,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                             <p class="text-xs text-muted-foreground">
                                 Nach dem Speichern können Sie die Daten strukturiert unter "Daten bearbeiten" bearbeiten.
                             </p>
-                            <InputError :message="errors.data" />
+                            <InputError :message="allErrors.data" />
                         </div>
                         <div class="flex gap-2">
                             <Button type="submit" :disabled="processing">Speichern</Button>

@@ -1,30 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Radio } from '@/components/ui/radio';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { ref } from 'vue';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Heading, Text, Link as TypographyLink } from '@/components/ui/typography';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Pagination } from '@/components/ui/pagination';
-import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/modal';
-import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
-import { Tooltip } from '@/components/ui/tooltip';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/modal';
+import { Pagination } from '@/components/ui/pagination';
+import { Radio } from '@/components/ui/radio';
+import { Select } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Heading, Text, Link as TypographyLink } from '@/components/ui/typography';
+import AppLayout from '@/layouts/AppLayout.vue';
 
 const showModal = ref(false);
 const inputValue = ref('');
@@ -254,7 +254,7 @@ const paginationLinks = [
                 <Heading level="h2">Dropdown</Heading>
                 <div class="mt-4">
                     <Dropdown>
-                        <template #trigger="{ isOpen }">
+                        <template #trigger="{ isOpen: _isOpen }">
                             <Button variant="outline">Dropdown Menu</Button>
                         </template>
                         <DropdownItem>Profile</DropdownItem>

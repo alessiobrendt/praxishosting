@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Link } from '@inertiajs/vue3';
+import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 defineProps<{
     data?: Record<string, unknown> | null;

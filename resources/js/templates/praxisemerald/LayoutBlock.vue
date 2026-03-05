@@ -1,15 +1,20 @@
 <script setup lang="ts">
+import { MoreHorizontal, Copy, Trash2, ClipboardPaste } from 'lucide-vue-next';
+import { GripVertical } from 'lucide-vue-next';
+import { motion } from 'motion-v';
 import { ref, watch, computed, provide, inject, onMounted, onUnmounted } from 'vue';
+import draggable from 'vuedraggable';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Copy, Trash2, ClipboardPaste } from 'lucide-vue-next';
-import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
+import { generateResponsiveContainerCSS, hasResponsiveValues } from '@/lib/responsive-styles';
 import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
+import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
+import ResizeHandle from '@/templates/praxisemerald/components/ResizeHandle.vue';
 import DesignBlock from '@/templates/praxisemerald/DesignBlock.vue';
 import { getMotionPreset } from '@/templates/praxisemerald/motion-presets';
 import type {
@@ -18,11 +23,6 @@ import type {
     SectionAlign,
 } from '@/types/layout-components';
 import type { LayoutComponentType } from '@/types/layout-components';
-import { motion } from 'motion-v';
-import draggable from 'vuedraggable';
-import { GripVertical } from 'lucide-vue-next';
-import ResizeHandle from '@/templates/praxisemerald/components/ResizeHandle.vue';
-import { generateResponsiveContainerCSS, hasResponsiveValues } from '@/lib/responsive-styles';
 
 const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
 
@@ -36,10 +36,10 @@ type BlockContextActions = {
 const blockContextActions = inject<{ value: BlockContextActions } | null>('blockContextActions', null);
 const layoutIsDragging = inject<{ value: boolean } | null>('layoutIsDragging', null);
 const setLayoutDragging = inject<((value: boolean) => void) | null>('setLayoutDragging', null);
-const addSelectionToContainer = inject<
+const _addSelectionToContainer = inject<
     ((containerId: string, newChildren: LayoutComponentEntry[]) => void) | null
 >('addSelectionToContainer', null);
-const selectedBlockIds = inject<{ value: Set<string> } | null>('selectedBlockIds', null);
+const _selectedBlockIds = inject<{ value: Set<string> } | null>('selectedBlockIds', null);
 const setLastDraggedEntry = inject<((entry: LayoutComponentEntry | null) => void) | null>(
     'setLastDraggedEntry',
     null,
@@ -394,7 +394,8 @@ const useDesignBlock = computed(
         >
             <GripVertical class="h-3.5 w-3.5" />
         </div>
-        <DropdownMenu v-if="blockContextActions?.value" v-slot>
+        <DropdownMenu v-if="blockContextActions?.value">
+            <template #default>
             <DropdownMenuTrigger as-child>
                 <Button
                     type="button"
@@ -435,6 +436,7 @@ const useDesignBlock = computed(
                     Löschen
                 </DropdownMenuItem>
             </DropdownMenuContent>
+            </template>
         </DropdownMenu>
         <div class="min-w-0 flex-1" :class="embeddingProvidesDragHandle ? 'pl-0' : 'pl-5'">
         <!-- Container in design mode: draggable slot and drop zones for section, grid, flex -->
@@ -564,14 +566,14 @@ const useDesignBlock = computed(
                     </component>
                 </motion.div>
             </template>
-            <component
-                v-else
-                :is="getLayoutComponent(entry.type)"
-                v-if="getLayoutComponent(entry.type)"
-                :data="entry.data ?? {}"
-                :design-mode="designMode"
-                class="min-w-0 flex-1 flex flex-col"
-            >
+            <template v-else>
+                <component
+                    v-if="getLayoutComponent(entry.type)"
+                    :is="getLayoutComponent(entry.type)"
+                    :data="entry.data ?? {}"
+                    :design-mode="designMode"
+                    class="min-w-0 flex-1 flex flex-col"
+                >
                 <div
                     v-if="insertAtParent"
                     class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
@@ -680,7 +682,8 @@ const useDesignBlock = computed(
                     <span v-if="containerDropTargetIndex === containerList.length" class="text-xs font-medium text-primary">Hier einfügen</span>
                     <span v-else class="sr-only">Komponente am Ende einfügen</span>
                 </div>
-            </component>
+                </component>
+            </template>
         </template>
         <template v-else>
             <template v-if="motionPreset">
@@ -696,14 +699,14 @@ const useDesignBlock = computed(
                         :design-mode="designMode"
                         class="min-w-0 flex-1"
                     />
-                    <component
-                        v-else
-                        :is="getLayoutComponent(entry.type)"
-                        v-if="getLayoutComponent(entry.type)"
-                        :data="entry.data ?? {}"
-                        :design-mode="designMode"
-                        class="min-w-0 flex-1"
-                    >
+                    <template v-else>
+                        <component
+                            v-if="getLayoutComponent(entry.type)"
+                            :is="getLayoutComponent(entry.type)"
+                            :data="entry.data ?? {}"
+                            :design-mode="designMode"
+                            class="min-w-0 flex-1"
+                        >
                         <template v-if="childEntries().length > 0">
                             <div
                                 v-for="child in childEntries()"
@@ -722,7 +725,8 @@ const useDesignBlock = computed(
                                 />
                             </div>
                         </template>
-                    </component>
+                        </component>
+                    </template>
                 </motion.div>
             </template>
             <template v-else>
@@ -732,14 +736,14 @@ const useDesignBlock = computed(
                     :design-mode="designMode"
                     class="min-w-0 flex-1"
                 />
-                <component
-                    v-else
-                    :is="getLayoutComponent(entry.type)"
-                    v-if="getLayoutComponent(entry.type)"
-                    :data="entry.data ?? {}"
-                    :design-mode="designMode"
-                    class="min-w-0 flex-1"
-                >
+                <template v-else>
+                    <component
+                        v-if="getLayoutComponent(entry.type)"
+                        :is="getLayoutComponent(entry.type)"
+                        :data="entry.data ?? {}"
+                        :design-mode="designMode"
+                        class="min-w-0 flex-1"
+                    >
                     <template v-if="childEntries().length > 0">
                         <div
                             v-for="child in childEntries()"
@@ -759,6 +763,7 @@ const useDesignBlock = computed(
                         </div>
                     </template>
                 </component>
+                </template>
             </template>
         </template>
         </div>
@@ -790,13 +795,13 @@ const useDesignBlock = computed(
                 </component>
             </motion.div>
         </template>
-        <component
-            v-else
-            :is="getLayoutComponent(entry.type)"
-            v-if="getLayoutComponent(entry.type)"
-            :data="entry.data ?? {}"
-            :design-mode="designMode"
-        >
+        <template v-else>
+            <component
+                v-if="getLayoutComponent(entry.type)"
+                :is="getLayoutComponent(entry.type)"
+                :data="entry.data ?? {}"
+                :design-mode="designMode"
+            >
             <template v-if="childEntries().length > 0">
                 <div
                     v-for="child in childEntries()"
@@ -808,5 +813,6 @@ const useDesignBlock = computed(
                 </div>
             </template>
         </component>
+        </template>
     </template>
 </template>

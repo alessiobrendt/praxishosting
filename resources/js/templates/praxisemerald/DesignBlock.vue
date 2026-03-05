@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue';
-import Button from '@/templates/praxisemerald/components/ui/Button.vue';
-import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
-import InlineEditableText from '@/pages/PageDesigner/components/InlineEditableText.vue';
 import {
     HeartPulse,
     ShieldCheck,
@@ -10,6 +6,10 @@ import {
     Syringe,
     Clock,
 } from 'lucide-vue-next';
+import { computed, inject } from 'vue';
+import InlineEditableText from '@/pages/PageDesigner/components/InlineEditableText.vue';
+import Button from '@/templates/praxisemerald/components/ui/Button.vue';
+import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
 import type {
     HeroComponentData,
     CtaComponentData,

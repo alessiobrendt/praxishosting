@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { ChevronLeft, ChevronRight, X } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import type { DesignerStore } from '@/pages/PageDesigner/stores/useDesignerStore';
-import { ChevronLeft, ChevronRight, X } from 'lucide-vue-next';
 
 const props = defineProps<{ designer: DesignerStore }>();
 

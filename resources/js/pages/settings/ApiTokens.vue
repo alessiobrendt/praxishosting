@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
+import { Copy, Trash2, Check } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
-import AppLayout from '@/layouts/AppLayout.vue';
-import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import InputError from '@/components/InputError.vue';
-import { Key, Copy, Trash2, Check } from 'lucide-vue-next';
+import { Heading, Text } from '@/components/ui/typography';
+import AppLayout from '@/layouts/AppLayout.vue';
+import SettingsLayout from '@/layouts/settings/Layout.vue';
 import type { BreadcrumbItem } from '@/types';
-import { usePage } from '@inertiajs/vue3';
 
 type Token = {
     id: number;
@@ -24,7 +24,7 @@ type Props = {
     tokens: Token[];
 };
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
 const page = usePage();
 const flash = computed(() => page.props.flash as { newToken?: { plainTextToken: string; name: string } } | undefined);

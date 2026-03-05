@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import DashboardIcon from '@/components/icons/DashboardIcon.vue';
 import {
     BookOpen,
     Folder,
@@ -13,6 +11,8 @@ import {
     ShoppingBag,
     Users,
 } from 'lucide-vue-next';
+import { computed } from 'vue';
+import DashboardIcon from '@/components/icons/DashboardIcon.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -26,9 +26,9 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { index as sitesIndex } from '@/routes/sites';
-import { index as adminTemplatesIndex } from '@/routes/admin/templates';
 import { index as adminCustomersIndex } from '@/routes/admin/customers';
+import { index as adminTemplatesIndex } from '@/routes/admin/templates';
+import { index as sitesIndex } from '@/routes/sites';
 import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
 

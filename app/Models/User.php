@@ -109,6 +109,14 @@ class User extends Authenticatable
         return ! empty($this->{$this->getMollieCustomerIdColumn()});
     }
 
+    /**
+     * Compatibility with Stripe-style checks. For Mollie, having a customer ID is treated as payment method ready.
+     */
+    public function hasDefaultPaymentMethod(): bool
+    {
+        return $this->hasMollieCustomerId();
+    }
+
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);

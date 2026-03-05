@@ -1,26 +1,5 @@
 <script setup lang="ts">
-import { inject, ref, nextTick } from 'vue';
 import { Link } from '@inertiajs/vue3';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { TooltipContent, TooltipRoot, TooltipTrigger } from '@/components/ui/tooltip';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import SectionList from '@/pages/PageDesigner/SectionList.vue';
-import SidebarTreeFlat from '@/pages/PageDesigner/SidebarTreeFlat.vue';
-import { COLOR_KEYS, COLOR_PALETTE_PRESETS } from '@/pages/PageDesigner/colorPalettePresets';
-import type { DesignerStore } from '@/pages/PageDesigner/stores/useDesignerStore';
-import { useAiSeo } from '@/pages/PageDesigner/composables/useAiSeo';
-import billing from '@/routes/billing';
 import {
     ArrowLeft,
     ChevronLeft,
@@ -39,6 +18,27 @@ import {
     Settings,
     Sparkles,
 } from 'lucide-vue-next';
+import { inject, ref, nextTick } from 'vue';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { TooltipContent, TooltipRoot, TooltipTrigger } from '@/components/ui/tooltip';
+import { COLOR_KEYS, COLOR_PALETTE_PRESETS } from '@/pages/PageDesigner/colorPalettePresets';
+import { useAiSeo } from '@/pages/PageDesigner/composables/useAiSeo';
+import SectionList from '@/pages/PageDesigner/SectionList.vue';
+import SidebarTreeFlat from '@/pages/PageDesigner/SidebarTreeFlat.vue';
+import type { DesignerStore } from '@/pages/PageDesigner/stores/useDesignerStore';
+import billing from '@/routes/billing';
 
 const props = defineProps<{ designer: DesignerStore }>();
 const refreshAiBalance = inject<() => Promise<void>>('refreshAiBalance', async () => {});

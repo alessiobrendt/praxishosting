@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
+import { ArrowLeft, ChevronDown, Download } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -8,14 +9,13 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import { Button } from '@/components/ui/button';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { ArrowLeft, ChevronDown, Download } from 'lucide-vue-next';
+import { Heading, Text } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 

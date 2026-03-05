@@ -1,13 +1,13 @@
 import type { Component } from 'vue';
+import * as EmergencyCardBlockMod from './EmergencyCardBlock.vue';
 import * as HeadingBlockMod from './HeadingBlock.vue';
 import * as HtmlBlockMod from './HtmlBlock.vue';
-import * as LinkListBlockMod from './LinkListBlock.vue';
 import * as InfoBoxBlockMod from './InfoBoxBlock.vue';
+import * as InfoSectionBlockMod from './InfoSectionBlock.vue';
+import * as LinkListBlockMod from './LinkListBlock.vue';
 import * as ListBlockMod from './ListBlock.vue';
 import * as LogoRowBlockMod from './LogoRowBlock.vue';
 import * as SingleStatBlockMod from './SingleStatBlock.vue';
-import * as EmergencyCardBlockMod from './EmergencyCardBlock.vue';
-import * as InfoSectionBlockMod from './InfoSectionBlock.vue';
 import * as TeamCardBlockMod from './TeamCardBlock.vue';
 
 type PageComponentMeta = {

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { motion } from 'motion-v';
+import { ref, computed } from 'vue';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -9,8 +11,6 @@ import {
     getMotionPresetLabel,
     getMotionPresetList,
 } from '@/templates/shared/motion-presets';
-import { motion } from 'motion-v';
-import { ref, computed } from 'vue';
 
 const props = defineProps<{
     modelValue: string;

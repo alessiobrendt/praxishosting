@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
+import InlineEditableText from '@/pages/PageDesigner/components/InlineEditableText.vue';
 import Button from '@/templates/praxisemerald/components/ui/Button.vue';
 import InlineTextEditor from '@/templates/shared/components/InlineTextEditor.vue';
-import InlineEditableText from '@/pages/PageDesigner/components/InlineEditableText.vue';
 import type { HeroComponentData } from '@/types/layout-components';
 
 const props = withDefaults(

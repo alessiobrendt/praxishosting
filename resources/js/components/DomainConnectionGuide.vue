@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Heading, Text } from '@/components/ui/typography';
 import { Copy, Check, AlertCircle } from 'lucide-vue-next';
 import { ref } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Text } from '@/components/ui/typography';
 
 interface Props {
     domain?: string;
@@ -12,7 +11,7 @@ interface Props {
     isVerified?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     domain: '',
     isVerified: false,
 });
@@ -31,7 +30,6 @@ const copyToClipboard = async (text: string) => {
     }
 };
 
-const cnameValue = `${props.domain || 'ihre-domain.de'} → ${props.baseDomain}`;
 </script>
 
 <template>

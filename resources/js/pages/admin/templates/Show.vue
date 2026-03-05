@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Button } from '@/components/ui/button';
+import { Edit, Plus, FileText } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
-import templates from '@/routes/admin/templates';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
+import templates from '@/routes/admin/templates';
 import type { BreadcrumbItem } from '@/types';
-import { Edit, Plus, FileText } from 'lucide-vue-next';
 
 type TemplatePage = {
     id: number;

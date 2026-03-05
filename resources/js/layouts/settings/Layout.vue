@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
+import { Bell, Key, Lock, Palette, Shield, ShieldCheck, User } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
-import { Bell, Key, Lock, Palette, Shield, ShieldCheck, User } from 'lucide-vue-next';
 import type { NavItem } from '@/types';
 
-const page = usePage();
 const { isCurrentUrl } = useCurrentUrl();
 
 const sidebarNavItems: NavItem[] = [

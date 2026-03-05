@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Link } from '@inertiajs/vue3';
 import { getAdminRecent } from '@/composables/useAdminRecent';
 import type { AdminRecentItem } from '@/composables/useAdminRecent';
 

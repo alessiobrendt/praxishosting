@@ -1,25 +1,24 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Button } from '@/components/ui/button';
+import { Eye, EyeOff, Copy, ExternalLink, Mail, Server, LayoutDashboard, KeyRound, CalendarPlus, Calendar } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
+import PaymentMethodModal from '@/components/PaymentMethodModal.vue';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
     Table,
     TableBody,
     TableCell,
     TableHead,
-    TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Heading, Text } from '@/components/ui/typography';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { ref, computed } from 'vue';
-import { Eye, EyeOff, Copy, ExternalLink, Mail, Server, LayoutDashboard, KeyRound, CalendarPlus, Calendar } from 'lucide-vue-next';
-import PaymentMethodModal from '@/components/PaymentMethodModal.vue';
 
 type WebspaceAccount = {
     id: number;

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Server, Gamepad2, ExternalLink } from 'lucide-vue-next';
 import { computed, watch } from 'vue';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardHeader,
@@ -11,7 +11,6 @@ import {
     CardDescription,
     CardContent,
 } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
 import {
     Table,
     TableHeader,
@@ -20,10 +19,11 @@ import {
     TableHead,
     TableCell,
 } from '@/components/ui/table';
+import { Heading, Text } from '@/components/ui/typography';
+import { notify } from '@/composables/useNotify';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import { notify } from '@/composables/useNotify';
-import { Server, Gamepad2, ExternalLink } from 'lucide-vue-next';
 
 type SubscriptionItem = {
     id: number;

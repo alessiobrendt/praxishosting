@@ -1,25 +1,21 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue';
+import type { Component } from 'vue';
 import SiteController from '@/actions/App/Http/Controllers/SiteController';
 import { storePreviewDraft } from '@/actions/App/Http/Controllers/SiteRenderController';
 import InputError from '@/components/InputError.vue';
-import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Heading, Text } from '@/components/ui/typography';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { index as sitesIndex, show as sitesShow, preview as sitesPreview, design as sitesDesign } from '@/routes/sites';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
+import { index as sitesIndex, show as sitesShow, preview as sitesPreview, design as sitesDesign } from '@/routes/sites';
+import { getTemplateEntry } from '@/templates/template-registry';
 import type { BreadcrumbItem } from '@/types';
 import type { SitePageData, SitePageDataColors } from '@/types/site-page-data';
-import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue';
-import { getTemplateEntry } from '@/templates/template-registry';
 
 const defaultColors: SitePageDataColors = {
     primary: '#059669',
@@ -155,7 +151,7 @@ const siteEditorComponent = computed(() => {
     const siteEditor = e?.SiteEditor;
     if (!siteEditor) return null;
     if (typeof siteEditor === 'function') {
-        return defineAsyncComponent(siteEditor as () => Promise<{ default: import('vue').Component }>);
+        return defineAsyncComponent(siteEditor as () => Promise<{ default: Component }>);
     }
     return siteEditor;
 });

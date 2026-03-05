@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import Button from '@/templates/praxisemerald/components/ui/Button.vue';
 import type { NavLink } from '@/types/layout-components';
 
-const props = withDefaults(
+withDefaults(
     defineProps<{
         links: NavLink[];
         siteName?: string;

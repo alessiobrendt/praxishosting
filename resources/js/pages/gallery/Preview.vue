@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
-import gallery from '@/routes/gallery';
-import { home } from '@/routes';
-import HeroSection from '@/components/site/HeroSection.vue';
-import AboutSection from '@/components/site/AboutSection.vue';
-import HoursSection from '@/components/site/HoursSection.vue';
-import CTASection from '@/components/site/CTASection.vue';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-vue-next';
+import { computed } from 'vue';
+import AboutSection from '@/components/site/AboutSection.vue';
+import CTASection from '@/components/site/CTASection.vue';
+import HeroSection from '@/components/site/HeroSection.vue';
+import HoursSection from '@/components/site/HoursSection.vue';
+import { Button } from '@/components/ui/button';
+import { home } from '@/routes';
+import gallery from '@/routes/gallery';
 
 type TemplatePage = {
     id: number;

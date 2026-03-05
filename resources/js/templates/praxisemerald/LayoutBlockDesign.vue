@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import { GripVertical } from 'lucide-vue-next';
+import { motion } from 'motion-v';
 import { ref, watch } from 'vue';
-import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
+import draggable from 'vuedraggable';
 import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
+import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
 import { getMotionPreset } from '@/templates/praxisemerald/motion-presets';
 import type { LayoutComponentEntry } from '@/types/layout-components';
 import type { LayoutComponentType } from '@/types/layout-components';
-import { motion } from 'motion-v';
-import draggable from 'vuedraggable';
-import { GripVertical } from 'lucide-vue-next';
 
 const props = withDefaults(
     defineProps<{
@@ -100,13 +100,14 @@ function onSelect(id: string): void {
                                 />
                             </motion.div>
                         </template>
-                        <component
-                            v-else
-                            :is="getLayoutComponent(entry.type)"
-                            v-if="getLayoutComponent(entry.type)"
-                            :data="entry.data ?? {}"
-                            :design-mode="true"
-                        />
+                        <template v-else>
+                            <component
+                                v-if="getLayoutComponent(entry.type)"
+                                :is="getLayoutComponent(entry.type)"
+                                :data="entry.data ?? {}"
+                                :design-mode="true"
+                            />
+                        </template>
                     </div>
                 </div>
                 <LayoutBlockDesign

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Link } from '@inertiajs/vue3';
+import { Button } from '@/components/ui/button';
+import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 defineProps<{
     data?: { count?: number } | null;

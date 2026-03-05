@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed, inject, ref, onMounted, onUnmounted, watch } from 'vue';
-import type {
-    FlexContainerComponentData,
-    SectionJustify,
-    SectionAlign,
-} from '@/types/layout-components';
 import {
     generateResponsiveCSS,
     generateResponsiveContainerCSS,
     hasResponsiveValues,
     getEffectiveDataAtBreakpoint,
 } from '@/lib/responsive-styles';
+import type {
+    FlexContainerComponentData,
+    SectionJustify,
+    SectionAlign,
+} from '@/types/layout-components';
 
 const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
 

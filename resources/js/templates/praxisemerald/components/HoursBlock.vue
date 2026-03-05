@@ -1,15 +1,15 @@
 <script setup lang="ts">
+import { Clock } from 'lucide-vue-next';
 import { computed } from 'vue';
 import HoursTable from '@/templates/praxisemerald/components/ui/HoursTable.vue';
 import type { HoursComponentData } from '@/types/layout-components';
-import { Clock } from 'lucide-vue-next';
 
 const props = defineProps<{
     data: Partial<HoursComponentData>;
 }>();
 
 const heading = computed(() => props.data.heading ?? '');
-const icon = computed(() => props.data.icon ?? 'Clock');
+const _icon = computed(() => props.data.icon ?? 'Clock');
 const infoText = computed(() => props.data.infoText ?? '');
 const hours = computed(() => props.data.hours ?? []);
 </script>

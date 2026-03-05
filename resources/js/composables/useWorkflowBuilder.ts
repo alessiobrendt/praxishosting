@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue';
-import type { Workflow, WorkflowNode, WorkflowEdge } from '@/types/workflow';
+import type { Workflow, WorkflowNode } from '@/types/workflow';
 import {
     NODE_TYPES,
     DEFAULT_STEP_TYPES,
@@ -145,7 +145,7 @@ export function useWorkflowBuilder() {
 
     function loadDefaultTemplate(): void {
         if (workflow.value.nodes.length > 0) return;
-        let x = 60;
+        const x = 60;
         const yBase = 60;
         const colW = 320;
         const rowH = 160;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { Link as TypographyLink, Text } from '@/components/ui/typography';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { store } from '@/routes/register';
-import SocialAuthButtons from '@/components/auth/SocialAuthButtons.vue';
 </script>
 
 <template>

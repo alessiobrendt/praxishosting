@@ -8,7 +8,7 @@ interface Props {
     as?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     tabindex: undefined,
     as: undefined,
 });

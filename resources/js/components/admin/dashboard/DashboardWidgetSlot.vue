@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
+import WidgetRenderer from '@/components/admin/dashboard/WidgetRenderer.vue';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import WidgetRenderer from '@/components/admin/dashboard/WidgetRenderer.vue';
 import adminDashboard from '@/routes/admin/dashboard';
 import type { WidgetRegistryItem } from '@/types/admin/dashboard';
 

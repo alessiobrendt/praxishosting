@@ -1,15 +1,4 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import type { LayoutComponentEntry } from '@/types/layout-components';
-import {
-    treeToFlat,
-    flatToTree,
-    normalizeDepthsAfterDrop,
-    getSubtreeSlice,
-} from '@/lib/layout-tree';
-import type { FlatEntry } from '@/lib/layout-tree';
-import draggable from 'vuedraggable';
-import { Button } from '@/components/ui/button';
 import {
     GripVertical,
     Copy,
@@ -22,6 +11,17 @@ import {
     Type,
     PanelTop,
 } from 'lucide-vue-next';
+import { ref, watch, computed } from 'vue';
+import draggable from 'vuedraggable';
+import { Button } from '@/components/ui/button';
+import {
+    treeToFlat,
+    flatToTree,
+    normalizeDepthsAfterDrop,
+    getSubtreeSlice,
+} from '@/lib/layout-tree';
+import type { FlatEntry } from '@/lib/layout-tree';
+import type { LayoutComponentEntry } from '@/types/layout-components';
 
 interface VisibleItem {
     flatItem: FlatEntry;

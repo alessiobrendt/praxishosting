@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft, Signal, Info, Home, Paperclip, X, FileText, Image, Lock, Maximize2, Minimize2 } from 'lucide-vue-next';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import InputError from '@/components/InputError.vue';
+import TicketReplyEditor from '@/components/TicketReplyEditor.vue';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import TicketReplyEditor from '@/components/TicketReplyEditor.vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { sanitizeHtml, isHtml } from '@/lib/sanitize';
 import { dashboard } from '@/routes';
 import support from '@/routes/support';
 import type { BreadcrumbItem } from '@/types';
-import { ArrowLeft, Signal, Info, Home, Paperclip, X, FileText, Image, Lock, Maximize2, Minimize2 } from 'lucide-vue-next';
 
 type Ticket = { id: number; subject: string; status: string; created_at: string; updated_at: string };
 type TicketCategory = { id: number; name: string; slug: string } | null;

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Button } from '@/components/ui/button';
+import { Eye, Edit } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
 import hostingServers from '@/routes/admin/hosting-servers/index';
-import { Eye, Edit } from 'lucide-vue-next';
 
 export type HostingServerRowData = {
     id: number;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Clock, Mail, Phone, MapPin } from 'lucide-vue-next';
+import { computed } from 'vue';
 import type { FooterComponentData } from '@/types/layout-components';
 
 const props = withDefaults(

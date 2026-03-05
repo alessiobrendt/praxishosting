@@ -7,7 +7,7 @@ import { computed, type Ref, type ComputedRef } from 'vue';
 import type { LayoutComponentEntry } from '@/types/layout-components';
 import type { SitePageData } from '@/types/site-page-data';
 
-const PAGE_SLUGS = ['index', 'notfallinformationen', 'patienteninformationen'] as const;
+export const PAGE_SLUGS = ['index', 'notfallinformationen', 'patienteninformationen'] as const;
 const PAGE_SLUG_LABELS: Record<(typeof PAGE_SLUGS)[number], string> = {
     index: 'Startseite',
     notfallinformationen: 'Notfallinformationen',

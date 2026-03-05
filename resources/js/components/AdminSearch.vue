@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
 import { Link } from '@inertiajs/vue3';
-import { Input } from '@/components/ui/input';
-import { Search, Globe, Users, FileText, Repeat } from 'lucide-vue-next';
 import { useDebounceFn } from '@vueuse/core';
+import { Search, Globe, Users, FileText, Repeat } from 'lucide-vue-next';
+import { ref, watch } from 'vue';
+import { Input } from '@/components/ui/input';
 
 type SearchResult = {
     id: number;

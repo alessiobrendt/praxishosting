@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Text } from '@/components/ui/typography';
-import { Link } from '@inertiajs/vue3';
 
 type Data = {
     expiringSubscriptions?: Array<{ site_uuid?: string; site_name?: string; current_period_ends_at?: string }>;

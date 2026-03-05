@@ -17,7 +17,7 @@ export const Editor = EmergencyCardBlockEditor as Component;
 </script>
 
 <script setup lang="ts">
-import * as LucideIcons from 'lucide-vue-next';
+import * as LucideIcons from 'lucide-vue-next'; // eslint-disable-line import/order -- before type vue in other block
 
 const props = defineProps<{ data: Record<string, unknown> }>();
 

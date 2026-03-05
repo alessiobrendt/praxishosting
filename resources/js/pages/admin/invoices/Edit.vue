@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Plus, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import InputError from '@/components/InputError.vue';
+import { Heading, Text } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
-import { index as invoicesIndex, edit as invoicesEdit, update } from '@/routes/admin/invoices';
+import { index as invoicesIndex, update } from '@/routes/admin/invoices';
 import type { BreadcrumbItem } from '@/types';
-import { Plus, Trash2 } from 'lucide-vue-next';
 
 type LineItem = {
     position: number;

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, ref, watch } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { useMediaQuery } from '@vueuse/core';
-import { cn, toUrl } from '@/lib/utils';
+import { Moon, Sun, ChevronDown, ChevronRight } from 'lucide-vue-next';
+import { computed, inject, onMounted, ref, watch } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import { Avatar } from '@/components/ui/avatar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useAppearance } from '@/composables/useAppearance';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { Moon, Sun, ChevronDown, ChevronRight } from 'lucide-vue-next';
+import { cn, toUrl } from '@/lib/utils';
 import type { NavItem } from '@/types';
 
 const isMobile = useMediaQuery('(max-width: 1023px)');
@@ -139,7 +139,7 @@ function toggleTheme() {
 
 const expandSidebar = inject<(() => void) | null>('expandSidebar', null);
 
-function closeSidebar() {
+function _closeSidebar() {
     if (isMobile.value) {
         emit('close-mobile');
     } else if (isCollapsed.value) {
@@ -186,7 +186,7 @@ const linkClasses = (href: string) =>
         effectiveCollapsed.value && 'justify-center',
     );
 
-const groupTriggerClasses = (item: NavItem) =>
+const groupTriggerClasses = (_item: NavItem) =>
     cn(
         'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-modern',
         'hover:bg-gray-100 dark:hover:bg-gray-800',

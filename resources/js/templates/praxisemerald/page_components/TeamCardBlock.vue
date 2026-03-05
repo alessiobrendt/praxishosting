@@ -17,7 +17,7 @@ export const Editor = TeamCardBlockEditor as Component;
 </script>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from 'vue'; // eslint-disable-line import/order -- vue before ./editors in other block
 
 const props = defineProps<{ data: Record<string, unknown> }>();
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import type { Component } from 'vue';
 import {
     Dialog,
     DialogContent,
@@ -9,7 +10,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getLayoutComponent as defaultGetLayoutComponent } from '@/templates/praxisemerald/component-map';
-import type { Component } from 'vue';
 import type { LayoutComponentType } from '@/types/layout-components';
 
 const PREVIEW_SCALE = 0.28;
@@ -48,7 +48,7 @@ const props = withDefaults(
     { getLayoutComponent: undefined },
 );
 
-function getLayoutComponent(type: string): Component | undefined {
+function resolveLayoutComponent(type: string): Component | undefined {
     return props.getLayoutComponent ? props.getLayoutComponent(type) : defaultGetLayoutComponent(type);
 }
 
@@ -154,12 +154,12 @@ function onSelect(type: LayoutComponentType | string) {
                                     :style="{ height: `${PREVIEW_VIEW_HEIGHT}px` }"
                                 >
                                     <div
-                                        v-if="getLayoutComponent(reg.type as string)"
+                                        v-if="resolveLayoutComponent(reg.type as string)"
                                         class="absolute left-0 top-0 bg-white"
                                         :style="getPreviewStyle()"
                                     >
                                         <component
-                                            :is="getLayoutComponent(reg.type as string)!"
+                                            :is="resolveLayoutComponent(reg.type as string)!"
                                             :data="reg.defaultData"
                                             :design-mode="true"
                                         />

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
+import ArrayBuilder from '@/components/ArrayBuilder.vue';
+import ColorPicker from '@/components/ColorPicker.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import ColorPicker from '@/components/ColorPicker.vue';
-import ArrayBuilder from '@/components/ArrayBuilder.vue';
 
 interface Props {
     id: string;
@@ -63,21 +63,6 @@ const fieldType = computed(() => {
 
 const updateValue = (newValue: any) => {
     emit('update:modelValue', newValue);
-};
-
-const handleInput = (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    updateValue(target.value);
-};
-
-const handleTextarea = (event: Event) => {
-    const target = event.target as HTMLTextAreaElement;
-    updateValue(target.value);
-};
-
-const handleNumber = (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    updateValue(target.value ? parseFloat(target.value) : 0);
 };
 
 const handleCheckbox = (event: Event) => {
@@ -153,7 +138,7 @@ const handleCheckbox = (event: Event) => {
             :label="label"
             :model-value="Array.isArray(modelValue) ? modelValue : []"
             :placeholder="placeholder"
-            @update:model-value="updateValue",
+            @update:model-value="updateValue"
             :showLabel="false"
         />
         

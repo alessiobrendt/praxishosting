@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
+import { Edit, ExternalLink, UserPlus, X, Mail, Shield, Globe, Plus, RefreshCw, Star, Trash2, Layout } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
+import { store as storeDomain, verify as verifyDomain, setPrimary as setPrimaryDomain, destroy as destroyDomain } from '@/actions/App/Http/Controllers/SiteDomainController';
+import DomainConnectionGuide from '@/components/DomainConnectionGuide.vue';
+import InputError from '@/components/InputError.vue';
+import SiteVersionTimeline from '@/components/SiteVersionTimeline.vue';
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
 import {
     Dialog,
     DialogContent,
@@ -18,21 +19,20 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import InputError from '@/components/InputError.vue';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Heading, Text } from '@/components/ui/typography';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
 import {
     index as sitesIndex,
     edit as sitesEdit,
     design as sitesDesign,
 } from '@/routes/sites';
-import { getTemplateEntry } from '@/templates/template-registry';
 import { store as storeCollaborator, destroy as destroyCollaborator } from '@/routes/sites/collaborators';
-import { dashboard } from '@/routes';
+import { getTemplateEntry } from '@/templates/template-registry';
 import type { BreadcrumbItem } from '@/types';
-import { Edit, ExternalLink, UserPlus, X, Mail, Shield, Globe, Plus, RefreshCw, Star, Trash2, Layout } from 'lucide-vue-next';
-import { ref, computed } from 'vue';
-import DomainConnectionGuide from '@/components/DomainConnectionGuide.vue';
-import SiteVersionTimeline from '@/components/SiteVersionTimeline.vue';
-import { store as storeDomain, verify as verifyDomain, setPrimary as setPrimaryDomain, destroy as destroyDomain } from '@/actions/App/Http/Controllers/SiteDomainController';
 
 type User = {
     id: number;

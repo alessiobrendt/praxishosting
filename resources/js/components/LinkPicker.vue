@@ -2,7 +2,6 @@
 import { ref, computed, watch } from 'vue';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import type { PageAnchor } from '@/composables/usePageAnchors';
 
 export type LinkPickerPage = { slug: string; name: string };

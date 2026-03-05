@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import { ref, watch, computed, provide, inject, onMounted, onUnmounted, nextTick } from 'vue';
-import { getLayoutComponent } from '@/templates/handyso/component-map';
-import { acceptsChildren } from '@/templates/handyso/combined-registry';
-import { isSlotContainer } from '@/templates/handyso/component-registry';
-import { getMotionPreset } from '@/templates/handyso/motion-presets';
-import type {
-    LayoutComponentEntry,
-    SectionJustify,
-    SectionAlign,
-} from '@/types/layout-components';
-import type { LayoutComponentType } from '@/types/layout-components';
-import { motion } from 'motion-v';
-import draggable from 'vuedraggable';
 import { GripVertical, MoreHorizontal, Copy, Trash2, ClipboardPaste } from 'lucide-vue-next';
-import ResizeHandle from '@/templates/praxisemerald/components/ResizeHandle.vue';
+import { motion } from 'motion-v';
+import { ref, watch, computed, provide, inject, onMounted, onUnmounted, nextTick } from 'vue';
+import draggable from 'vuedraggable';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { generateResponsiveContainerCSS, hasResponsiveValues } from '@/lib/responsive-styles';
+import { acceptsChildren } from '@/templates/handyso/combined-registry';
+import { getLayoutComponent } from '@/templates/handyso/component-map';
+import { isSlotContainer } from '@/templates/handyso/component-registry';
+import { getMotionPreset } from '@/templates/handyso/motion-presets';
+import ResizeHandle from '@/templates/praxisemerald/components/ResizeHandle.vue';
+import type {
+    LayoutComponentEntry,
+    SectionJustify,
+    SectionAlign,
+} from '@/types/layout-components';
+import type { LayoutComponentType } from '@/types/layout-components';
 
 const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
 
@@ -330,7 +330,8 @@ const motionPreset = computed(() =>
         >
             <GripVertical class="h-3.5 w-3.5" />
         </div>
-        <DropdownMenu v-if="blockContextActions?.value" v-slot>
+        <DropdownMenu v-if="blockContextActions?.value">
+            <template #default>
             <DropdownMenuTrigger as-child>
                 <Button
                     type="button"
@@ -371,6 +372,7 @@ const motionPreset = computed(() =>
                     Löschen
                 </DropdownMenuItem>
             </DropdownMenuContent>
+            </template>
         </DropdownMenu>
         <div class="min-w-0 flex-1" :class="embeddingProvidesDragHandle ? 'pl-0' : 'pl-5'">
         <!-- Slot container: render only the section with entry (reorder in sidebar) -->
@@ -391,14 +393,15 @@ const motionPreset = computed(() =>
                     />
                 </motion.div>
             </template>
-            <component
-                v-else
-                :is="getLayoutComponent(entry.type)"
-                v-if="getLayoutComponent(entry.type)"
-                :entry="entry"
-                :design-mode="designMode"
-                class="min-w-0 flex-1"
-            />
+            <template v-else>
+                <component
+                    v-if="getLayoutComponent(entry.type)"
+                    :is="getLayoutComponent(entry.type)"
+                    :entry="entry"
+                    :design-mode="designMode"
+                    class="min-w-0 flex-1"
+                />
+            </template>
         </template>
         <!-- Container in design mode (section/grid/flex with draggable children) -->
         <template v-else-if="designMode && acceptsChildren(entry.type as LayoutComponentType)">
@@ -505,14 +508,14 @@ const motionPreset = computed(() =>
                     </component>
                 </motion.div>
             </template>
-            <component
-                v-else
-                :is="getLayoutComponent(entry.type)"
-                v-if="getLayoutComponent(entry.type)"
-                :data="entry.data ?? {}"
-                :design-mode="designMode"
-                class="min-w-0 flex-1 flex flex-col"
-            >
+            <template v-else>
+                <component
+                    v-if="getLayoutComponent(entry.type)"
+                    :is="getLayoutComponent(entry.type)"
+                    :data="entry.data ?? {}"
+                    :design-mode="designMode"
+                    class="min-w-0 flex-1 flex flex-col"
+                >
                 <div
                     v-if="insertAtParent"
                     class="min-h-2.5 shrink-0 border border-dashed border-transparent transition-colors"
@@ -599,7 +602,8 @@ const motionPreset = computed(() =>
                 >
                     <span class="sr-only">Komponente am Ende einfügen</span>
                 </div>
-            </component>
+                </component>
+            </template>
         </template>
         <template v-else>
             <template v-if="motionPreset">
@@ -637,14 +641,14 @@ const motionPreset = computed(() =>
                     </component>
                 </motion.div>
             </template>
-            <component
-                v-else
-                :is="getLayoutComponent(entry.type)"
-                v-if="getLayoutComponent(entry.type)"
-                :data="entry.data ?? {}"
-                :design-mode="designMode"
-                class="min-w-0 flex-1"
-            >
+            <template v-else>
+                <component
+                    v-if="getLayoutComponent(entry.type)"
+                    :is="getLayoutComponent(entry.type)"
+                    :data="entry.data ?? {}"
+                    :design-mode="designMode"
+                    class="min-w-0 flex-1"
+                >
                 <template v-if="childEntries().length > 0">
                     <div
                         v-for="child in childEntries()"
@@ -663,7 +667,8 @@ const motionPreset = computed(() =>
                         />
                     </div>
                 </template>
-            </component>
+                </component>
+            </template>
         </template>
         </div>
     </div>
@@ -685,13 +690,14 @@ const motionPreset = computed(() =>
                     />
                 </motion.div>
             </template>
-            <component
-                v-else
-                :is="getLayoutComponent(entry.type)"
-                v-if="getLayoutComponent(entry.type)"
-                :entry="entry"
-                :design-mode="designMode"
-            />
+            <template v-else>
+                <component
+                    v-if="getLayoutComponent(entry.type)"
+                    :is="getLayoutComponent(entry.type)"
+                    :entry="entry"
+                    :design-mode="designMode"
+                />
+            </template>
         </template>
         <template v-else>
             <template v-if="motionPreset">
@@ -720,13 +726,13 @@ const motionPreset = computed(() =>
                     </component>
                 </motion.div>
             </template>
-            <component
-                v-else
-                :is="getLayoutComponent(entry.type)"
-                v-if="getLayoutComponent(entry.type)"
-                :data="entry.data ?? {}"
-                :design-mode="designMode"
-            >
+            <template v-else>
+                <component
+                    v-if="getLayoutComponent(entry.type)"
+                    :is="getLayoutComponent(entry.type)"
+                    :data="entry.data ?? {}"
+                    :design-mode="designMode"
+                >
                 <template v-if="childEntries().length > 0">
                     <div
                         v-for="child in childEntries()"
@@ -734,10 +740,11 @@ const motionPreset = computed(() =>
                         class="section-child min-w-0"
                         :style="getChildFlexStyle(child)"
                     >
-                        <LayoutBlock :entry="child" />
+                                <LayoutBlock :entry="child" />
                     </div>
                 </template>
-            </component>
+                </component>
+            </template>
         </template>
     </template>
 </template>

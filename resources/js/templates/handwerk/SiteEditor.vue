@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import images from '@/routes/sites/images';
+import { ChevronDown, Plus, Trash2, Upload } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { ref, computed } from 'vue';
-import { ChevronDown, Plus, Trash2, Upload } from 'lucide-vue-next';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import images from '@/routes/sites/images';
 
 const props = defineProps<{
     site: { id: number; name: string; slug: string };

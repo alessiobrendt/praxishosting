@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import Button from '@/templates/praxisemerald/components/ui/Button.vue';
-import MobileNav from '@/templates/praxisemerald/components/MobileNav.vue';
-import type { HeaderComponentData, NavLink } from '@/types/layout-components';
+import { computed, inject } from 'vue';
 import type { Ref } from 'vue';
+import MobileNav from '@/templates/praxisemerald/components/MobileNav.vue';
+import Button from '@/templates/praxisemerald/components/ui/Button.vue';
+import type { HeaderComponentData, NavLink } from '@/types/layout-components';
 
 const props = withDefaults(
     defineProps<{

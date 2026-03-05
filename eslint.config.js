@@ -7,7 +7,13 @@ export default defineConfigWithVueTs(
     vue.configs['flat/essential'],
     vueTsConfigs.recommended,
     {
-        ignores: ['vendor', 'node_modules', 'public', 'bootstrap/ssr', 'tailwind.config.js', 'vite.config.ts', 'resources/js/components/ui/*'],
+        ignores: ['vendor', 'node_modules', 'public', 'bootstrap/ssr', 'tailwind.config.js', 'vite.config.ts', 'resources/js/components/ui/*', 'template_pages'],
+    },
+    {
+        files: ['resources/js/pages/PageDesigner/**/*.vue', 'resources/js/templates/**/*.vue'],
+        rules: {
+            'vue/no-mutating-props': 'off',
+        },
     },
     {
         plugins: {
@@ -23,6 +29,14 @@ export default defineConfigWithVueTs(
         },
         rules: {
             'vue/multi-word-component-names': 'off',
+            '@typescript-eslint/no-unused-vars': [
+                'error',
+                { varsIgnorePattern: '^_', argsIgnorePattern: '^_' },
+            ],
+            'vue/no-unused-vars': [
+                'error',
+                { ignorePattern: '^_' },
+            ],
             '@typescript-eslint/no-explicit-any': 'off',
             '@typescript-eslint/consistent-type-imports': [
                 'error',

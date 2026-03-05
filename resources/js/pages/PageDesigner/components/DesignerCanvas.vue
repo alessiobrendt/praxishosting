@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
-import type { SitePageData } from '@/types/site-page-data';
-import type { DesignerStore } from '@/pages/PageDesigner/stores/useDesignerStore';
 import { Monitor, Tablet, Smartphone, Minimize2, Maximize2 } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+import type { DesignerStore } from '@/pages/PageDesigner/stores/useDesignerStore';
+import type { SitePageData } from '@/types/site-page-data';
 
 defineProps<{ designer: DesignerStore }>();
 </script>

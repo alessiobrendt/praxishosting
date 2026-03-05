@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import images from '@/routes/sites/images';
+import { ChevronDown, Plus, Trash2, Upload, GripVertical } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import images from '@/routes/sites/images';
+import {
+    LAYOUT_COMPONENT_REGISTRY,
+    getDefaultDataForType,
+    generateLayoutComponentId,
+} from '@/templates/praxisemerald/combined-registry';
+import type { LayoutComponentType } from '@/types/layout-components';
 import type {
     SitePageData,
     SitePageDataColors,
@@ -18,14 +26,6 @@ import type {
     DayHours,
     CtaLink,
 } from '@/types/site-page-data';
-import { ref, computed } from 'vue';
-import { ChevronDown, Plus, Trash2, Upload, GripVertical } from 'lucide-vue-next';
-import {
-    LAYOUT_COMPONENT_REGISTRY,
-    getDefaultDataForType,
-    generateLayoutComponentId,
-} from '@/templates/praxisemerald/combined-registry';
-import type { LayoutComponentType } from '@/types/layout-components';
 
 const props = defineProps<{
     site: { id: number; name: string; slug: string };

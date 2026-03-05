@@ -1,34 +1,5 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import InputError from '@/components/InputError.vue';
-import { dashboard } from '@/routes';
-import { notify } from '@/composables/useNotify';
-import type { BreadcrumbItem } from '@/types';
 import {
     Server,
     Globe,
@@ -43,11 +14,40 @@ import {
     Plus,
     Trash2,
 } from 'lucide-vue-next';
-import { Switch } from '@/components/ui/switch';
+import { ref, watch } from 'vue';
+import InputError from '@/components/InputError.vue';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Heading, Text } from '@/components/ui/typography';
+import { notify } from '@/composables/useNotify';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { countriesSortedByName } from '@/lib/countries';
+import { dashboard } from '@/routes';
+import type { BreadcrumbItem } from '@/types';
 
 type Domain = {
     id: number;
@@ -484,7 +484,7 @@ function toggleDnsSelectIndex(index: number, checked: boolean) {
 }
 
 function deleteSelectedDns() {
-    const indices = Array.from(dnsSelectedIndices.value).sort((a, b) => b - a);
+    const _indices = Array.from(dnsSelectedIndices.value).sort((a, b) => b - a);
     const next = dnsRecords.value.filter((_, i) => !dnsSelectedIndices.value.has(i));
     dnsSelectedIndices.value = new Set();
     saveDnsRecords(next);
@@ -534,7 +534,7 @@ function buildAddRecordData(): string {
     if (type === 'CNAME' || type === 'ALIAS') return addRecordData.value.trim();
     if (type === 'MX') return `${addRecordMxPriority.value} ${addRecordData.value.trim()}`;
     if (type === 'SRV') {
-        const service = addRecordSrvService.value || `_service${addRecordSrvPort.value}._tcp`;
+        const _service = addRecordSrvService.value || `_service${addRecordSrvPort.value}._tcp`;
         return `${addRecordSrvPriority.value} ${addRecordSrvWeight.value} ${addRecordSrvPort.value} ${addRecordSrvTarget.value.trim()}`;
     }
     if (type === 'TXT') return addRecordData.value.trim();

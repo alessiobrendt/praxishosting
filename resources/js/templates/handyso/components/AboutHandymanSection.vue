@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { LayoutComponentEntry } from '@/types/layout-components';
-import AboutSubheading from '@/templates/handyso/components/about/AboutSubheading.vue';
-import AboutHeadline from '@/templates/handyso/components/about/AboutHeadline.vue';
-import AboutText from '@/templates/handyso/components/about/AboutText.vue';
-import AboutImage1 from '@/templates/handyso/components/about/AboutImage1.vue';
-import AboutImage2 from '@/templates/handyso/components/about/AboutImage2.vue';
 import AboutBadge from '@/templates/handyso/components/about/AboutBadge.vue';
 import AboutBullet from '@/templates/handyso/components/about/AboutBullet.vue';
 import AboutButton from '@/templates/handyso/components/about/AboutButton.vue';
+import AboutHeadline from '@/templates/handyso/components/about/AboutHeadline.vue';
+import AboutImage1 from '@/templates/handyso/components/about/AboutImage1.vue';
+import AboutImage2 from '@/templates/handyso/components/about/AboutImage2.vue';
+import AboutSubheading from '@/templates/handyso/components/about/AboutSubheading.vue';
+import AboutText from '@/templates/handyso/components/about/AboutText.vue';
+import type { LayoutComponentEntry } from '@/types/layout-components';
 
 const props = withDefaults(
     defineProps<{

@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import PinInputForm from '@/components/PinInputForm.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { usePage } from '@inertiajs/vue3';
 
 const emit = defineEmits<{ unlocked: [] }>();
 

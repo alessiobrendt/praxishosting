@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { ChevronRight, DoorOpen, Home, Hammer, Zap, Droplets, Paintbrush } from 'lucide-vue-next';
-import type { Component } from 'vue';
+import { ChevronRight } from 'lucide-vue-next';
+import * as LucideIcons from 'lucide-vue-next';
 
 const props = withDefaults(
     defineProps<{
@@ -17,7 +16,6 @@ const desc = () => (props.data?.desc as string) ?? '';
 const readMoreHref = () => (props.data?.readMoreHref as string) ?? '#';
 
 
-import * as LucideIcons from 'lucide-vue-next';
 const invalidIconNames = new Set(['Icon', 'createLucideIcon']);
 function iconComponent(name: string) {
     if (invalidIconNames.has(name)) return LucideIcons.Phone;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { WorkflowNode } from '@/types/workflow';
 
@@ -28,7 +28,7 @@ watch(
     { immediate: true },
 );
 
-function onLabelInput(): void {
+function _onLabelInput(): void {
     if (props.node) emit('update:label', labelInput.value);
 }
 

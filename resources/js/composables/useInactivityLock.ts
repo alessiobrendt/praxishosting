@@ -1,5 +1,6 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import type { Ref } from 'vue';
 
 const DEBUG_STORAGE_KEY = 'inactivity_lock_debug_seconds';
 
@@ -17,7 +18,7 @@ function getDebugSeconds(): number {
 }
 
 export function useInactivityLock(): {
-    isLocked: import('vue').Ref<boolean>;
+    isLocked: Ref<boolean>;
     unlock: () => void;
 } {
     const page = usePage();

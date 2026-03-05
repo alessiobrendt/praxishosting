@@ -1,32 +1,32 @@
 <script setup lang="ts">
 import { router, Head, Link, usePage } from '@inertiajs/vue3';
+import { Upload, ChevronDown, Sparkles, Plus, Trash2, GripVertical } from 'lucide-vue-next';
+import { ref, computed, watch, onMounted } from 'vue';
+import DynamicFormField from '@/components/DynamicFormField.vue';
 import InputError from '@/components/InputError.vue';
-import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
+import JsonViewer from '@/components/JsonViewer.vue';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import DynamicFormField from '@/components/DynamicFormField.vue';
-import JsonViewer from '@/components/JsonViewer.vue';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Heading, Text } from '@/components/ui/typography';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { dashboard } from '@/routes';
 import {
     index as templatesIndex,
     show as templatesShow,
 } from '@/routes/admin/templates';
-import { dashboard } from '@/routes';
-import type { BreadcrumbItem } from '@/types';
-import { ref, computed, watch, onMounted } from 'vue';
-import { Upload, ChevronDown, Sparkles, Plus, Trash2, GripVertical } from 'lucide-vue-next';
 import { getTemplateEntry } from '@/templates/template-registry';
+import type { BreadcrumbItem } from '@/types';
 import type { LayoutComponentType } from '@/types/layout-components';
 
 type Template = {
@@ -384,7 +384,7 @@ function moveLayoutComponent(index: number, direction: 'up' | 'down') {
     templateData.value = { ...templateData.value };
 }
 
-function updateLayoutComponentData(index: number, data: Record<string, unknown>) {
+function _updateLayoutComponentData(index: number, data: Record<string, unknown>) {
     const list = (templateData.value.layout_components as Array<{ id: string; type: string; data: Record<string, unknown> }>) ?? [];
     if (list[index]) list[index].data = data;
     templateData.value = { ...templateData.value };

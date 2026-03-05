@@ -10,17 +10,9 @@ import {
     nextTick,
     defineAsyncComponent,
     type Ref,
-    type ComputedRef,
 } from 'vue';
-import type { SitePageData, SitePageDataColors, GlobalFonts, GlobalButtonStyle } from '@/types/site-page-data';
-import type { LayoutComponentEntry, LayoutComponentType } from '@/types/layout-components';
-import { getTemplateEntry } from '@/templates/template-registry';
+import type { Component } from 'vue';
 import { usePageDesignerHistory } from '@/composables/usePageDesignerHistory';
-import { useDesignerDraft } from '@/pages/PageDesigner/composables/useDesignerDraft';
-import { useDesignerSave } from '@/pages/PageDesigner/composables/useDesignerSave';
-import { useDesignerPages } from '@/pages/PageDesigner/composables/useDesignerPages';
-import { useDesignerColors } from '@/pages/PageDesigner/composables/useDesignerColors';
-import { useDesignerFonts } from '@/pages/PageDesigner/composables/useDesignerFonts';
 import {
     treeToFlat,
     flatToTree,
@@ -30,11 +22,12 @@ import {
     moveFlatSubtree,
     normalizeLayoutTree,
 } from '@/lib/layout-tree';
-import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
-import PraxisemeraldLayoutComponentContextPanel from '@/templates/praxisemerald/LayoutComponentContextPanel.vue';
-import { useSelectedBlockRect } from '@/pages/PageDesigner/composables/useSelectedBlockRect';
+import { useDesignerColors } from '@/pages/PageDesigner/composables/useDesignerColors';
+import { useDesignerDraft } from '@/pages/PageDesigner/composables/useDesignerDraft';
+import { useDesignerFonts } from '@/pages/PageDesigner/composables/useDesignerFonts';
 import { useDesignerMode } from '@/pages/PageDesigner/composables/useDesignerMode';
 import { useDesignerOnboarding } from '@/pages/PageDesigner/composables/useDesignerOnboarding';
+import { useDesignerPages } from '@/pages/PageDesigner/composables/useDesignerPages';
 
 export type TemplatePageFromSite = {
     id: number;
@@ -144,6 +137,13 @@ function cleanLayoutTree(entries: LayoutComponentEntry[]): LayoutComponentEntry[
 }
 
 import type { PageSlug } from '@/pages/PageDesigner/composables/useDesignerPages';
+import { useDesignerSave } from '@/pages/PageDesigner/composables/useDesignerSave';
+import { useSelectedBlockRect } from '@/pages/PageDesigner/composables/useSelectedBlockRect';
+import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
+import PraxisemeraldLayoutComponentContextPanel from '@/templates/praxisemerald/LayoutComponentContextPanel.vue';
+import { getTemplateEntry } from '@/templates/template-registry';
+import type { LayoutComponentEntry, LayoutComponentType } from '@/types/layout-components';
+import type { SitePageData, SitePageDataColors } from '@/types/site-page-data';
 export type { PageSlug };
 
 export function useDesignerStore(props: DesignerProps) {
@@ -531,7 +531,7 @@ export function useDesignerStore(props: DesignerProps) {
         const key = slug ?? '__default__';
         let comp = layoutComponentCache.get(key);
         if (!comp) {
-            comp = defineAsyncComponent(e.Layout as () => Promise<{ default: import('vue').Component }>);
+            comp = defineAsyncComponent(e.Layout as () => Promise<{ default: Component }>);
             layoutComponentCache.set(key, comp);
         }
         return comp;

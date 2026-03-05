@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import images from '@/routes/sites/images';
+import { Download, Eye, Copy, Trash2, MoreVertical, Pencil, Upload, Check } from 'lucide-vue-next';
+import { ref, watch, inject } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -14,10 +15,9 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import MediaLibraryLightbox from '@/templates/praxisemerald/MediaLibraryLightbox.vue';
+import images from '@/routes/sites/images';
 import ImageEditorModal from '@/templates/praxisemerald/ImageEditorModal.vue';
-import { ref, watch, inject } from 'vue';
-import { Download, Eye, Copy, Trash2, MoreVertical, Pencil, Upload, Check } from 'lucide-vue-next';
+import MediaLibraryLightbox from '@/templates/praxisemerald/MediaLibraryLightbox.vue';
 
 const props = withDefaults(
     defineProps<{

@@ -1,5 +1,5 @@
-import type { LayoutComponentEntry, LayoutComponentType } from '@/types/layout-components';
 import { acceptsChildren as defaultAcceptsChildren } from '@/templates/praxisemerald/combined-registry';
+import type { LayoutComponentEntry, LayoutComponentType } from '@/types/layout-components';
 
 export interface FlatEntry {
     entry: LayoutComponentEntry;

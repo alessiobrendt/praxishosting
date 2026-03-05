@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import * as LucideIcons from 'lucide-vue-next';
-import { Input } from '@/components/ui/input';
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { ref, computed, nextTick, watch } from 'vue';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ref, computed, nextTick, watch } from 'vue';
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { Input } from '@/components/ui/input';
 
 const icons = LucideIcons as unknown as Record<string, (typeof LucideIcons)['Stethoscope']>;
 
