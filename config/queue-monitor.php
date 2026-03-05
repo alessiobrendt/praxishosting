@@ -28,7 +28,7 @@ return [
         // Accepts route group configuration
         'route' => [
             'prefix' => 'jobs',
-            'middleware' => ['admin'],
+            'middleware' => ['web', 'auth', 'admin'],
         ],
 
         // Set the monitored jobs count to be displayed per page.
