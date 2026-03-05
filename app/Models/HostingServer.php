@@ -67,4 +67,12 @@ class HostingServer extends Model
     {
         return $this->hasMany(GameServerAccount::class, 'hosting_server_id');
     }
+
+    /**
+     * @return HasMany<TeamSpeakServerAccount>
+     */
+    public function teamSpeakServerAccounts(): HasMany
+    {
+        return $this->hasMany(TeamSpeakServerAccount::class, 'hosting_server_id');
+    }
 }

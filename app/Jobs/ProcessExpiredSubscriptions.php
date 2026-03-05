@@ -6,15 +6,19 @@ use App\Models\CronDailyStats;
 use App\Models\GameServerAccount;
 use App\Models\Setting;
 use App\Models\SiteSubscription;
+use App\Models\TeamSpeakServerAccount;
 use App\Models\WebspaceAccount;
 use App\Notifications\GameServerDeletedAfterGraceNotification;
 use App\Notifications\GameServerSuspendedNotification;
 use App\Notifications\SiteDeletedAfterGraceNotification;
 use App\Notifications\SiteSuspendedNotification;
+use App\Notifications\TeamSpeakDeletedAfterGraceNotification;
+use App\Notifications\TeamSpeakSuspendedNotification;
 use App\Notifications\WebspaceDeactivatedNotification;
 use App\Notifications\WebspaceDeletedAfterGraceNotification;
 use App\Services\ControlPanels\PleskClient;
 use App\Services\ControlPanels\PterodactylClient;
+use App\Services\ControlPanels\TeamSpeakClient;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Carbon;
@@ -42,6 +46,7 @@ class ProcessExpiredSubscriptions implements ShouldQueue
         $this->processSiteSubscriptions($now, $gracePeriodDays, $graceCutoff);
         $this->processWebspaceAccounts($now, $graceCutoff);
         $this->processGameServerAccounts($now, $graceCutoff);
+        $this->processTeamSpeakServerAccounts($now, $graceCutoff);
     }
 
     protected function processSiteSubscriptions(Carbon $now, int $gracePeriodDays, Carbon $graceCutoff): void
@@ -233,6 +238,82 @@ class ProcessExpiredSubscriptions implements ShouldQueue
             }
             $account->delete();
             $user?->notify(new GameServerDeletedAfterGraceNotification($name));
+        }
+
+        if ($toTerminate->isNotEmpty()) {
+            CronDailyStats::incrementMetric('services_terminated', $toTerminate->count());
+        }
+    }
+
+    protected function processTeamSpeakServerAccounts(Carbon $now, Carbon $graceCutoff): void
+    {
+        $toSuspend = TeamSpeakServerAccount::query()
+            ->with('user', 'hostingServer')
+            ->where('status', 'active')
+            ->whereNotNull('current_period_ends_at')
+            ->where('current_period_ends_at', '<', $now)
+            ->get();
+
+        if ($toSuspend->isNotEmpty()) {
+            Log::info('ProcessExpiredSubscriptions: TeamSpeak servers to suspend', [
+                'count' => $toSuspend->count(),
+                'ids' => $toSuspend->pluck('id')->all(),
+            ]);
+        }
+
+        foreach ($toSuspend as $account) {
+            if ($account->hostingServer && $account->virtual_server_id !== null) {
+                try {
+                    $client = app(TeamSpeakClient::class);
+                    $client->setServer($account->hostingServer);
+                    $client->stopVirtualServer((int) $account->virtual_server_id);
+                } catch (\Throwable $e) {
+                    Log::warning('ProcessExpiredSubscriptions: TeamSpeak server stop failed', [
+                        'team_speak_server_account_id' => $account->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+            $account->update(['status' => 'suspended']);
+            $account->user?->notify(new TeamSpeakSuspendedNotification($account));
+        }
+
+        if ($toSuspend->isNotEmpty()) {
+            CronDailyStats::incrementMetric('services_suspended', $toSuspend->count());
+        }
+
+        $toTerminate = TeamSpeakServerAccount::query()
+            ->with('user', 'hostingServer')
+            ->where('status', 'suspended')
+            ->whereNotNull('current_period_ends_at')
+            ->where('current_period_ends_at', '<', $graceCutoff->format('Y-m-d H:i:s'))
+            ->get();
+
+        if ($toTerminate->isNotEmpty()) {
+            Log::info('ProcessExpiredSubscriptions: TeamSpeak servers to terminate (after grace)', [
+                'count' => $toTerminate->count(),
+                'ids' => $toTerminate->pluck('id')->all(),
+                'grace_cutoff' => $graceCutoff->toIso8601String(),
+            ]);
+        }
+
+        foreach ($toTerminate as $account) {
+            $name = $account->name;
+            $user = $account->user;
+            if ($account->hostingServer && $account->virtual_server_id !== null) {
+                try {
+                    $client = app(TeamSpeakClient::class);
+                    $client->setServer($account->hostingServer);
+                    $client->deleteVirtualServer((int) $account->virtual_server_id);
+                } catch (\Throwable $e) {
+                    Log::warning('ProcessExpiredSubscriptions: TeamSpeak server delete failed', [
+                        'team_speak_server_account_id' => $account->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+            $account->delete();
+            $user?->notify(new TeamSpeakDeletedAfterGraceNotification($name));
         }
 
         if ($toTerminate->isNotEmpty()) {

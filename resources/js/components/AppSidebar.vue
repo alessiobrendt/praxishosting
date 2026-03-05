@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     BookOpen,
     Folder,
+    Headphones,
     LayoutGrid,
     Globe,
     LayoutList,
@@ -34,6 +35,7 @@ import AppLogo from './AppLogo.vue';
 
 const page = usePage();
 const isAdmin = computed(() => (page.props.auth?.user as { is_admin?: boolean })?.is_admin ?? false);
+const brandFeatures = computed(() => (page.props.brandFeatures as Record<string, boolean>) ?? {});
 
 const mainNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -42,6 +44,12 @@ const mainNavItems = computed<NavItem[]>(() => {
         { title: 'Webspace', href: '/webspace', icon: Server },
         { title: 'Meine Webspace-Accounts', href: '/webspace-accounts', icon: Package },
     ];
+    if (brandFeatures.value.teamspeak === true) {
+        items.push(
+            { title: 'TeamSpeak', href: '/teamspeak', icon: Headphones },
+            { title: 'Meine TeamSpeak-Server', href: '/teamspeak-accounts', icon: Headphones },
+        );
+    }
     if (isAdmin.value) {
         items.push(
             { title: 'Templates', href: adminTemplatesIndex().url, icon: LayoutGrid },

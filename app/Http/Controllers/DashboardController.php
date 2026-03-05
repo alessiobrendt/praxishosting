@@ -8,6 +8,7 @@ use App\Models\GameServerAccount;
 use App\Models\Invoice;
 use App\Models\ResellerDomain;
 use App\Models\Site;
+use App\Models\TeamSpeakServerAccount;
 use App\Models\Ticket;
 use App\Models\UserEmailLog;
 use App\Models\WebspaceAccount;
@@ -191,6 +192,12 @@ class DashboardController extends Controller
                 ->where('status', 'active')
                 ->count();
         }
+        if ($brandFeatures['teamspeak'] ?? false) {
+            $count += TeamSpeakServerAccount::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'active')
+                ->count();
+        }
 
         return $count;
     }
@@ -262,6 +269,22 @@ class DashboardController extends Controller
                     'name' => $name,
                     'url' => route('gaming-accounts.show', $acc),
                     'type' => 'gaming',
+                ];
+            }
+        }
+
+        if ($brandFeatures['teamspeak'] ?? false) {
+            $teamSpeakServers = TeamSpeakServerAccount::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'active')
+                ->with('hostingPlan:id,name')
+                ->get(['id', 'name', 'hosting_plan_id']);
+            foreach ($teamSpeakServers as $acc) {
+                $name = $acc->name ?: $acc->hostingPlan?->name ?: 'TeamSpeak-Server';
+                $list[] = [
+                    'name' => $name,
+                    'url' => route('teamspeak-accounts.show', $acc),
+                    'type' => 'teamspeak',
                 ];
             }
         }

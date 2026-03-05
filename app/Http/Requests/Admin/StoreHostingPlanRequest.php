@@ -21,8 +21,8 @@ class StoreHostingPlanRequest extends FormRequest
     {
         $rules = [
             'brand_id' => ['nullable', 'exists:brands,id'],
-            'hosting_server_id' => ['required_if:panel_type,pterodactyl', 'nullable', 'exists:hosting_servers,id'],
-            'panel_type' => ['required', 'string', 'in:plesk,pterodactyl'],
+            'hosting_server_id' => ['required_if:panel_type,pterodactyl', 'required_if:panel_type,teamspeak', 'nullable', 'exists:hosting_servers,id'],
+            'panel_type' => ['required', 'string', 'in:plesk,pterodactyl,teamspeak'],
             'config' => ['nullable', 'array'],
             'name' => ['required', 'string', 'max:255'],
             'plesk_package_name' => ['required_if:panel_type,plesk', 'nullable', 'string', 'max:255'],

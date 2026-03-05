@@ -63,11 +63,16 @@ type Props = {
     hostingPlan: HostingPlan;
     allowedPanelTypes: PanelTypeOption[];
     pterodactylHostingServers: PterodactylServer[];
+    teamspeakHostingServers: PterodactylServer[];
     availableOptionIdsPterodactyl: AvailableOptionId[];
     availableOptionIdsPlesk: AvailableOptionId[];
+    availableOptionIdsTeamspeak: AvailableOptionId[];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    teamspeakHostingServers: () => [],
+    availableOptionIdsTeamspeak: () => [],
+});
 
 function normalizePlanOptions(raw: unknown): PlanOption[] {
     if (!Array.isArray(raw)) return [];
@@ -141,9 +146,12 @@ const pterodactylOptions = ref<{
 
 const showPleskFields = computed(() => panelType.value === 'plesk');
 const showPterodactylFields = computed(() => panelType.value === 'pterodactyl');
+const showTeamspeakFields = computed(() => panelType.value === 'teamspeak');
 
 const availableOptionIds = computed((): AvailableOptionId[] => {
-    return panelType.value === 'pterodactyl' ? props.availableOptionIdsPterodactyl : props.availableOptionIdsPlesk;
+    if (panelType.value === 'pterodactyl') return props.availableOptionIdsPterodactyl;
+    if (panelType.value === 'teamspeak') return props.availableOptionIdsTeamspeak;
+    return props.availableOptionIdsPlesk;
 });
 
 const planOptions = computed({
@@ -331,6 +339,31 @@ const breadcrumbs: BreadcrumbItem[] = [
                             />
                             <InputError :message="errors.plesk_package_name" />
                         </div>
+                        <template v-if="showTeamspeakFields">
+                            <input type="hidden" name="plesk_package_name" value="" />
+                            <div class="space-y-2">
+                                <Label for="hosting_server_id_ts" class="mb-0">Panel-Server (TeamSpeak) *</Label>
+                                <Select
+                                    id="hosting_server_id_ts"
+                                    name="hosting_server_id"
+                                    v-model="hostingServerId"
+                                    :aria-invalid="!!errors.hosting_server_id"
+                                >
+                                    <option value="">Bitte wählen</option>
+                                    <option
+                                        v-for="s in teamspeakHostingServers"
+                                        :key="s.id"
+                                        :value="String(s.id)"
+                                    >
+                                        {{ s.name }} ({{ s.hostname }})
+                                    </option>
+                                </Select>
+                                <InputError :message="errors.hosting_server_id" />
+                                <p class="text-sm text-muted-foreground">
+                                    Option „Slots“ als Bereichs-Slider in den Paket-Optionen verwenden.
+                                </p>
+                            </div>
+                        </template>
                         <template v-if="showPterodactylFields">
                             <input type="hidden" name="plesk_package_name" value="" />
                             <div class="space-y-2">

@@ -158,6 +158,16 @@ class User extends Authenticatable
     }
 
     /**
+     * TeamSpeak server accounts owned by this user.
+     *
+     * @return HasMany<TeamSpeakServerAccount>
+     */
+    public function teamSpeakServerAccounts(): HasMany
+    {
+        return $this->hasMany(TeamSpeakServerAccount::class);
+    }
+
+    /**
      * Sites this user can edit as a collaborator.
      *
      * @return BelongsToMany<Site>

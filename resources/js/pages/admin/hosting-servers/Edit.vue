@@ -51,6 +51,7 @@ watch(
 );
 const showPleskFields = computed(() => panelType.value === 'plesk');
 const showPterodactylFields = computed(() => panelType.value === 'pterodactyl');
+const showTeamspeakFields = computed(() => panelType.value === 'teamspeak');
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -75,7 +76,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <CardHeader>
                     <CardTitle>Server-Details</CardTitle>
                     <CardDescription>
-                    Panel-Typ, Hostname und API-Zugang. Plesk: REST API. Pterodactyl: Application API.
+                    Panel-Typ, Hostname und API-Zugang. Plesk: REST API. Pterodactyl: Application API. TeamSpeak: Query-Adresse, Benutzer, Passwort und Port-Range.
                 </CardDescription>
                 </CardHeader>
                 <Form
@@ -142,6 +143,86 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <InputError :message="errors['config.client_api_key']" />
                             </div>
                         </template>
+                        <template v-if="showTeamspeakFields">
+                            <div class="space-y-2">
+                                <Label for="config_host">IP-Adresse / Host *</Label>
+                                <Input
+                                    id="config_host"
+                                    name="config[host]"
+                                    :model-value="config.host ?? ''"
+                                    placeholder="z. B. 77.90.15.7"
+                                    :aria-invalid="!!errors['config.host']"
+                                />
+                                <InputError :message="errors['config.host']" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="config_query_port">Query-Port *</Label>
+                                <Input
+                                    id="config_query_port"
+                                    name="config[query_port]"
+                                    type="number"
+                                    min="1"
+                                    max="65535"
+                                    :model-value="config.query_port != null ? String(config.query_port) : ''"
+                                    placeholder="10223"
+                                    :aria-invalid="!!errors['config.query_port']"
+                                />
+                                <InputError :message="errors['config.query_port']" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="config_username">Benutzername *</Label>
+                                <Input
+                                    id="config_username"
+                                    name="config[username]"
+                                    :model-value="config.username ?? ''"
+                                    placeholder="serveradmin"
+                                    :aria-invalid="!!errors['config.username']"
+                                />
+                                <InputError :message="errors['config.username']" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="config_password">Passwort</Label>
+                                <Input
+                                    id="config_password"
+                                    name="config[password]"
+                                    type="password"
+                                    :model-value="config.password ?? ''"
+                                    placeholder="Leer lassen um beizubehalten"
+                                    :aria-invalid="!!errors['config.password']"
+                                />
+                                <InputError :message="errors['config.password']" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <Label for="config_port_range_min">Port-Range von *</Label>
+                                    <Input
+                                        id="config_port_range_min"
+                                        name="config[port_range_min]"
+                                        type="number"
+                                        min="1"
+                                        max="65535"
+                                        :model-value="config.port_range_min != null ? String(config.port_range_min) : ''"
+                                        placeholder="10072"
+                                        :aria-invalid="!!errors['config.port_range_min']"
+                                    />
+                                    <InputError :message="errors['config.port_range_min']" />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="config_port_range_max">Port-Range bis *</Label>
+                                    <Input
+                                        id="config_port_range_max"
+                                        name="config[port_range_max]"
+                                        type="number"
+                                        min="1"
+                                        max="65535"
+                                        :model-value="config.port_range_max != null ? String(config.port_range_max) : ''"
+                                        placeholder="10221"
+                                        :aria-invalid="!!errors['config.port_range_max']"
+                                    />
+                                    <InputError :message="errors['config.port_range_max']" />
+                                </div>
+                            </div>
+                        </template>
                         <div class="space-y-2">
                             <Label for="name">Name (optional)</Label>
                             <Input
@@ -152,13 +233,24 @@ const breadcrumbs: BreadcrumbItem[] = [
                             />
                             <InputError :message="errors.name" />
                         </div>
-                        <div class="space-y-2">
+                        <div v-if="!showTeamspeakFields" class="space-y-2">
                             <Label for="hostname">Hostname *</Label>
                             <Input
                                 id="hostname"
                                 name="hostname"
                                 required
                                 :model-value="hostingServer.hostname"
+                                :aria-invalid="!!errors.hostname"
+                            />
+                            <InputError :message="errors.hostname" />
+                        </div>
+                        <div v-if="showTeamspeakFields" class="space-y-2">
+                            <Label for="hostname">Hostname (optional)</Label>
+                            <Input
+                                id="hostname"
+                                name="hostname"
+                                :model-value="hostingServer.hostname"
+                                placeholder="z. B. TeamSpeak Node 1"
                                 :aria-invalid="!!errors.hostname"
                             />
                             <InputError :message="errors.hostname" />

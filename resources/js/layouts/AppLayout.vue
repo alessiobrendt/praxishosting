@@ -8,6 +8,7 @@ import {
     MessageCircle,
     PackageCheck,
     HardDrive,
+    Headphones,
     LogOut,
     User,
     HelpCircle,
@@ -133,6 +134,18 @@ const sidebarItems = computed<NavItem[]>(() => {
                       children: [
                           { title: 'Gameserver bestellen', href: '/gaming/checkout', icon: Package },
                           { title: 'Deine Gameserver', href: '/gaming-accounts', icon: HardDrive },
+                      ],
+                  },
+              ]
+            : []),
+        ...(brandFeatures.value.teamspeak === true
+            ? [
+                  {
+                      title: 'TeamSpeak-Server',
+                      icon: Headphones,
+                      children: [
+                          { title: 'TeamSpeak-Server mieten', href: '/teamspeak', icon: Package },
+                          { title: 'Deine TeamSpeak-Server', href: '/teamspeak-accounts', icon: Headphones },
                       ],
                   },
               ]

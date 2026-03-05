@@ -51,6 +51,8 @@ function displayStatus(overview: ServerOverview | null, fallbackStatus: string):
         const s = overview.status.toLowerCase();
         if (s === 'running' || s === 'started') return 'Online';
         if (s === 'stopped' || s === 'offline') return 'Offline';
+        if (s === 'stopping') return 'Wird gestoppt …';
+        if (s === 'starting') return 'Wird gestartet …';
         return overview.status;
     }
     return fallbackStatus;
@@ -60,6 +62,7 @@ function statusVariant(overview: ServerOverview | null, fallbackStatus: string):
     if (overview?.suspended) return 'error';
     const s = overview?.status?.toLowerCase() ?? fallbackStatus?.toLowerCase();
     if (s === 'running' || s === 'started') return 'success';
+    if (s === 'stopping' || s === 'starting') return 'default';
     return 'default';
 }
 </script>

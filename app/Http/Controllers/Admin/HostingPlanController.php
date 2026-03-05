@@ -68,6 +68,18 @@ class HostingPlanController extends Controller
         ];
     }
 
+    /**
+     * Option IDs available for plan_options when panel_type is teamspeak.
+     *
+     * @return array<int, array{value: string, label: string}>
+     */
+    protected static function availableOptionIdsTeamspeak(): array
+    {
+        return [
+            ['value' => 'slots', 'label' => 'Slots'],
+        ];
+    }
+
     protected function currentBrand(Request $request): ?Brand
     {
         $brand = $request->attributes->get('current_brand');
@@ -170,6 +182,10 @@ class HostingPlanController extends Controller
         if ($gamingEnabled) {
             $allowedPanelTypes[] = ['value' => 'pterodactyl', 'label' => 'Pterodactyl'];
         }
+        $teamspeakEnabled = ($brandFeatures['teamspeak'] ?? false) || ($brandFeatures['gaming'] ?? false);
+        if ($teamspeakEnabled) {
+            $allowedPanelTypes[] = ['value' => 'teamspeak', 'label' => 'TeamSpeak'];
+        }
         if (empty($allowedPanelTypes)) {
             $allowedPanelTypes[] = ['value' => 'plesk', 'label' => 'Plesk'];
         }
@@ -181,11 +197,20 @@ class HostingPlanController extends Controller
             ->get(['id', 'name', 'hostname'])
             ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name ?? $s->hostname, 'hostname' => $s->hostname]);
 
+        $teamspeakHostingServers = HostingServer::query()
+            ->where('panel_type', 'teamspeak')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'hostname'])
+            ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name ?? $s->hostname, 'hostname' => $s->hostname]);
+
         return Inertia::render('admin/hosting-plans/Create', [
             'allowedPanelTypes' => $allowedPanelTypes,
             'pterodactylHostingServers' => $pterodactylHostingServers,
+            'teamspeakHostingServers' => $teamspeakHostingServers,
             'availableOptionIdsPterodactyl' => static::availableOptionIdsPterodactyl(),
             'availableOptionIdsPlesk' => static::availableOptionIdsPlesk(),
+            'availableOptionIdsTeamspeak' => static::availableOptionIdsTeamspeak(),
         ]);
     }
 
@@ -204,12 +229,23 @@ class HostingPlanController extends Controller
             } else {
                 $data['hosting_server_id'] = null;
             }
+        } elseif (($data['panel_type'] ?? '') === 'teamspeak') {
+            $serverId = $data['hosting_server_id'] ?? null;
+            if ($serverId && HostingServer::where('id', $serverId)->where('panel_type', 'teamspeak')->exists()) {
+                $data['hosting_server_id'] = $serverId;
+            } else {
+                $data['hosting_server_id'] = null;
+            }
         } else {
             $data['hosting_server_id'] = null;
         }
         $plan = HostingPlan::query()->create($data);
 
-        $productType = ($plan->panel_type ?? 'plesk') === 'pterodactyl' ? 'game_server' : 'webspace';
+        $productType = match ($plan->panel_type ?? 'plesk') {
+            'pterodactyl' => 'game_server',
+            'teamspeak' => 'teamspeak',
+            default => 'webspace',
+        };
         $plan->product()->create([
             'brand_id' => $plan->brand_id,
             'name' => $plan->name,
@@ -249,6 +285,10 @@ class HostingPlanController extends Controller
         if ($gamingEnabled) {
             $allowedPanelTypes[] = ['value' => 'pterodactyl', 'label' => 'Pterodactyl'];
         }
+        $teamspeakEnabled = ($brandFeatures['teamspeak'] ?? false) || ($brandFeatures['gaming'] ?? false);
+        if ($teamspeakEnabled) {
+            $allowedPanelTypes[] = ['value' => 'teamspeak', 'label' => 'TeamSpeak'];
+        }
         if (empty($allowedPanelTypes)) {
             $allowedPanelTypes[] = ['value' => 'plesk', 'label' => 'Plesk'];
         }
@@ -260,12 +300,21 @@ class HostingPlanController extends Controller
             ->get(['id', 'name', 'hostname'])
             ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name ?? $s->hostname, 'hostname' => $s->hostname]);
 
+        $teamspeakHostingServers = HostingServer::query()
+            ->where('panel_type', 'teamspeak')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'hostname'])
+            ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name ?? $s->hostname, 'hostname' => $s->hostname]);
+
         return Inertia::render('admin/hosting-plans/Edit', [
             'hostingPlan' => $hostingPlan,
             'allowedPanelTypes' => $allowedPanelTypes,
             'pterodactylHostingServers' => $pterodactylHostingServers,
+            'teamspeakHostingServers' => $teamspeakHostingServers,
             'availableOptionIdsPterodactyl' => static::availableOptionIdsPterodactyl(),
             'availableOptionIdsPlesk' => static::availableOptionIdsPlesk(),
+            'availableOptionIdsTeamspeak' => static::availableOptionIdsTeamspeak(),
         ]);
     }
 
@@ -281,14 +330,26 @@ class HostingPlanController extends Controller
             } else {
                 $data['hosting_server_id'] = null;
             }
+        } elseif (($data['panel_type'] ?? '') === 'teamspeak') {
+            $serverId = $data['hosting_server_id'] ?? null;
+            if ($serverId && HostingServer::where('id', $serverId)->where('panel_type', 'teamspeak')->exists()) {
+                $data['hosting_server_id'] = $serverId;
+            } else {
+                $data['hosting_server_id'] = null;
+            }
         } else {
             $data['hosting_server_id'] = null;
         }
         $hostingPlan->update($data);
 
+        $productType = match ($hostingPlan->panel_type ?? 'plesk') {
+            'pterodactyl' => 'game_server',
+            'teamspeak' => 'teamspeak',
+            default => 'webspace',
+        };
         $hostingPlan->product?->update([
             'name' => $hostingPlan->name,
-            'type' => ($hostingPlan->panel_type ?? 'plesk') === 'pterodactyl' ? 'game_server' : 'webspace',
+            'type' => $productType,
             'is_active' => $hostingPlan->is_active,
             'sort_order' => $hostingPlan->sort_order,
         ]);

@@ -93,6 +93,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | TeamSpeak Cost per Slot (Admin-Kennzahlen)
+    |--------------------------------------------------------------------------
+    |
+    | Deine monatlichen Kosten pro Slot in EUR für die Gewinnberechnung im
+    | Admin (Hosting-Server-Detail bei TeamSpeak-Nodes).
+    |
+    */
+
+    'teamspeak_cost_per_slot_per_month' => (float) env('TEAMSPEAK_COST_PER_SLOT_PER_MONTH', 0.12),
+
+    /*
+    |--------------------------------------------------------------------------
     | Mollie Payment Method Labels (DE)
     |--------------------------------------------------------------------------
     |

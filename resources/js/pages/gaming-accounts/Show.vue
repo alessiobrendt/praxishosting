@@ -166,6 +166,8 @@ function displayStatus(overview: ServerOverview | null): string {
         const s = overview.status.toLowerCase();
         if (s === 'running' || s === 'started') return 'Online';
         if (s === 'stopped' || s === 'offline') return 'Offline';
+        if (s === 'stopping') return 'Wird gestoppt …';
+        if (s === 'starting') return 'Wird gestartet …';
         return overview.status;
     }
     return props.gameServerAccount.status;
@@ -175,6 +177,7 @@ function statusVariant(overview: ServerOverview | null): 'success' | 'default' |
     if (overview?.suspended) return 'error';
     const s = overview?.status?.toLowerCase() ?? props.gameServerAccount.status?.toLowerCase();
     if (s === 'running' || s === 'started') return 'success';
+    if (s === 'stopping' || s === 'starting') return 'default';
     return 'default';
 }
 
@@ -195,15 +198,24 @@ watch(
 
 function sendPower(action: 'start' | 'stop' | 'restart') {
     powerLoading.value = action;
+    // Optimistisch Status setzen, damit nicht weiter „Online“ angezeigt wird
+    const previousOverview = liveOverview.value ?? props.serverOverview;
+    if (previousOverview && (action === 'stop' || action === 'restart')) {
+        liveOverview.value = { ...previousOverview, status: 'stopping' };
+    } else if (previousOverview && action === 'start') {
+        liveOverview.value = { ...previousOverview, status: 'starting' };
+    }
     router.post(`/gaming-accounts/${props.gameServerAccount.id}/power`, { action }, {
         preserveScroll: true,
         onSuccess: () => {
             notify.success('Befehl gesendet.');
             powerLoading.value = null;
+            fetchOverview();
         },
         onError: (errors) => {
             notify.error(errors?.action ?? 'Aktion fehlgeschlagen.');
             powerLoading.value = null;
+            liveOverview.value = props.serverOverview ?? null;
         },
         onFinish: () => {
             powerLoading.value = null;

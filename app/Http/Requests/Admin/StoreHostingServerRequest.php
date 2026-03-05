@@ -28,14 +28,14 @@ class StoreHostingServerRequest extends FormRequest
     {
         $rules = [
             'brand_id' => ['nullable', 'exists:brands,id'],
-            'panel_type' => ['required', 'string', 'in:plesk,pterodactyl'],
+            'panel_type' => ['required', 'string', 'in:plesk,pterodactyl,teamspeak'],
             'config' => ['nullable', 'array'],
             'name' => ['nullable', 'string', 'max:255'],
-            'hostname' => ['required', 'string', 'max:255'],
+            'hostname' => ['required_unless:panel_type,teamspeak', 'nullable', 'string', 'max:255'],
             'port' => ['nullable', 'integer', 'min:1', 'max:65535'],
             'use_ssl' => ['boolean'],
             'ip_address' => ['nullable', 'string', 'max:45'],
-            'api_token' => ['required_unless:panel_type,pterodactyl', 'nullable', 'string'],
+            'api_token' => ['required_unless:panel_type,pterodactyl', 'required_unless:panel_type,teamspeak', 'nullable', 'string'],
             'api_username' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
         ];
@@ -43,6 +43,14 @@ class StoreHostingServerRequest extends FormRequest
             $rules['config.base_uri'] = ['required', 'string', 'max:500'];
             $rules['config.api_key'] = ['required', 'string'];
             $rules['config.client_api_key'] = ['nullable', 'string'];
+        }
+        if ($this->input('panel_type') === 'teamspeak') {
+            $rules['config.host'] = ['required', 'string', 'max:255'];
+            $rules['config.query_port'] = ['required', 'integer', 'min:1', 'max:65535'];
+            $rules['config.username'] = ['required', 'string', 'max:255'];
+            $rules['config.password'] = ['required', 'string'];
+            $rules['config.port_range_min'] = ['required', 'integer', 'min:1', 'max:65535'];
+            $rules['config.port_range_max'] = ['required', 'integer', 'min:1', 'max:65535', 'gte:config.port_range_min'];
         }
 
         return $rules;

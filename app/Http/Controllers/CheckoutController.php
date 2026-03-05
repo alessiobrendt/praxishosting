@@ -9,12 +9,14 @@ use App\Models\HostingServer;
 use App\Models\Invoice;
 use App\Models\Site;
 use App\Models\SiteSubscription;
+use App\Models\TeamSpeakServerAccount;
 use App\Models\Template;
 use App\Models\WebspaceAccount;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\WebspaceOrderCompletedNotification;
 use App\Services\ControlPanels\PleskClient;
 use App\Services\ControlPanels\PterodactylClient;
+use App\Services\ControlPanels\TeamSpeakClient;
 use App\Services\InvoiceEInvoiceService;
 use App\Services\InvoicePdfService;
 use App\Support\MollieWebhookUrl;
@@ -43,6 +45,11 @@ class CheckoutController extends Controller
         $gamingPayload = $request->session()->get('checkout_gaming');
         if ($gamingPayload && isset($gamingPayload['hosting_plan_id'], $gamingPayload['user_id'])) {
             return $this->buildGamingCheckoutRedirect($request, $gamingPayload);
+        }
+
+        $teamspeakPayload = $request->session()->get('checkout_teamspeak');
+        if ($teamspeakPayload && isset($teamspeakPayload['hosting_plan_id'], $teamspeakPayload['user_id'])) {
+            return $this->buildTeamSpeakCheckoutRedirect($request, $teamspeakPayload);
         }
 
         $payload = $request->session()->get('checkout_meine_seiten');
@@ -201,6 +208,12 @@ class CheckoutController extends Controller
             }
             if ($type === 'game_server') {
                 return $this->handleGamingCheckoutSuccessFromMollie($request, $user, $metadata);
+            }
+            if ($type === 'teamspeak') {
+                return $this->handleTeamSpeakCheckoutSuccessFromMollie($request, $user, $metadata);
+            }
+            if ($type === 'teamspeak_renewal') {
+                return $this->handleTeamSpeakRenewalSuccessFromMollie($request, $user, $metadata);
             }
             if ($type === 'webspace_renewal') {
                 return $this->handleWebspaceRenewalSuccessFromMollie($request, $user, $metadata);
@@ -389,6 +402,92 @@ class CheckoutController extends Controller
             report($e);
 
             return redirect()->route('gaming.checkout', ['plan' => $plan->id])
+                ->with('error', $this->getCheckoutErrorMessage($e));
+        }
+    }
+
+    /**
+     * Build Mollie Checkout for TeamSpeak server and return redirect.
+     */
+    public function buildTeamSpeakCheckoutRedirect(Request $request, array $payload): RedirectResponse|InertiaResponse
+    {
+        if (! $this->isMollieConfigured()) {
+            $request->session()->forget('checkout_teamspeak');
+
+            return redirect()->route('teamspeak.index')->with('error', 'Mollie ist nicht konfiguriert. Bitte MOLLIE_KEY in der .env setzen (test_… oder live_…, mind. 30 Zeichen).');
+        }
+
+        $user = $request->user();
+        $plan = HostingPlan::find($payload['hosting_plan_id'] ?? 0);
+        if (! $plan || ! $plan->is_active || $plan->panel_type !== 'teamspeak') {
+            $request->session()->forget('checkout_teamspeak');
+
+            return redirect()->route('teamspeak.index')->with('error', 'Paket nicht gefunden oder inaktiv.');
+        }
+
+        $amount = $plan->price !== null ? (float) $plan->price : 0;
+        $optionSurcharge = (float) ($payload['option_surcharge'] ?? 0);
+        $amount += $optionSurcharge;
+        if ($amount <= 0) {
+            $request->session()->forget('checkout_teamspeak');
+
+            return redirect()->route('teamspeak.checkout', ['plan' => $plan->id])
+                ->with('error', 'Kein Preis für dieses Paket. Bitte im Admin unter Hosting-Pläne einen Preis angeben.');
+        }
+
+        $serverName = $payload['server_name'] ?? $plan->name.' #'.($user->teamSpeakServerAccounts()->count() + 1);
+        $optionChoices = $payload['option_choices'] ?? [];
+        $metadata = [
+            'type' => 'teamspeak',
+            'hosting_plan_id' => (string) $plan->id,
+            'user_id' => (string) $user->id,
+            'server_name' => $serverName,
+        ];
+        if (! empty($optionChoices)) {
+            $metadata['option_choices'] = json_encode($optionChoices);
+        }
+
+        $currency = strtoupper(config('cashier.currency', 'eur'));
+
+        try {
+            $mollie = app(MollieApiClient::class);
+            $params = [
+                'amount' => [
+                    'currency' => $currency,
+                    'value' => number_format($amount, 2, '.', ''),
+                ],
+                'description' => 'TeamSpeak-Server: '.$serverName,
+                'redirectUrl' => route('checkout.success'),
+                'metadata' => $metadata,
+            ];
+            if ($user->mollie_customer_id) {
+                $params['customerId'] = $user->mollie_customer_id;
+            }
+            $webhookUrl = MollieWebhookUrl::get();
+            if ($webhookUrl !== null) {
+                $params['webhookUrl'] = $webhookUrl;
+            }
+            $payment = $mollie->payments->create($params);
+            $request->session()->put('pending_mollie_payment_id', $payment->id);
+            $request->session()->forget('checkout_teamspeak');
+
+            $checkoutUrl = $payment->getCheckoutUrl();
+            if (! $checkoutUrl || ! str_starts_with($checkoutUrl, 'https://')) {
+                return redirect()->route('teamspeak.checkout', ['plan' => $plan->id])
+                    ->with('error', 'Mollie Checkout lieferte keine gültige Weiterleitungs-URL.');
+            }
+            $request->session()->put('mollie_checkout_redirect_url', $checkoutUrl);
+
+            return redirect()->route('checkout.redirect-to-mollie');
+        } catch (\Throwable $e) {
+            $request->session()->forget('checkout_teamspeak');
+            Log::error('Checkout TeamSpeak: Mollie-Fehler', [
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+            report($e);
+
+            return redirect()->route('teamspeak.checkout', ['plan' => $plan->id])
                 ->with('error', $this->getCheckoutErrorMessage($e));
         }
     }
@@ -759,6 +858,237 @@ class CheckoutController extends Controller
     }
 
     /**
+     * Create TeamSpeakServerAccount and virtual server after successful Mollie payment.
+     */
+    protected function handleTeamSpeakCheckoutSuccessFromMollie(Request $request, \App\Models\User $user, array $metadata): RedirectResponse
+    {
+        $planId = (int) ($metadata['hosting_plan_id'] ?? 0);
+        $userId = (int) ($metadata['user_id'] ?? 0);
+        $serverName = $metadata['server_name'] ?? $user->name.' TeamSpeak';
+        $molliePaymentId = $metadata['mollie_payment_id'] ?? null;
+        $periodEnd = now()->addMonth();
+
+        if ($userId !== $user->id || $planId < 1) {
+            Log::debug('Checkout success teamspeak: invalid metadata');
+
+            return redirect()->route('teamspeak-accounts.index')->with('error', 'Ungültige Abo-Daten.');
+        }
+
+        $existing = TeamSpeakServerAccount::where('mollie_payment_id', $molliePaymentId)
+            ->orWhere('mollie_subscription_id', $molliePaymentId)
+            ->first();
+        if ($existing) {
+            return redirect()->route('teamspeak-accounts.show', $existing->id)->with('success', 'Ihr TeamSpeak-Server ist aktiv.');
+        }
+
+        $plan = HostingPlan::find($planId);
+        if (! $plan || $plan->panel_type !== 'teamspeak') {
+            return redirect()->route('teamspeak.index')->with('error', 'Paket nicht gefunden.');
+        }
+
+        $server = null;
+        if ($plan->hosting_server_id) {
+            $server = HostingServer::query()
+                ->where('id', $plan->hosting_server_id)
+                ->where('is_active', true)
+                ->where('panel_type', 'teamspeak')
+                ->first();
+        }
+        if (! $server) {
+            $server = HostingServer::query()
+                ->where('is_active', true)
+                ->where('panel_type', 'teamspeak')
+                ->first();
+        }
+
+        $optionChoices = [];
+        if (! empty($metadata['option_choices'])) {
+            $decoded = json_decode($metadata['option_choices'], true);
+            if (is_array($decoded)) {
+                $optionChoices = $decoded;
+            }
+        }
+        $slots = (int) ($optionChoices['slots'] ?? 32);
+        if ($slots < 1) {
+            $slots = 32;
+        }
+
+        if (! $server) {
+            $account = $user->teamSpeakServerAccounts()->create([
+                'hosting_plan_id' => $plan->id,
+                'hosting_server_id' => null,
+                'product_id' => $plan->product?->id,
+                'name' => $serverName,
+                'status' => 'pending',
+                'mollie_subscription_id' => null,
+                'mollie_payment_id' => $molliePaymentId,
+                'current_period_ends_at' => $periodEnd,
+                'cancel_at_period_end' => false,
+                'ends_at' => null,
+                'renewal_type' => 'manual',
+                'option_values' => ! empty($optionChoices) ? $optionChoices : null,
+            ]);
+
+            return redirect()->route('teamspeak-accounts.show', $account->id)
+                ->with('error', 'Für dieses Paket ist kein TeamSpeak-Server zugewiesen. Bitte im Admin unter Hosting-Pakete einen Panel-Server angeben.');
+        }
+
+        $account = $user->teamSpeakServerAccounts()->create([
+            'hosting_plan_id' => $plan->id,
+            'hosting_server_id' => $server->id,
+            'product_id' => $plan->product?->id,
+            'name' => $serverName,
+            'status' => 'pending',
+            'mollie_subscription_id' => null,
+            'mollie_payment_id' => $molliePaymentId,
+            'current_period_ends_at' => $periodEnd,
+            'cancel_at_period_end' => false,
+            'ends_at' => null,
+            'renewal_type' => 'manual',
+            'option_values' => ! empty($optionChoices) ? $optionChoices : null,
+        ]);
+
+        $account->refresh();
+        if ($account->virtual_server_id !== null) {
+            return redirect()->route('teamspeak-accounts.show', $account->id)
+                ->with('success', 'Ihr TeamSpeak-Server ist bereits eingerichtet.');
+        }
+
+        try {
+            $ts = app(TeamSpeakClient::class);
+            $ts->setServer($server);
+            $config = $server->config ?? [];
+            $minPort = (int) ($config['port_range_min'] ?? 10072);
+            $maxPort = (int) ($config['port_range_max'] ?? 10221);
+            $port = $ts->getNextAvailablePort($minPort, $maxPort);
+            $created = $ts->createVirtualServer($serverName, $port, $slots);
+            $account->update([
+                'virtual_server_id' => $created['virtual_server_id'],
+                'port' => $created['port'],
+                'status' => 'active',
+            ]);
+            Log::debug('Checkout success teamspeak: virtual server created (Mollie)', ['account_id' => $account->id]);
+
+            return redirect()->route('teamspeak-accounts.show', $account->id)
+                ->with('success', 'Ihr TeamSpeak-Server wurde erfolgreich eingerichtet.');
+        } catch (\Throwable $e) {
+            Log::error('Checkout success teamspeak: createVirtualServer exception', [
+                'account_id' => $account->id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->route('teamspeak-accounts.show', $account->id)
+                ->with('error', 'Der TeamSpeak-Server konnte nicht automatisch angelegt werden: '.$e->getMessage().'. Bitte kontaktieren Sie uns.');
+        }
+    }
+
+    /**
+     * Build Mollie payment for TeamSpeak server renewal. Called from TeamSpeakAccountController.
+     */
+    public function buildTeamSpeakRenewRedirect(Request $request, TeamSpeakServerAccount $account, int $periodMonths): RedirectResponse|InertiaResponse
+    {
+        if (! $this->isMollieConfigured()) {
+            return redirect()->route('teamspeak-accounts.show', $account)
+                ->with('error', 'Mollie ist nicht konfiguriert.');
+        }
+
+        $plan = $account->hostingPlan;
+        if (! $plan || (float) $plan->price <= 0) {
+            return redirect()->route('teamspeak-accounts.show', $account)
+                ->with('error', 'Kein gültiger Preis für Verlängerung.');
+        }
+
+        $amount = (float) $plan->price * $periodMonths;
+        $user = $request->user();
+        $metadata = [
+            'type' => 'teamspeak_renewal',
+            'team_speak_server_account_id' => (string) $account->id,
+            'user_id' => (string) $user->id,
+            'period_months' => (string) $periodMonths,
+        ];
+        $currency = strtoupper(config('cashier.currency', 'eur'));
+
+        try {
+            $mollie = app(MollieApiClient::class);
+            $params = [
+                'amount' => [
+                    'currency' => $currency,
+                    'value' => number_format($amount, 2, '.', ''),
+                ],
+                'description' => 'TeamSpeak-Server Verlängerung: '.$account->name.' ('.$periodMonths.' Monat(e))',
+                'redirectUrl' => route('checkout.success'),
+                'metadata' => $metadata,
+            ];
+            if ($user->mollie_customer_id) {
+                $params['customerId'] = $user->mollie_customer_id;
+            }
+            $webhookUrl = MollieWebhookUrl::get();
+            if ($webhookUrl !== null) {
+                $params['webhookUrl'] = $webhookUrl;
+            }
+            $payment = $mollie->payments->create($params);
+            $request->session()->put('pending_mollie_payment_id', $payment->id);
+            $checkoutUrl = $payment->getCheckoutUrl();
+            if (! $checkoutUrl || ! str_starts_with($checkoutUrl, 'https://')) {
+                return redirect()->route('teamspeak-accounts.show', $account)
+                    ->with('error', 'Mollie Checkout lieferte keine gültige URL.');
+            }
+            $request->session()->put('mollie_checkout_redirect_url', $checkoutUrl);
+
+            return redirect()->route('checkout.redirect-to-mollie');
+        } catch (\Throwable $e) {
+            Log::error('TeamSpeak renew Mollie error', ['message' => $e->getMessage()]);
+            report($e);
+
+            return redirect()->route('teamspeak-accounts.show', $account)
+                ->with('error', $this->getCheckoutErrorMessage($e));
+        }
+    }
+
+    /**
+     * Handle successful Mollie payment for TeamSpeak server renewal.
+     */
+    protected function handleTeamSpeakRenewalSuccessFromMollie(Request $request, \App\Models\User $user, array $metadata): RedirectResponse
+    {
+        $accountId = (int) ($metadata['team_speak_server_account_id'] ?? 0);
+        $userId = (int) ($metadata['user_id'] ?? 0);
+        $periodMonths = max(1, min(12, (int) ($metadata['period_months'] ?? 1)));
+
+        if ($userId !== $user->id || $accountId < 1) {
+            Log::debug('Checkout success teamspeak renewal: invalid metadata');
+
+            return redirect()->route('teamspeak-accounts.index')->with('error', 'Ungültige Zahlungsdaten.');
+        }
+
+        $account = TeamSpeakServerAccount::find($accountId);
+        if (! $account || $account->user_id !== $user->id) {
+            return redirect()->route('teamspeak-accounts.index')->with('error', 'TeamSpeak-Server nicht gefunden.');
+        }
+
+        $from = $account->current_period_ends_at && $account->current_period_ends_at->isFuture()
+            ? $account->current_period_ends_at
+            : now();
+        $wasSuspended = $account->status === 'suspended';
+        $account->update([
+            'current_period_ends_at' => $from->copy()->addMonths($periodMonths),
+            'status' => 'active',
+        ]);
+        if ($wasSuspended && $account->hostingServer && $account->virtual_server_id) {
+            try {
+                $client = app(TeamSpeakClient::class);
+                $client->setServer($account->hostingServer);
+                $client->startVirtualServer($account->virtual_server_id);
+            } catch (\Throwable) {
+                // continue
+            }
+        }
+
+        return redirect()->route('teamspeak-accounts.show', $account)
+            ->with('success', 'Der TeamSpeak-Server wurde erfolgreich verlängert.');
+    }
+
+    /**
      * Merge customer option_choices into Pterodactyl createAccount params. Keys like memory, disk, nest_id, egg_id override config defaults.
      *
      * @param  array<string, mixed>  $params
@@ -933,6 +1263,126 @@ class CheckoutController extends Controller
 
             return redirect()->route('gaming-accounts.show', $account->id)
                 ->with('error', 'Der Game-Server konnte nicht automatisch angelegt werden: '.$e->getMessage().'. Bitte kontaktieren Sie uns.');
+        }
+    }
+
+    /**
+     * Create TeamSpeakServerAccount and virtual server after payment with balance.
+     */
+    public function processTeamSpeakBalanceCheckout(Request $request, \App\Models\User $user, array $payload): RedirectResponse
+    {
+        $planId = (int) ($payload['hosting_plan_id'] ?? 0);
+        $userId = (int) ($payload['user_id'] ?? 0);
+        $serverName = $payload['server_name'] ?? null;
+
+        if ($userId !== $user->id || $planId < 1) {
+            Log::debug('TeamSpeak balance checkout: invalid payload');
+
+            return redirect()->route('teamspeak-accounts.index')->with('error', 'Ungültige Bestelldaten.');
+        }
+
+        $plan = HostingPlan::find($planId);
+        if (! $plan || ! $plan->is_active || $plan->panel_type !== 'teamspeak') {
+            return redirect()->route('teamspeak.index')->with('error', 'Paket nicht gefunden.');
+        }
+
+        $server = null;
+        if ($plan->hosting_server_id) {
+            $server = HostingServer::query()
+                ->where('id', $plan->hosting_server_id)
+                ->where('is_active', true)
+                ->where('panel_type', 'teamspeak')
+                ->first();
+        }
+        if (! $server) {
+            $server = HostingServer::query()
+                ->where('is_active', true)
+                ->where('panel_type', 'teamspeak')
+                ->first();
+        }
+
+        $serverName = $serverName ?: $plan->name.' #'.($user->teamSpeakServerAccounts()->count() + 1);
+        $periodMonths = $this->getBalancePeriodMonths($request, $user);
+        $periodEndsAt = now()->addMonths($periodMonths);
+
+        $optionChoices = $payload['option_choices'] ?? [];
+        $slots = (int) ($optionChoices['slots'] ?? 32);
+        if ($slots < 1) {
+            $slots = 32;
+        }
+
+        if (! $server) {
+            $account = $user->teamSpeakServerAccounts()->create([
+                'hosting_plan_id' => $plan->id,
+                'hosting_server_id' => null,
+                'product_id' => $plan->product?->id,
+                'name' => $serverName,
+                'status' => 'pending',
+                'mollie_subscription_id' => null,
+                'current_period_ends_at' => $periodEndsAt,
+                'cancel_at_period_end' => false,
+                'ends_at' => null,
+                'renewal_type' => 'manual',
+                'option_values' => ! empty($optionChoices) ? $optionChoices : null,
+            ]);
+
+            return redirect()->route('teamspeak-accounts.show', $account->id)
+                ->with('error', 'Für dieses Paket ist kein TeamSpeak-Server zugewiesen. Bitte im Admin unter Hosting-Pakete einen Panel-Server angeben.');
+        }
+
+        $recentCutoff = now()->subMinutes(10);
+        $existingPending = $user->teamSpeakServerAccounts()
+            ->where('hosting_plan_id', $plan->id)
+            ->where('hosting_server_id', $server->id)
+            ->whereNull('virtual_server_id')
+            ->where('created_at', '>=', $recentCutoff)
+            ->first();
+
+        $account = $existingPending ?? $user->teamSpeakServerAccounts()->create([
+            'hosting_plan_id' => $plan->id,
+            'hosting_server_id' => $server->id,
+            'product_id' => $plan->product?->id,
+            'name' => $serverName,
+            'status' => 'pending',
+            'mollie_subscription_id' => null,
+            'current_period_ends_at' => $periodEndsAt,
+            'cancel_at_period_end' => false,
+            'ends_at' => null,
+            'renewal_type' => 'manual',
+            'option_values' => ! empty($optionChoices) ? $optionChoices : null,
+        ]);
+
+        $account->refresh();
+        if ($account->virtual_server_id !== null) {
+            return redirect()->route('teamspeak-accounts.show', $account->id)
+                ->with('success', 'Ihr TeamSpeak-Server ist bereits eingerichtet.');
+        }
+
+        try {
+            $ts = app(TeamSpeakClient::class);
+            $ts->setServer($server);
+            $config = $server->config ?? [];
+            $minPort = (int) ($config['port_range_min'] ?? 10072);
+            $maxPort = (int) ($config['port_range_max'] ?? 10221);
+            $port = $ts->getNextAvailablePort($minPort, $maxPort);
+            $created = $ts->createVirtualServer($serverName, $port, $slots);
+            $account->update([
+                'virtual_server_id' => $created['virtual_server_id'],
+                'port' => $created['port'],
+                'status' => 'active',
+            ]);
+            Log::debug('TeamSpeak balance checkout: virtual server created', ['account_id' => $account->id]);
+
+            return redirect()->route('teamspeak-accounts.show', $account->id)
+                ->with('success', 'Ihr TeamSpeak-Server wurde erfolgreich eingerichtet.');
+        } catch (\Throwable $e) {
+            Log::error('TeamSpeak balance checkout: createVirtualServer exception', [
+                'account_id' => $account->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return redirect()->route('teamspeak-accounts.show', $account->id)
+                ->with('error', 'Der TeamSpeak-Server konnte nicht automatisch angelegt werden: '.$e->getMessage().'. Bitte kontaktieren Sie uns.');
         }
     }
 

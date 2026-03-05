@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a1e8fddc9ce3adaa6200bc2eb949a17a",
+    "content-hash": "2a060f93fe906dbb8a1df28bc1578279",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -4683,6 +4683,73 @@
                 "source": "https://github.com/phpstan/phpdoc-parser/tree/2.3.2"
             },
             "time": "2026-01-25T14:56:51+00:00"
+        },
+        {
+            "name": "planetteamspeak/ts3-php-framework",
+            "version": "1.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/planetteamspeak/ts3phpframework.git",
+                "reference": "b3629a35a5ec0eb093128ec688a10486125cf1ae"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/planetteamspeak/ts3phpframework/zipball/b3629a35a5ec0eb093128ec688a10486125cf1ae",
+                "reference": "b3629a35a5ec0eb093128ec688a10486125cf1ae",
+                "shasum": ""
+            },
+            "require": {
+                "ext-ctype": "*",
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "ext-openssl": "*",
+                "php": ">=8.1",
+                "phpseclib/phpseclib": "^3.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.8",
+                "php-coveralls/php-coveralls": "^2.5",
+                "phpcompatibility/php-compatibility": "^9.3",
+                "phpunit/phpunit": "^9.5",
+                "react/socket": "^1.11",
+                "squizlabs/php_codesniffer": "^3.6",
+                "symfony/yaml": "^6.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PlanetTeamSpeak\\TeamSpeak3Framework\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "Sven 'ScP' Paulsen",
+                    "email": "scp@planetteamspeak.com"
+                }
+            ],
+            "description": "Modern use-at-will framework that provides individual components to manage TeamSpeak 3 Server instances",
+            "homepage": "https://www.planetteamspeak.com",
+            "keywords": [
+                "api",
+                "filetransfer",
+                "interface",
+                "management",
+                "query",
+                "server",
+                "teamspeak",
+                "ts3"
+            ],
+            "support": {
+                "docs": "https://docs.planetteamspeak.com/ts3/php/framework",
+                "email": "info@planetteamspeak.com",
+                "issues": "https://github.com/planetteamspeak/ts3phpframework/issues",
+                "source": "https://github.com/planetteamspeak/ts3phpframework/tree/1.3.0"
+            },
+            "time": "2024-06-01T15:08:04+00:00"
         },
         {
             "name": "plesk/api-php-lib",

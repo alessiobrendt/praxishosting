@@ -25,6 +25,7 @@ const isActive = ref(true);
 const panelType = ref(props.allowedPanelTypes[0]?.value ?? 'plesk');
 const showPleskFields = computed(() => panelType.value === 'plesk');
 const showPterodactylFields = computed(() => panelType.value === 'pterodactyl');
+const showTeamspeakFields = computed(() => panelType.value === 'teamspeak');
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -49,7 +50,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <CardHeader>
                     <CardTitle>Server-Details</CardTitle>
                     <CardDescription>
-                    Panel-Typ wählen, dann Hostname und API-Zugang. Plesk: REST API. Pterodactyl: Application API (Panel-URL + API Key).
+                    Panel-Typ wählen, dann Hostname und API-Zugang. Plesk: REST API. Pterodactyl: Application API. TeamSpeak: Query-Adresse, Benutzer, Passwort und Port-Range für virtuelle Server.
                 </CardDescription>
                 </CardHeader>
                 <Form
@@ -110,6 +111,81 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <InputError :message="errors['config.client_api_key']" />
                             </div>
                         </template>
+                        <template v-if="showTeamspeakFields">
+                            <div class="space-y-2">
+                                <Label for="config_host">IP-Adresse / Host *</Label>
+                                <Input
+                                    id="config_host"
+                                    name="config[host]"
+                                    placeholder="z. B. 77.90.15.7"
+                                    :aria-invalid="!!errors['config.host']"
+                                />
+                                <InputError :message="errors['config.host']" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="config_query_port">Query-Port *</Label>
+                                <Input
+                                    id="config_query_port"
+                                    name="config[query_port]"
+                                    type="number"
+                                    min="1"
+                                    max="65535"
+                                    placeholder="10223"
+                                    :aria-invalid="!!errors['config.query_port']"
+                                />
+                                <InputError :message="errors['config.query_port']" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="config_username">Benutzername *</Label>
+                                <Input
+                                    id="config_username"
+                                    name="config[username]"
+                                    placeholder="serveradmin"
+                                    :aria-invalid="!!errors['config.username']"
+                                />
+                                <InputError :message="errors['config.username']" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="config_password">Passwort *</Label>
+                                <Input
+                                    id="config_password"
+                                    name="config[password]"
+                                    type="password"
+                                    placeholder="Server-Query-Passwort"
+                                    :aria-invalid="!!errors['config.password']"
+                                />
+                                <InputError :message="errors['config.password']" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <Label for="config_port_range_min">Port-Range von *</Label>
+                                    <Input
+                                        id="config_port_range_min"
+                                        name="config[port_range_min]"
+                                        type="number"
+                                        min="1"
+                                        max="65535"
+                                        placeholder="10072"
+                                        :aria-invalid="!!errors['config.port_range_min']"
+                                    />
+                                    <InputError :message="errors['config.port_range_min']" />
+                                </div>
+                                <div class="space-y-2">
+                                    <Label for="config_port_range_max">Port-Range bis *</Label>
+                                    <Input
+                                        id="config_port_range_max"
+                                        name="config[port_range_max]"
+                                        type="number"
+                                        min="1"
+                                        max="65535"
+                                        placeholder="10221"
+                                        :aria-invalid="!!errors['config.port_range_max']"
+                                    />
+                                    <InputError :message="errors['config.port_range_max']" />
+                                </div>
+                            </div>
+                            <input type="hidden" name="api_token" value="teamspeak" />
+                        </template>
                         <div class="space-y-2">
                             <Label for="name">Name (optional)</Label>
                             <Input
@@ -119,7 +195,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                             />
                             <InputError :message="errors.name" />
                         </div>
-                        <div class="space-y-2">
+                        <div v-if="!showTeamspeakFields" class="space-y-2">
                             <Label for="hostname">Hostname *</Label>
                             <Input
                                 id="hostname"
@@ -128,6 +204,17 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 :placeholder="showPterodactylFields ? 'panel.example.com' : 'plesk.example.com'"
                                 :aria-invalid="!!errors.hostname"
                             />
+                            <InputError :message="errors.hostname" />
+                        </div>
+                        <div v-if="showTeamspeakFields" class="space-y-2">
+                            <Label for="hostname">Hostname (optional)</Label>
+                            <Input
+                                id="hostname"
+                                name="hostname"
+                                placeholder="z. B. TeamSpeak Node 1 (leer = IP aus Konfiguration)"
+                                :aria-invalid="!!errors.hostname"
+                            />
+                            <Text class="text-sm" muted>Anzeigename; Verbindung nutzt IP/Port aus der TeamSpeak-Konfiguration.</Text>
                             <InputError :message="errors.hostname" />
                         </div>
                         <template v-if="showPleskFields">

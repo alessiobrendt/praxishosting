@@ -82,4 +82,12 @@ class HostingPlan extends Model
     {
         return $this->hasMany(GameServerAccount::class);
     }
+
+    /**
+     * @return HasMany<TeamSpeakServerAccount>
+     */
+    public function teamSpeakServerAccounts(): HasMany
+    {
+        return $this->hasMany(TeamSpeakServerAccount::class);
+    }
 }

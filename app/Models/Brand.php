@@ -127,12 +127,13 @@ class Brand extends Model
             'domains_shop' => true,
             'ai_tokens' => true,
             'gaming' => false,
+            'teamspeak' => false,
             'prepaid_balance' => false,
             'balance_topup' => false,
             'balance_period_months' => 1,
         ];
         $features = $this->features ?? [];
-        $boolKeys = ['sites_editor', 'webspace', 'domains_shop', 'ai_tokens', 'gaming', 'prepaid_balance', 'balance_topup'];
+        $boolKeys = ['sites_editor', 'webspace', 'domains_shop', 'ai_tokens', 'gaming', 'teamspeak', 'prepaid_balance', 'balance_topup'];
         foreach ($boolKeys as $key) {
             if (array_key_exists($key, $features)) {
                 $defaults[$key] = (bool) $features[$key];

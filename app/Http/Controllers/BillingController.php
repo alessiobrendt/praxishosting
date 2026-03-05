@@ -6,6 +6,7 @@ use App\Models\BalanceTransaction;
 use App\Models\Brand;
 use App\Models\CustomerBalance;
 use App\Models\GameServerAccount;
+use App\Models\TeamSpeakServerAccount;
 use App\Models\WebspaceAccount;
 use App\Services\AiTokenService;
 use App\Support\MollieWebhookUrl;
@@ -138,9 +139,27 @@ class BillingController extends Controller
             ->values()
             ->all();
 
+        $teamSpeakSubscriptions = TeamSpeakServerAccount::where('user_id', $user->id)
+            ->whereNotNull('mollie_subscription_id')
+            ->with('hostingPlan')
+            ->get()
+            ->map(fn (TeamSpeakServerAccount $a) => [
+                'id' => $a->id,
+                'type' => 'teamspeak',
+                'name' => $a->name,
+                'plan_name' => $a->hostingPlan?->name,
+                'current_period_ends_at' => $a->current_period_ends_at?->toIso8601String(),
+                'cancel_at_period_end' => (bool) $a->cancel_at_period_end,
+                'show_url' => route('teamspeak-accounts.show', $a),
+                'cancel_url' => route('teamspeak-accounts.subscription.cancel', $a),
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('billing/Subscriptions', [
             'gameServerSubscriptions' => $gameServerSubscriptions,
             'webspaceSubscriptions' => $webspaceSubscriptions,
+            'teamSpeakSubscriptions' => $teamSpeakSubscriptions,
         ]);
     }
 

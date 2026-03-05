@@ -30,11 +30,22 @@ type HostingServer = {
     is_active: boolean;
     webspace_accounts_count: number;
     game_server_accounts_count: number;
+    team_speak_server_accounts_count: number;
+};
+
+type TeamSpeakStats = {
+    accounts_count: number;
+    total_slots: number;
+    monthly_revenue: number;
+    monthly_cost: number;
+    monthly_profit: number;
+    cost_per_slot_per_month: number;
 };
 
 type Props = {
     hostingServer: HostingServer;
     pterodactylNodes: PterodactylNode[] | null;
+    teamspeakStats: TeamSpeakStats | null;
 };
 
 const props = defineProps<Props>();
@@ -45,12 +56,17 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: props.hostingServer.name ?? props.hostingServer.hostname, href: '#' },
 ];
 
-const isPterodactyl = () => (props.hostingServer.panel_type ?? 'plesk') === 'pterodactyl';
+const panelType = () => props.hostingServer.panel_type ?? 'plesk';
+const isPterodactyl = () => panelType() === 'pterodactyl';
+const isTeamSpeak = () => panelType() === 'teamspeak';
 
 const formatMb = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`);
 
 const progressPercent = (allocated: number, total: number) =>
     total > 0 ? Math.min(100, Math.round((allocated / total) * 100)) : 0;
+
+const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
 </script>
 
 <template>
@@ -62,7 +78,7 @@ const progressPercent = (allocated: number, total: number) =>
                 <div>
                     <Heading level="h1">{{ hostingServer.name ?? hostingServer.hostname }}</Heading>
                     <Text class="mt-2" muted>
-                        {{ isPterodactyl() ? 'Pterodactyl-Panel' : 'Plesk-Hosting-Server' }}
+                        {{ isPterodactyl() ? 'Pterodactyl-Panel' : isTeamSpeak() ? 'TeamSpeak-Node' : 'Plesk-Hosting-Server' }}
                     </Text>
                 </div>
                 <Link :href="hostingServers.edit.url(hostingServer.id)">
@@ -93,13 +109,49 @@ const progressPercent = (allocated: number, total: number) =>
                             {{ hostingServer.is_active ? 'Aktiv' : 'Inaktiv' }}
                         </Badge>
                     </div>
-                    <div v-if="!isPterodactyl()" class="flex justify-between py-2 border-b">
+                    <div v-if="panelType() === 'plesk'" class="flex justify-between py-2 border-b">
                         <span class="text-muted-foreground">Webspace-Accounts</span>
                         <span>{{ hostingServer.webspace_accounts_count }}</span>
                     </div>
-                    <div v-if="isPterodactyl()" class="flex justify-between py-2">
+                    <div v-if="isPterodactyl()" class="flex justify-between py-2 border-b">
                         <span class="text-muted-foreground">Game-Server-Accounts</span>
                         <span>{{ hostingServer.game_server_accounts_count }}</span>
+                    </div>
+                    <div v-if="isTeamSpeak()" class="flex justify-between py-2">
+                        <span class="text-muted-foreground">TeamSpeak-Accounts</span>
+                        <span>{{ hostingServer.team_speak_server_accounts_count }}</span>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <!-- TeamSpeak: Slots, Umsatz, Kosten, Gewinn -->
+            <Card v-if="isTeamSpeak() && teamspeakStats">
+                <CardHeader>
+                    <CardTitle>TeamSpeak – Kennzahlen</CardTitle>
+                    <CardDescription>
+                        Slots, monatlicher Umsatz und Gewinn (Kosten: {{ formatCurrency(teamspeakStats.cost_per_slot_per_month) }} pro Slot).
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                            <p class="text-sm text-muted-foreground">Slots gesamt</p>
+                            <p class="mt-1 text-2xl font-semibold">{{ teamspeakStats.total_slots }}</p>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                            <p class="text-sm text-muted-foreground">Umsatz (€/Monat)</p>
+                            <p class="mt-1 text-2xl font-semibold">{{ formatCurrency(teamspeakStats.monthly_revenue) }}</p>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                            <p class="text-sm text-muted-foreground">Kosten (€/Monat)</p>
+                            <p class="mt-1 text-2xl font-semibold">{{ formatCurrency(teamspeakStats.monthly_cost) }}</p>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                            <p class="text-sm text-muted-foreground">Gewinn (€/Monat)</p>
+                            <p class="mt-1 text-2xl font-semibold" :class="teamspeakStats.monthly_profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+                                {{ formatCurrency(teamspeakStats.monthly_profit) }}
+                            </p>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

@@ -74,6 +74,7 @@ const sidebarItems = computed<NavItem[]>(() => {
     if (hasPermissionOrView('admin.hosting-plans')) hostingChildren.push({ title: 'Hosting-Pläne', href: '/admin/hosting-plans', icon: Package });
     if (hasPermissionOrView('admin.webspace-accounts') && brandFeatures.value.webspace !== false) hostingChildren.push({ title: 'Webspace-Accounts', href: '/admin/webspace-accounts', icon: LayoutGrid });
     if (hasPermissionOrView('admin.gaming-accounts') && brandFeatures.value.gaming === true) hostingChildren.push({ title: 'Game-Server-Accounts', href: '/admin/gaming-accounts', icon: LayoutGrid });
+    if (hasPermissionOrView('admin.hosting-servers') && brandFeatures.value.teamspeak === true) hostingChildren.push({ title: 'TeamSpeak-Server-Accounts', href: '/admin/teamspeak-accounts', icon: LayoutGrid });
     if (hostingChildren.length > 0) {
         items.push({ title: 'Hosting', icon: PackageCheck, children: hostingChildren });
     }

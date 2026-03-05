@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Server, Gamepad2, ExternalLink } from 'lucide-vue-next';
+import { Server, Gamepad2, Headphones, ExternalLink } from 'lucide-vue-next';
 import { computed, watch } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ import type { BreadcrumbItem } from '@/types';
 
 type SubscriptionItem = {
     id: number;
-    type: 'gaming' | 'webspace';
+    type: 'gaming' | 'webspace' | 'teamspeak';
     name: string;
     plan_name: string | null;
     current_period_ends_at: string | null;
@@ -39,6 +39,7 @@ type SubscriptionItem = {
 type Props = {
     gameServerSubscriptions: SubscriptionItem[];
     webspaceSubscriptions: SubscriptionItem[];
+    teamSpeakSubscriptions: SubscriptionItem[];
 };
 
 const props = defineProps<Props>();
@@ -51,6 +52,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const allSubscriptions = computed(() => [
     ...props.gameServerSubscriptions,
     ...props.webspaceSubscriptions,
+    ...props.teamSpeakSubscriptions,
 ]);
 
 function formatDate(iso: string | null): string {
@@ -96,7 +98,7 @@ watch(
             <div>
                 <Heading level="h1">Abo verwalten</Heading>
                 <Text class="mt-2" muted>
-                    Ihre aktiven Abos (Game-Server und Webspace). Sie können ein Abo zum Periodenende kündigen.
+                    Ihre aktiven Abos (Game-Server, TeamSpeak-Server und Webspace). Sie können ein Abo zum Periodenende kündigen.
                 </Text>
             </div>
 
@@ -136,6 +138,60 @@ watch(
                             </TableHeader>
                             <TableBody>
                                 <TableRow v-for="sub in gameServerSubscriptions" :key="`g-${sub.id}`">
+                                    <TableCell class="font-medium">{{ sub.name }}</TableCell>
+                                    <TableCell>{{ sub.plan_name ?? '–' }}</TableCell>
+                                    <TableCell>{{ formatDate(sub.current_period_ends_at) }}</TableCell>
+                                    <TableCell>
+                                        <Badge v-if="sub.cancel_at_period_end" variant="secondary">
+                                            Zum Periodenende gekündigt
+                                        </Badge>
+                                        <Badge v-else variant="default">Aktiv</Badge>
+                                    </TableCell>
+                                    <TableCell class="text-right space-x-2">
+                                        <Link :href="sub.show_url">
+                                            <Button variant="ghost" size="sm" class="gap-1">
+                                                <ExternalLink class="h-3.5 w-3.5" />
+                                                Zum Account
+                                            </Button>
+                                        </Link>
+                                        <Button
+                                            v-if="!sub.cancel_at_period_end"
+                                            variant="outline"
+                                            size="sm"
+                                            @click="cancelSubscription(sub.cancel_url)"
+                                        >
+                                            Zum Periodenende kündigen
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+
+                <Card v-if="teamSpeakSubscriptions.length > 0">
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            <Headphones class="h-5 w-5" />
+                            TeamSpeak-Server-Abos
+                        </CardTitle>
+                        <CardDescription>
+                            Abos mit monatlicher Abbuchung – Kündigung zum Ende der aktuellen Abrechnungsperiode.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Paket</TableHead>
+                                    <TableHead>Läuft bis</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead class="text-right">Aktionen</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow v-for="sub in teamSpeakSubscriptions" :key="`t-${sub.id}`">
                                     <TableCell class="font-medium">{{ sub.name }}</TableCell>
                                     <TableCell>{{ sub.plan_name ?? '–' }}</TableCell>
                                     <TableCell>{{ formatDate(sub.current_period_ends_at) }}</TableCell>

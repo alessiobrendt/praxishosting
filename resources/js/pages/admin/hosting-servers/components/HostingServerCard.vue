@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Eye, Edit, Server, Gamepad2, CheckCircle2, XCircle, Loader2, Wifi } from 'lucide-vue-next';
+import { Eye, Edit, Server, Gamepad2, CheckCircle2, XCircle, Loader2, Wifi, Headset } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,7 @@ const panelLabel = computed(() => {
     return t === 'plesk' ? 'Plesk' : t ?? '–';
 });
 
-const panelIcon = computed(() => (props.server.panel_type === 'pterodactyl' ? Gamepad2 : Server));
+const panelIcon = computed(() => (props.server.panel_type === 'pterodactyl' ? Gamepad2 : props.server.panel_type === 'plesk' ? Server : props.server.panel_type === 'teamspeak' ? Headset : Server));
 
 type CheckState = 'idle' | 'loading' | 'ok' | 'error';
 const checkState = ref<CheckState>('idle');
@@ -77,6 +77,15 @@ const runApiCheck = async () => {
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
         });
+        const contentType = res.headers.get('content-type') ?? '';
+        if (!contentType.includes('application/json')) {
+            await res.text();
+            checkState.value = 'error';
+            checkMessage.value = res.ok
+                ? 'Ungültige Antwort vom Server.'
+                : `Serverfehler (${res.status}). Bitte Logs prüfen.`;
+            return;
+        }
         const data = (await res.json()) as { success?: boolean; message?: string; checked_at?: string };
         if (data.success) {
             checkState.value = 'ok';
@@ -101,8 +110,10 @@ const runApiCheck = async () => {
                     class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
                     :class="
                         server.panel_type === 'pterodactyl'
-                            ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400'
-                            : 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400'
+                            ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400' : server.panel_type === 'plesk'
+                            ? 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400' : server.panel_type === 'teamspeak'
+                            ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400'
+                            : 'bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400'
                     "
                 >
                     <component :is="panelIcon" class="h-6 w-6" />

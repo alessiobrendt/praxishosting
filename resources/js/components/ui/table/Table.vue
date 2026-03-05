@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const tableClasses = computed(() =>
-    cn('w-full caption-bottom text-sm', props.class),
+    cn('w-full min-w-full caption-bottom text-sm', props.class),
 );
 </script>
 

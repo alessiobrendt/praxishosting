@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SiteController as AdminSiteController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\SystemSettingsController;
+use App\Http\Controllers\Admin\TeamSpeakAccountController as AdminTeamSpeakAccountController;
 use App\Http\Controllers\Admin\TemplateController;
 use App\Http\Controllers\Admin\TemplatePageController;
 use App\Http\Controllers\Admin\TicketCategoryController;
@@ -53,6 +54,8 @@ use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SiteRenderController;
 use App\Http\Controllers\SiteSubscriptionController;
 use App\Http\Controllers\SupportController;
+use App\Http\Controllers\TeamSpeakAccountController;
+use App\Http\Controllers\TeamSpeakController;
 use App\Http\Controllers\WebspaceAccountController;
 use App\Http\Controllers\WebspaceController;
 use App\Http\Controllers\WorkflowController;
@@ -167,6 +170,25 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
         ->name('gaming-accounts.renew');
     Route::post('gaming-accounts/{game_server_account}/subscription/cancel', [GamingAccountController::class, 'cancelSubscription'])
         ->name('gaming-accounts.subscription.cancel');
+
+    Route::get('teamspeak', [TeamSpeakController::class, 'index'])->name('teamspeak.index');
+    Route::get('teamspeak/checkout', [TeamSpeakController::class, 'checkout'])->name('teamspeak.checkout');
+    Route::post('teamspeak/checkout', [TeamSpeakController::class, 'storeCheckout'])->middleware('billing.profile')->name('teamspeak.checkout.store');
+    Route::get('teamspeak-accounts', [TeamSpeakAccountController::class, 'index'])->name('teamspeak-accounts.index');
+    Route::get('teamspeak-accounts/{team_speak_server_account}', [TeamSpeakAccountController::class, 'show'])->name('teamspeak-accounts.show');
+    Route::get('teamspeak-accounts/{team_speak_server_account}/overview', [TeamSpeakAccountController::class, 'overview'])->name('teamspeak-accounts.overview');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/power', [TeamSpeakAccountController::class, 'power'])->name('teamspeak-accounts.power');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/reinstall', [TeamSpeakAccountController::class, 'reinstall'])->name('teamspeak-accounts.reinstall');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/renew', [TeamSpeakAccountController::class, 'renew'])
+        ->middleware('billing.profile')
+        ->name('teamspeak-accounts.renew');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/name', [TeamSpeakAccountController::class, 'updateName'])->name('teamspeak-accounts.name');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/tokens', [TeamSpeakAccountController::class, 'createToken'])->name('teamspeak-accounts.tokens.store');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/tokens/delete', [TeamSpeakAccountController::class, 'deleteToken'])->name('teamspeak-accounts.tokens.destroy');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/backups', [TeamSpeakAccountController::class, 'createBackup'])->name('teamspeak-accounts.backups.store');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/backups/{snapshot}/deploy', [TeamSpeakAccountController::class, 'deployBackup'])->name('teamspeak-accounts.backups.deploy');
+    Route::delete('teamspeak-accounts/{team_speak_server_account}/backups/{snapshot}', [TeamSpeakAccountController::class, 'destroyBackup'])->name('teamspeak-accounts.backups.destroy');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/subscription/cancel', [TeamSpeakAccountController::class, 'cancelSubscription'])->name('teamspeak-accounts.subscription.cancel');
 
     Route::get('invoices/{invoice}', [CustomerInvoiceController::class, 'showView'])->name('invoices.show');
     Route::post('invoices/{invoice}/pay', [CustomerInvoiceController::class, 'pay'])->name('invoices.pay');
@@ -313,6 +335,10 @@ Route::middleware(['admin.domain', 'auth', 'verified', 'admin'])->prefix('admin'
     Route::get('gaming-accounts', [GameServerAccountController::class, 'index'])->name('gaming-accounts.index');
     Route::post('gaming-accounts/{game_server_account}/retry-provisioning', [GameServerAccountController::class, 'retryProvisioning'])->name('gaming-accounts.retry-provisioning');
     Route::get('gaming-accounts/{game_server_account}', [GameServerAccountController::class, 'show'])->name('gaming-accounts.show');
+    Route::get('teamspeak-accounts', [AdminTeamSpeakAccountController::class, 'index'])->name('teamspeak-accounts.index');
+    Route::get('teamspeak-accounts/{team_speak_server_account}/edit', [AdminTeamSpeakAccountController::class, 'edit'])->name('teamspeak-accounts.edit');
+    Route::put('teamspeak-accounts/{team_speak_server_account}', [AdminTeamSpeakAccountController::class, 'update'])->name('teamspeak-accounts.update');
+    Route::get('teamspeak-accounts/{team_speak_server_account}', [AdminTeamSpeakAccountController::class, 'show'])->name('teamspeak-accounts.show');
     Route::resource('templates', TemplateController::class);
     Route::get('templates/{template}/design', [\App\Http\Controllers\Admin\TemplateDesignController::class, 'design'])->name('templates.design');
     Route::put('templates/{template}/design', [\App\Http\Controllers\Admin\TemplateDesignController::class, 'update'])->name('templates.design.update');
