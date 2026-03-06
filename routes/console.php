@@ -5,7 +5,6 @@ use App\Jobs\CreateDomainRenewalInvoicesJob;
 use App\Jobs\CreateSiteRenewalInvoicesJob;
 use App\Jobs\NotifySubscriptionEndingSoon;
 use App\Jobs\ProcessExpiredSubscriptions;
-use App\Jobs\RunScheduledMonitoringChecksJob;
 use App\Jobs\SendInvoiceOverdueNotificationsJob;
 use App\Jobs\SyncResellerDomainsJob;
 use App\Jobs\VoidUnpaidInvoicesAfterGraceJob;
@@ -21,8 +20,6 @@ Artisan::command('inspire', function () {
 Schedule::call(function (): void {})->everyMinute()->before(function (): void {
     Cache::put('scheduler_last_run_at', now()->toIso8601String(), now()->addDays(1));
 });
-Schedule::job(new RunScheduledMonitoringChecksJob)->everyMinute()->name('monitoring:schedule')->withoutOverlapping(2);
-
 Schedule::call(function (): void {
     (new ProcessExpiredSubscriptions)->handle();
 })->everySixHours()->name('subscriptions:process-expired')->withoutOverlapping();

@@ -13,7 +13,6 @@ import {
     Settings,
     PackageCheck,
     GitBranch,
-    Activity,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { MainLayout } from '@/components/layout';
@@ -77,15 +76,6 @@ const sidebarItems = computed<NavItem[]>(() => {
     if (hasPermissionOrView('admin.hosting-servers') && brandFeatures.value.teamspeak === true) hostingChildren.push({ title: 'TeamSpeak-Server-Accounts', href: '/admin/teamspeak-accounts', icon: LayoutGrid });
     if (hostingChildren.length > 0) {
         items.push({ title: 'Hosting', icon: PackageCheck, children: hostingChildren });
-    }
-    if (hasPermissionOrView('admin.settings') || hasPermissionOrView('admin.hosting-servers')) {
-        items.push({
-            title: 'Monitoring',
-            icon: Activity,
-            children: [
-                { title: 'Ziele', href: '/admin/monitoring', icon: Activity },
-            ],
-        });
     }
     if (hasPermissionOrView('admin.sites') || hasPermissionOrView('admin.templates')) {
         const inhalte: NavItem[] = [];

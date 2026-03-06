@@ -85,9 +85,6 @@ type Props = {
         main_app_hosts: string;
         support_enabled: boolean;
         support_max_open_tickets_per_user: string;
-        monitoring_enabled: boolean;
-        monitoring_check_interval_minutes: string;
-        monitoring_notification_emails: string;
     };
     brands: Brand[];
     ticketCategories: { data: TicketCategory[]; links: PaginationLink[] };
@@ -98,7 +95,7 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const validTabs = ['allgemein', 'sicherheit', 'rechnung', 'mahnung', 'domains', 'mail', 'monitoring', 'support', 'vorlagen', 'marken'];
+const validTabs = ['allgemein', 'sicherheit', 'rechnung', 'mahnung', 'domains', 'mail', 'support', 'vorlagen', 'marken'];
 const defaultTab = validTabs.includes(props.initialTab) ? props.initialTab : 'allgemein';
 
 const form = useForm({
@@ -125,9 +122,6 @@ const form = useForm({
     main_app_hosts: props.settings.main_app_hosts ?? '',
     support_enabled: props.settings.support_enabled ?? true,
     support_max_open_tickets_per_user: props.settings.support_max_open_tickets_per_user ?? '0',
-    monitoring_enabled: props.settings.monitoring_enabled ?? true,
-    monitoring_check_interval_minutes: props.settings.monitoring_check_interval_minutes ?? '5',
-    monitoring_notification_emails: props.settings.monitoring_notification_emails ?? '',
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -221,7 +215,6 @@ function salutationLabel(salutation: string | null): string {
                         <TabsTrigger value="mahnung">Mahnung</TabsTrigger>
                         <TabsTrigger value="domains">Domains</TabsTrigger>
                         <TabsTrigger value="mail">Mail</TabsTrigger>
-                        <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
                         <TabsTrigger value="support">Support</TabsTrigger>
                         <TabsTrigger value="vorlagen">Vorlagen</TabsTrigger>
                         <TabsTrigger value="marken">Marken</TabsTrigger>
@@ -735,49 +728,6 @@ function salutationLabel(salutation: string | null): string {
                                     />
                                     <InputError :message="form.errors.mail_reply_to_address" />
                                     <Text class="text-xs muted">Falls gesetzt, wird bei allen System-E-Mails diese Adresse als Reply-To gesetzt.</Text>
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button type="submit" :disabled="form.processing">Speichern</Button>
-                            </CardFooter>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="monitoring">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Monitoring</CardTitle>
-                                <CardDescription>Automatische Prüfung von Hosting-Server-APIs, URLs und Ports. Bei Ausfall werden E-Mails versendet.</CardDescription>
-                            </CardHeader>
-                            <CardContent class="space-y-6">
-                                <div class="flex items-center gap-2">
-                                    <Switch id="monitoring_enabled" v-model="form.monitoring_enabled" />
-                                    <Label for="monitoring_enabled">Monitoring aktiviert</Label>
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="monitoring_check_interval_minutes">Prüfintervall (Minuten)</Label>
-                                    <Input
-                                        id="monitoring_check_interval_minutes"
-                                        v-model="form.monitoring_check_interval_minutes"
-                                        type="number"
-                                        min="1"
-                                        max="1440"
-                                        :aria-invalid="!!form.errors.monitoring_check_interval_minutes"
-                                    />
-                                    <InputError :message="form.errors.monitoring_check_interval_minutes" />
-                                    <Text class="text-xs muted">Wie oft die Checks laufen (z. B. 5 = alle 5 Minuten). Hosting-Server-APIs, URL- und Port-Ziele werden dann geprüft.</Text>
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="monitoring_notification_emails">E-Mail-Adressen für Benachrichtigungen</Label>
-                                    <Textarea
-                                        id="monitoring_notification_emails"
-                                        v-model="form.monitoring_notification_emails"
-                                        rows="3"
-                                        placeholder="admin@example.com, ops@example.com"
-                                        :aria-invalid="!!form.errors.monitoring_notification_emails"
-                                    />
-                                    <InputError :message="form.errors.monitoring_notification_emails" />
-                                    <Text class="text-xs muted">Kommagetrennte Liste. Bei nicht erreichbaren Diensten wird eine E-Mail an diese Adressen gesendet.</Text>
                                 </div>
                             </CardContent>
                             <CardFooter>

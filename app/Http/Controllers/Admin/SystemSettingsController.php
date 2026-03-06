@@ -42,9 +42,6 @@ class SystemSettingsController extends Controller
             'dunning_fee_level_3' => (string) Setting::getDunningFee(3),
             'support_enabled' => (bool) filter_var(Setting::get('support_enabled', '1'), FILTER_VALIDATE_BOOLEAN),
             'support_max_open_tickets_per_user' => (string) (Setting::get('support_max_open_tickets_per_user') ?: '0'),
-            'monitoring_check_interval_minutes' => (string) (Setting::get('monitoring_check_interval_minutes') ?: (string) config('monitoring.check_interval_minutes', 5)),
-            'monitoring_notification_emails' => Setting::get('monitoring_notification_emails', '') ?: '',
-            'monitoring_enabled' => (bool) filter_var(Setting::get('monitoring_enabled', '1'), FILTER_VALIDATE_BOOLEAN),
         ];
 
         $ticketCategories = TicketCategory::query()
@@ -100,9 +97,6 @@ class SystemSettingsController extends Controller
             'main_app_hosts' => ['nullable', 'string', 'max:500'],
             'support_enabled' => ['boolean'],
             'support_max_open_tickets_per_user' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'monitoring_enabled' => ['boolean'],
-            'monitoring_check_interval_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
-            'monitoring_notification_emails' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $oldKeys = array_keys($validated);

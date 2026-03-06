@@ -18,7 +18,6 @@ use App\Http\Controllers\Admin\HostingServerController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\JobsMonitorController;
 use App\Http\Controllers\Admin\LegacyMigrationController;
-use App\Http\Controllers\Admin\MonitorTargetController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ResellerDomainController;
@@ -326,7 +325,6 @@ Route::middleware(['admin.domain', 'auth', 'verified', 'admin'])->prefix('admin'
     Route::get('products', [ProductController::class, 'index'])->name('products.index');
     Route::get('hosting-servers/{hosting_server}/check', [HostingServerController::class, 'check'])->name('hosting-servers.check');
     Route::resource('hosting-servers', HostingServerController::class);
-    Route::resource('monitoring', MonitorTargetController::class)->except(['show'])->parameters(['monitoring' => 'monitor_target']);
     Route::get('hosting-plans/pterodactyl-options', [HostingPlanController::class, 'pterodactylOptions'])->name('hosting-plans.pterodactyl-options');
     Route::resource('hosting-plans', HostingPlanController::class);
     Route::get('webspace-accounts', [\App\Http\Controllers\Admin\WebspaceAccountController::class, 'index'])->name('webspace-accounts.index');

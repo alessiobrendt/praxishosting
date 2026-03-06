@@ -104,11 +104,22 @@ class DashboardController extends Controller
             }
         }
 
-        $openTicketsWithAdminReply = Ticket::query()
+        $openTickets = Ticket::query()
             ->where('user_id', $user->id)
             ->where('status', 'open')
-            ->whereHas('messages', fn ($q) => $q->whereHas('user', fn ($u) => $u->where('is_admin', true)))
-            ->get(['id', 'subject']);
+            ->with(['messages' => fn ($q) => $q->orderByDesc('id')->with('user:id,is_admin')])
+            ->get(['id', 'subject', 'user_id']);
+
+        $openTicketsWithAdminReply = $openTickets->filter(function (Ticket $ticket) {
+            $lastMessage = $ticket->messages->first();
+            if ($lastMessage === null) {
+                return false;
+            }
+            // Nur anzeigen, wenn die letzte Nachricht von einem Mitarbeiter stammt – nicht vom Ticket-Ersteller (z. B. Admin mit eigenem Ticket)
+            $lastIsFromStaff = $lastMessage->user?->is_admin === true && (int) $lastMessage->user_id !== (int) $ticket->user_id;
+
+            return $lastIsFromStaff;
+        });
 
         if ($openTicketsWithAdminReply->isNotEmpty()) {
             $ticketsOk = false;
