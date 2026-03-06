@@ -98,4 +98,14 @@ class Ticket extends Model
     {
         return $this->hasMany(TicketTodo::class);
     }
+
+    /**
+     * Affected services (domains, webspaces, gameserver, teamspeak, sites) linked to this ticket.
+     *
+     * @return HasMany<TicketService>
+     */
+    public function ticketServices(): HasMany
+    {
+        return $this->hasMany(TicketService::class);
+    }
 }

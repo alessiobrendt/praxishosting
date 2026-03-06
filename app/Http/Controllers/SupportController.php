@@ -11,6 +11,7 @@ use App\Models\TicketCategory;
 use App\Models\TicketMessage;
 use App\Models\TicketMessageAttachment;
 use App\Models\TicketPriority;
+use App\Models\TicketService;
 use App\Models\User;
 use App\Notifications\TicketAdminReplyNotification;
 use App\Notifications\TicketCreatedNotification;
@@ -46,12 +47,62 @@ class SupportController extends Controller
             return redirect()->route('support.index')->with('error', 'Support-Tickets sind derzeit deaktiviert.');
         }
         $user = $this->user();
-        $sites = $user->sites()->orderBy('name')->get(['uuid', 'name', 'slug']);
+        $features = $user->brand?->getFeaturesArray() ?? [];
+
+        $services = [
+            'websites' => [],
+            'domains' => [],
+            'webspaces' => [],
+            'gameserver' => [],
+            'teamspeak' => [],
+        ];
+
+        if (! empty($features['sites_editor'])) {
+            $services['websites'] = $user->sites()
+                ->orderBy('name')
+                ->get(['id', 'uuid', 'name', 'slug'])
+                ->map(fn ($s) => ['type' => 'site', 'id' => $s->id, 'label' => $s->name])
+                ->values()
+                ->all();
+        }
+        if (! empty($features['domains_shop'])) {
+            $services['domains'] = $user->resellerDomains()
+                ->orderBy('domain')
+                ->get(['id', 'domain'])
+                ->map(fn ($d) => ['type' => 'reseller_domain', 'id' => $d->id, 'label' => $d->domain])
+                ->values()
+                ->all();
+        }
+        if (! empty($features['webspace'])) {
+            $services['webspaces'] = $user->webspaceAccounts()
+                ->orderBy('domain')
+                ->get(['id', 'domain'])
+                ->map(fn ($w) => ['type' => 'webspace_account', 'id' => $w->id, 'label' => $w->domain])
+                ->values()
+                ->all();
+        }
+        if (! empty($features['gaming'])) {
+            $services['gameserver'] = $user->gameServerAccounts()
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn ($g) => ['type' => 'game_server_account', 'id' => $g->id, 'label' => $g->name])
+                ->values()
+                ->all();
+        }
+        if (! empty($features['teamspeak'])) {
+            $services['teamspeak'] = $user->teamSpeakServerAccounts()
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn ($t) => ['type' => 'teamspeak_server_account', 'id' => $t->id, 'label' => $t->name])
+                ->values()
+                ->all();
+        }
+
         $categories = TicketCategory::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug']);
         $priorities = TicketPriority::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug', 'color']);
 
         return Inertia::render('support/Create', [
-            'sites' => $sites,
+            'services' => $services,
             'categories' => $categories,
             'priorities' => $priorities,
         ]);
@@ -70,9 +121,13 @@ class SupportController extends Controller
             }
         }
         $validated = $request->validated();
+        $affectedServices = $validated['affected_services'] ?? [];
         $siteId = null;
-        if (! empty($validated['site_uuid'] ?? null)) {
-            $siteId = \App\Models\Site::where('uuid', $validated['site_uuid'])->value('id');
+        foreach ($affectedServices as $item) {
+            if (($item['type'] ?? '') === 'site' && ! empty($item['id'])) {
+                $siteId = (int) $item['id'];
+                break;
+            }
         }
         $ticket = Ticket::create([
             'user_id' => $request->user()->id,
@@ -82,6 +137,13 @@ class SupportController extends Controller
             'subject' => $validated['subject'],
             'status' => 'open',
         ]);
+        foreach ($affectedServices as $item) {
+            TicketService::create([
+                'ticket_id' => $ticket->id,
+                'service_type' => $item['type'],
+                'service_id' => (int) $item['id'],
+            ]);
+        }
         TicketMessage::create([
             'ticket_id' => $ticket->id,
             'user_id' => $request->user()->id,
@@ -102,6 +164,7 @@ class SupportController extends Controller
             'ticketCategory',
             'ticketPriority',
             'site:id,name,slug',
+            'ticketServices',
             'messages' => fn ($q) => $q->with(['user:id,name', 'attachments'])->orderBy('created_at'),
         ]);
         $messages = $ticket->messages->map(function ($msg) use ($request) {
@@ -151,13 +214,24 @@ class SupportController extends Controller
             ];
         })->values()->all();
 
+        $affectedServices = $ticket->ticketServices->map(function (TicketService $ts) {
+            $label = $this->resolveServiceLabel($ts->service_type, $ts->service_id);
+
+            return ['type' => $ts->service_type, 'id' => $ts->service_id, 'label' => $label];
+        })->values()->all();
+
+        $serviceName = $affectedServices !== []
+            ? implode(', ', array_column($affectedServices, 'label'))
+            : ($ticket->site?->name ?? 'Allgemein / Kein Dienst');
+
         return Inertia::render('support/Show', [
             'ticket' => $ticket->only(['id', 'subject', 'status', 'created_at', 'updated_at', 'ticket_category_id', 'ticket_priority_id', 'site_id']),
             'ticketCategory' => $ticket->ticketCategory?->only(['id', 'name', 'slug']),
             'ticketPriority' => $ticket->ticketPriority?->only(['id', 'name', 'slug', 'color']),
             'site' => $ticket->site?->only(['uuid', 'name', 'slug']),
             'statusLabel' => $statusLabels[$ticket->status] ?? $ticket->status,
-            'serviceName' => $ticket->site?->name ?? 'Allgemein / Kein Dienst',
+            'serviceName' => $serviceName,
+            'affectedServices' => $affectedServices,
             'messages' => $messages,
             'statusChanges' => $statusChanges,
         ]);
@@ -222,5 +296,17 @@ class SupportController extends Controller
     private function isSupportEnabled(): bool
     {
         return (bool) filter_var(Setting::get('support_enabled', '1'), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function resolveServiceLabel(string $serviceType, int $serviceId): string
+    {
+        return match ($serviceType) {
+            'site' => \App\Models\Site::where('id', $serviceId)->value('name') ?? "#{$serviceId}",
+            'reseller_domain' => \App\Models\ResellerDomain::where('id', $serviceId)->value('domain') ?? "#{$serviceId}",
+            'webspace_account' => \App\Models\WebspaceAccount::where('id', $serviceId)->value('domain') ?? "#{$serviceId}",
+            'game_server_account' => \App\Models\GameServerAccount::where('id', $serviceId)->value('name') ?? "#{$serviceId}",
+            'teamspeak_server_account' => \App\Models\TeamSpeakServerAccount::where('id', $serviceId)->value('name') ?? "#{$serviceId}",
+            default => "#{$serviceId}",
+        };
     }
 }

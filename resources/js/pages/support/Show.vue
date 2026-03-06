@@ -32,6 +32,7 @@ type Message = {
 };
 
 type StatusChange = { id: string; type: string; created_at: string; label: string };
+type AffectedService = { type: string; id: number; label: string };
 
 type Props = {
     ticket: Ticket;
@@ -40,6 +41,7 @@ type Props = {
     site: Site;
     statusLabel: string;
     serviceName: string;
+    affectedServices?: AffectedService[];
     messages: Message[];
     statusChanges?: StatusChange[];
 };
@@ -213,7 +215,18 @@ function back() {
                         <CardContent class="space-y-4 py-4">
                             <div>
                                 <p class="mb-1 font-semibold">Betroffener Dienst</p>
-                                <span class="text-sm">{{ serviceName }}</span>
+                                <ul
+                                    v-if="affectedServices?.length"
+                                    class="list-inside list-disc space-y-0.5 text-sm text-gray-700 dark:text-gray-300"
+                                >
+                                    <li
+                                        v-for="(svc, idx) in affectedServices"
+                                        :key="`${svc.type}-${svc.id}-${idx}`"
+                                    >
+                                        {{ svc.label }}
+                                    </li>
+                                </ul>
+                                <span v-else class="text-sm">{{ serviceName }}</span>
                             </div>
                             <div>
                                 <p class="mb-1 font-semibold">Kategorie</p>

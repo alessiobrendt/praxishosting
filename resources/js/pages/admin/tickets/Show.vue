@@ -88,6 +88,8 @@ type Ticket = {
 type RecentTicket = { id: number; subject: string; status: string; created_at: string };
 type TicketMessageTemplateItem = { id: number; name: string; body: string | null };
 
+type AffectedService = { type: string; id: number; label: string; url?: string | null };
+
 type Props = {
     ticket: Ticket;
     categories: TicketCategory[];
@@ -99,6 +101,8 @@ type Props = {
     allTags: TagType[];
     ticketActivityLogs: ActivityLog[];
     ticketMessageTemplates: TicketMessageTemplateItem[];
+    serviceName: string;
+    affectedServices?: AffectedService[];
 };
 
 const props = defineProps<Props>();
@@ -145,7 +149,6 @@ const assignedToName = computed(() => {
     const a = props.admins.find((x) => x.id === props.ticket.assigned_to);
     return a?.name ?? '–';
 });
-const serviceName = computed(() => props.ticket.site?.name ?? 'Allgemein / Kein Dienst');
 
 const templateReplacements = computed(() => {
     const t = props.ticket;
@@ -157,7 +160,7 @@ const templateReplacements = computed(() => {
         email: t.user?.email ?? '',
         ticket_id: String(t.id),
         betreff: t.subject ?? '',
-        produkt: t.site?.name ?? '–',
+        produkt: props.serviceName ?? t.site?.name ?? '–',
         zugewiesen: assigned,
         datum,
     };
@@ -353,7 +356,25 @@ onMounted(() => {
                                 <TabsContent value="info" class="mt-0 space-y-4">
                                     <div>
                                         <p class="mb-1 font-semibold">Betroffener Dienst</p>
-                                        <span class="text-sm">{{ serviceName }}</span>
+                                        <ul
+                                            v-if="affectedServices?.length"
+                                            class="list-inside list-disc space-y-0.5 text-sm text-muted-foreground"
+                                        >
+                                            <li
+                                                v-for="(svc, idx) in affectedServices"
+                                                :key="`${svc.type}-${svc.id}-${idx}`"
+                                            >
+                                                <Link
+                                                    v-if="svc.url"
+                                                    :href="svc.url"
+                                                    class="font-medium text-primary underline hover:no-underline"
+                                                >
+                                                    {{ svc.label }}
+                                                </Link>
+                                                <span v-else>{{ svc.label }}</span>
+                                            </li>
+                                        </ul>
+                                        <span v-else class="text-sm">{{ serviceName }}</span>
                                     </div>
                                     <div>
                                         <p class="mb-1 font-semibold">Kategorie</p>
@@ -392,7 +413,10 @@ onMounted(() => {
                                             </span>
                                             <span v-else>–</span>
                                             <span v-if="ticket.user?.email" class="block text-muted-foreground">{{ ticket.user.email }}</span>
-                                            <span v-if="ticket.site" class="block">
+                                            <span v-if="affectedServices?.length" class="block">
+                                                Produkt/Site: {{ serviceName }}
+                                            </span>
+                                            <span v-else-if="ticket.site" class="block">
                                                 Produkt/Site:
                                                 <Link
                                                     :href="adminSites.show(ticket.site.uuid).url"

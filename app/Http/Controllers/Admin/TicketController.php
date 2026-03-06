@@ -14,6 +14,7 @@ use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\TicketMessageAttachment;
 use App\Models\TicketMessageTemplate;
+use App\Models\TicketService;
 use App\Models\TicketTimeLog;
 use App\Models\TicketTodo;
 use App\Models\User;
@@ -72,6 +73,7 @@ class TicketController extends Controller
             'ticketCategory',
             'ticketPriority',
             'site:uuid,name,slug',
+            'ticketServices',
             'assignedTo:id,name',
             'tags:id,name,slug,color',
             'messages' => fn ($q) => $q->with(['user:id,name,is_admin', 'attachments'])->orderBy('created_at'),
@@ -178,6 +180,17 @@ class TicketController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'body']);
 
+        $affectedServices = $ticket->ticketServices->map(function (TicketService $ts) {
+            $label = $this->resolveServiceLabel($ts->service_type, $ts->service_id);
+            $url = $this->resolveServiceAdminUrl($ts->service_type, $ts->service_id);
+
+            return ['type' => $ts->service_type, 'id' => $ts->service_id, 'label' => $label, 'url' => $url];
+        })->values()->all();
+
+        $serviceName = $affectedServices !== []
+            ? implode(', ', array_column($affectedServices, 'label'))
+            : ($ticket->site?->name ?? 'Allgemein / Kein Dienst');
+
         return Inertia::render('admin/tickets/Show', [
             'ticket' => $ticketArray,
             'categories' => $categories,
@@ -189,7 +202,44 @@ class TicketController extends Controller
             'allTags' => $allTags,
             'ticketActivityLogs' => $ticketActivityLogs,
             'ticketMessageTemplates' => $ticketMessageTemplates,
+            'serviceName' => $serviceName,
+            'affectedServices' => $affectedServices,
         ]);
+    }
+
+    private function resolveServiceLabel(string $serviceType, int $serviceId): string
+    {
+        return match ($serviceType) {
+            'site' => \App\Models\Site::where('id', $serviceId)->value('name') ?? "#{$serviceId}",
+            'reseller_domain' => \App\Models\ResellerDomain::where('id', $serviceId)->value('domain') ?? "#{$serviceId}",
+            'webspace_account' => \App\Models\WebspaceAccount::where('id', $serviceId)->value('domain') ?? "#{$serviceId}",
+            'game_server_account' => \App\Models\GameServerAccount::where('id', $serviceId)->value('name') ?? "#{$serviceId}",
+            'teamspeak_server_account' => \App\Models\TeamSpeakServerAccount::where('id', $serviceId)->value('name') ?? "#{$serviceId}",
+            default => "#{$serviceId}",
+        };
+    }
+
+    /**
+     * Admin URL for the given service (sites, domains, webspace, gaming, teamspeak). Null if not linkable.
+     */
+    private function resolveServiceAdminUrl(string $serviceType, int $serviceId): ?string
+    {
+        try {
+            return match ($serviceType) {
+                'site' => (function () use ($serviceId) {
+                    $site = \App\Models\Site::find($serviceId);
+
+                    return $site ? route('admin.sites.show', $site) : null;
+                })(),
+                'reseller_domain' => route('admin.domains.show', ['reseller_domain' => $serviceId]),
+                'webspace_account' => route('admin.webspace-accounts.show', ['webspace_account' => $serviceId]),
+                'game_server_account' => route('admin.gaming-accounts.show', ['game_server_account' => $serviceId]),
+                'teamspeak_server_account' => route('admin.teamspeak-accounts.show', ['team_speak_server_account' => $serviceId]),
+                default => null,
+            };
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function downloadAttachment(Request $request, Ticket $ticket, TicketMessageAttachment $attachment): StreamedResponse|RedirectResponse

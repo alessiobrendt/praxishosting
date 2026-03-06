@@ -1,39 +1,104 @@
 <script setup lang="ts">
+import { onClickOutside } from '@vueuse/core';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { Home, MessageCircle } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { ChevronDown, Home, MessageCircle } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { index as supportIndex, store } from '@/routes/support';
 import type { BreadcrumbItem } from '@/types';
 
-type Site = { uuid: string; name: string; slug: string };
+type ServiceItem = { type: string; id: number; label: string };
+type ServicesPayload = {
+    websites: ServiceItem[];
+    domains: ServiceItem[];
+    webspaces: ServiceItem[];
+    gameserver: ServiceItem[];
+    teamspeak: ServiceItem[];
+};
 type Category = { id: number; name: string; slug: string };
 type Priority = { id: number; name: string; slug: string; color: string | null };
 
 type Props = {
-    sites: Site[];
+    services: ServicesPayload;
     categories: Category[];
     priorities: Priority[];
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
 const page = usePage();
 const discordInviteUrl = computed(() => (page.props.discordInviteUrl as string | null) ?? null);
 
+type AffectedService = { type: string; id: number };
 const form = useForm({
     subject: '',
     body: '',
     ticket_category_id: '' as string | number,
     ticket_priority_id: '' as string | number,
-    site_uuid: '' as string,
+    affected_services: [] as AffectedService[],
+});
+
+function isSelected(type: string, id: number): boolean {
+    return form.affected_services.some((s) => s.type === type && s.id === id);
+}
+
+function setService(type: string, id: number, checked: boolean): void {
+    if (checked) {
+        form.affected_services = [...form.affected_services, { type, id }];
+    } else {
+        form.affected_services = form.affected_services.filter((s) => !(s.type === type && s.id === id));
+    }
+}
+
+const serviceSelectLabel = computed(() => {
+    const n = form.affected_services.length;
+    if (n === 0) {
+        return 'Allgemein / Kein Dienst';
+    }
+    if (n === 1) {
+        const [s] = form.affected_services;
+        const group = serviceGroups.value.find((g) => g.items.some((i) => i.type === s.type && i.id === s.id));
+        const item = group?.items.find((i) => i.type === s.type && i.id === s.id);
+        return item?.label ?? `${n} Dienst`;
+    }
+    return `${n} Dienste ausgewählt`;
+});
+
+const hasAnyServices = computed(() => serviceGroups.value.length > 0);
+
+const serviceSelectOpen = ref(false);
+const serviceSelectRef = ref<HTMLElement | null>(null);
+onClickOutside(serviceSelectRef, () => {
+    serviceSelectOpen.value = false;
+});
+
+const serviceGroups = computed(() => {
+    const groups: { title: string; key: keyof ServicesPayload; items: ServiceItem[] }[] = [];
+    if (props.services.websites?.length) {
+        groups.push({ title: 'Websites', key: 'websites', items: props.services.websites });
+    }
+    if (props.services.domains?.length) {
+        groups.push({ title: 'Domains', key: 'domains', items: props.services.domains });
+    }
+    if (props.services.webspaces?.length) {
+        groups.push({ title: 'Webspaces', key: 'webspaces', items: props.services.webspaces });
+    }
+    if (props.services.gameserver?.length) {
+        groups.push({ title: 'Gameserver', key: 'gameserver', items: props.services.gameserver });
+    }
+    if (props.services.teamspeak?.length) {
+        groups.push({ title: 'TeamSpeak-Server', key: 'teamspeak', items: props.services.teamspeak });
+    }
+    return groups;
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -142,7 +207,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                             :aria-invalid="!!form.errors.ticket_category_id"
                                         >
                                             <option value="">-- Bitte wählen --</option>
-                                            <option v-for="c in categories" :key="c.id" :value="c.id">
+                                            <option v-for="c in props.categories" :key="c.id" :value="c.id">
                                                 {{ c.name }}
                                             </option>
                                         </Select>
@@ -151,20 +216,73 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 </div>
 
                                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                    <div class="sm:col-span-2">
-                                        <Label for="site_uuid">Betroffener Dienst</Label>
-                                        <Select id="site_uuid" v-model="form.site_uuid" class="mt-1">
-                                            <option value="">Allgemein / Kein Dienst</option>
-                                            <option v-for="s in sites" :key="s.uuid" :value="s.uuid">
-                                                {{ s.name }}
-                                            </option>
-                                        </Select>
+                                    <div ref="serviceSelectRef" class="relative sm:col-span-2">
+                                        <Label id="affected_service_label">Betroffener Dienst</Label>
+                                        <button
+                                            type="button"
+                                            id="affected_service"
+                                            :aria-expanded="serviceSelectOpen"
+                                            :aria-invalid="!!form.errors.affected_services"
+                                            :aria-labelledby="'affected_service_label'"
+                                            :aria-haspopup="'listbox'"
+                                            :class="cn(
+                                                'mt-1 flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm',
+                                                'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                                                'dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100',
+                                                form.errors.affected_services && 'border-red-500 focus:ring-red-500 dark:border-red-500',
+                                            )"
+                                            @click="serviceSelectOpen = !serviceSelectOpen"
+                                        >
+                                            <span class="truncate">{{ serviceSelectLabel }}</span>
+                                            <ChevronDown
+                                                class="ml-2 h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400 transition-transform"
+                                                :class="serviceSelectOpen && 'rotate-180'"
+                                            />
+                                        </button>
+                                        <div
+                                            v-show="serviceSelectOpen"
+                                            class="absolute top-full left-0 z-50 mt-1 max-h-[min(20rem,70vh)] min-w-full overflow-y-auto rounded-lg border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                                            role="listbox"
+                                        >
+                                            <template v-if="hasAnyServices">
+                                                <div
+                                                    v-for="group in serviceGroups"
+                                                    :key="group.key"
+                                                    class="mb-3 last:mb-0"
+                                                >
+                                                    <div class="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                                        {{ group.title }}
+                                                    </div>
+                                                    <div class="space-y-0.5">
+                                                        <label
+                                                            v-for="item in group.items"
+                                                            :key="`${item.type}-${item.id}`"
+                                                            class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                        >
+                                                            <Checkbox
+                                                                :id="`service-${item.type}-${item.id}`"
+                                                                :model-value="isSelected(item.type, item.id)"
+                                                                @update:model-value="(v: boolean) => setService(item.type, item.id, v)"
+                                                            />
+                                                            <span class="text-gray-700 dark:text-gray-300">{{ item.label }}</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <p v-else class="px-2 py-2 text-sm text-gray-500 dark:text-gray-400">
+                                                Keine Dienste zugeordnet
+                                            </p>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            Optional: Ein oder mehrere Dienste wählen. Keine Auswahl = Allgemein / Kein Dienst.
+                                        </p>
+                                        <InputError :message="form.errors.affected_services" />
                                     </div>
-                                    <div v-if="priorities.length">
+                                    <div v-if="props.priorities.length">
                                         <Label for="ticket_priority_id">Priorität</Label>
                                         <Select id="ticket_priority_id" v-model="form.ticket_priority_id" class="mt-1">
                                             <option value="">-- Bitte wählen --</option>
-                                            <option v-for="p in priorities" :key="p.id" :value="p.id">
+                                            <option v-for="p in props.priorities" :key="p.id" :value="p.id">
                                                 {{ p.name }}
                                             </option>
                                         </Select>
