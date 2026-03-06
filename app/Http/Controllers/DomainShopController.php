@@ -13,8 +13,10 @@ use App\Models\ResellerDomain;
 use App\Services\BalancePaymentService;
 use App\Services\DomainPricingService;
 use App\Services\InvoicePdfService;
+use App\Services\MollieCustomerService;
 use App\Services\SkrimeApiService;
 use App\Services\SkrimeContactService;
+use App\Support\MollieWebhookUrl;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -23,8 +25,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
-use Stripe\Checkout\Session as StripeSession;
-use Stripe\StripeClient;
+use Mollie\Api\MollieApiClient;
 
 class DomainShopController extends Controller
 {
@@ -142,7 +143,7 @@ class DomainShopController extends Controller
         $salePrice = (float) $data['sale_price'];
         $currentBrand = $request->attributes->get('current_brand') ?? Brand::getDefault();
         $brandFeatures = $currentBrand?->getFeaturesArray() ?? [];
-        $paymentMethod = $data['payment_method'] ?? 'stripe';
+        $paymentMethod = $data['payment_method'] ?? 'mollie';
 
         if ($paymentMethod === 'balance' && ($brandFeatures['prepaid_balance'] ?? false)) {
             try {
@@ -211,88 +212,64 @@ class DomainShopController extends Controller
             'auth_code' => ! empty($data['transfer']) ? trim((string) ($data['auth_code'] ?? '')) : null,
         ]);
 
+        $currency = strtoupper(config('cashier.currency', 'eur'));
         try {
-            $stripe = new StripeClient(config('cashier.secret'));
-            $params = [
-                'mode' => StripeSession::MODE_PAYMENT,
-                'success_url' => route('domains.checkout.success').'?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url' => route('domains.checkout', array_filter(['domain' => $data['domain'], 'sale_price' => $salePrice, 'tld' => $data['tld'] ?? '', 'transfer' => ! empty($data['transfer']) ? 1 : null])),
-                'metadata' => [
-                    'domain_checkout_token' => $token,
-                    'user_id' => (string) $user->id,
-                ],
-                'line_items' => [
-                    [
-                        'price_data' => [
-                            'currency' => config('cashier.currency', 'eur'),
-                            'unit_amount' => (int) round($salePrice * 100),
-                            'product_data' => [
-                                'name' => 'Domain-Registrierung: '.$data['domain'],
-                                'description' => 'Registrierung der Domain '.$data['domain'],
-                            ],
-                        ],
-                        'quantity' => 1,
-                    ],
-                ],
-            ];
-            if ($user->mollie_customer_id) {
-                $params['customer'] = $user->mollie_customer_id;
-            } else {
-                $params['customer_email'] = $user->email;
-            }
-            $session = $stripe->checkout->sessions->create($params);
-            $stripeUrl = $session->url ?? null;
-            if (! $stripeUrl) {
-                $request->session()->forget('domain_checkout_'.$token);
-
-                return redirect()->route('domains.checkout', request()->only('domain', 'sale_price', 'tld'))
-                    ->with('error', 'Stripe Checkout lieferte keine Weiterleitungs-URL.');
-            }
-
-            $request->session()->put('domain_checkout_'.$token, array_merge(
-                $request->session()->get('domain_checkout_'.$token, []),
-                ['stripe_url' => $stripeUrl]
-            ));
-
-            return redirect()->route('domains.checkout.redirect', ['token' => $token]);
+            $customerId = app(MollieCustomerService::class)->ensureCustomer($user);
         } catch (\Throwable $e) {
             $request->session()->forget('domain_checkout_'.$token);
 
             return redirect()->route('domains.checkout', request()->only('domain', 'sale_price', 'tld'))
-                ->with('error', 'Stripe Checkout konnte nicht gestartet werden. '.$e->getMessage());
+                ->with('error', 'Mollie-Kunde konnte nicht angelegt werden. '.$e->getMessage());
+        }
+
+        try {
+            $mollie = app(MollieApiClient::class);
+            $params = [
+                'amount' => [
+                    'currency' => $currency,
+                    'value' => number_format($salePrice, 2, '.', ''),
+                ],
+                'description' => 'Domain-Registrierung: '.$data['domain'],
+                'redirectUrl' => route('checkout.success'),
+                'metadata' => [
+                    'type' => 'domain',
+                    'domain_checkout_token' => $token,
+                    'user_id' => (string) $user->id,
+                ],
+                'customerId' => $customerId,
+            ];
+            $webhookUrl = MollieWebhookUrl::get();
+            if ($webhookUrl !== null) {
+                $params['webhookUrl'] = $webhookUrl;
+            }
+            $payment = $mollie->payments->create($params);
+            $checkoutUrl = $payment->getCheckoutUrl();
+            if (! $checkoutUrl || ! str_starts_with($checkoutUrl, 'https://')) {
+                $request->session()->forget('domain_checkout_'.$token);
+
+                return redirect()->route('domains.checkout', request()->only('domain', 'sale_price', 'tld'))
+                    ->with('error', 'Mollie Checkout lieferte keine gültige Weiterleitungs-URL.');
+            }
+
+            $request->session()->put('pending_mollie_payment_id', $payment->id);
+
+            return redirect()->away($checkoutUrl);
+        } catch (\Throwable $e) {
+            $request->session()->forget('domain_checkout_'.$token);
+            Log::error('Domain checkout Mollie: Fehler', ['message' => $e->getMessage()]);
+            report($e);
+
+            return redirect()->route('domains.checkout', request()->only('domain', 'sale_price', 'tld'))
+                ->with('error', 'Mollie Checkout konnte nicht gestartet werden. '.$e->getMessage());
         }
     }
 
     /**
-     * Redirect to Stripe Checkout URL (GET). Used after storeCheckout so the browser
-     * receives 409 + X-Inertia-Location and navigates to Stripe reliably.
-     * In local env, shows a choice page: go to Stripe or simulate payment (no webhook).
+     * Legacy redirect (was used for Stripe). Domain checkout now uses Mollie and redirects directly from storeCheckout.
      */
-    public function redirectToStripe(Request $request): RedirectResponse|\Symfony\Component\HttpFoundation\Response|InertiaResponse
+    public function redirectToStripe(Request $request): RedirectResponse
     {
-        $token = $request->query('token');
-        if (! $token || ! is_string($token)) {
-            return redirect()->route('domains.checkout')->with('error', 'Checkout-Link ungültig oder abgelaufen.');
-        }
-
-        $payload = $request->session()->get('domain_checkout_'.$token);
-        if (! $payload || ! isset($payload['stripe_url']) || ($payload['user_id'] ?? null) != $request->user()?->id) {
-            return redirect()->route('domains.checkout')->with('error', 'Checkout-Daten ungültig oder abgelaufen.');
-        }
-
-        $stripeUrl = $payload['stripe_url'];
-        unset($payload['stripe_url']);
-        $request->session()->put('domain_checkout_'.$token, $payload);
-
-        if (app()->environment('local')) {
-            return Inertia::render('domains/CheckoutRedirect', [
-                'token' => $token,
-                'stripeUrl' => $stripeUrl,
-                'domain' => $payload['domain'] ?? '',
-            ]);
-        }
-
-        return Inertia::location($stripeUrl);
+        return redirect()->route('domains.checkout')->with('info', 'Bitte starten Sie die Domain-Bestellung erneut. Die Zahlung erfolgt über Mollie.');
     }
 
     /**
@@ -378,38 +355,16 @@ class DomainShopController extends Controller
         return redirect()->route('domains.index')->with('success', $successMessage);
     }
 
-    public function checkoutSuccess(Request $request, InvoicePdfService $pdfService): RedirectResponse
+    /**
+     * Complete domain order after successful Mollie payment. Called from CheckoutController::success.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function completeOrderWithPayload(Request $request, array $payload, InvoicePdfService $pdfService): RedirectResponse
     {
-        $sessionId = $request->query('session_id');
-        if (! $sessionId) {
-            return redirect()->route('domains.index')->with('error', 'Checkout-Session nicht gefunden.');
-        }
-
         $user = $request->user();
-        if (! $user) {
-            return redirect()->route('login')->with('error', 'Bitte melden Sie sich an.');
-        }
-
-        try {
-            $stripe = new StripeClient(config('cashier.secret'));
-            $session = $stripe->checkout->sessions->retrieve($sessionId);
-        } catch (\Throwable $e) {
-            return redirect()->route('domains.index')->with('error', 'Stripe-Session konnte nicht geladen werden.');
-        }
-
-        if ($session->payment_status !== 'paid') {
-            return redirect()->route('domains.index')->with('error', 'Zahlung wurde nicht abgeschlossen.');
-        }
-
-        $token = $session->metadata->domain_checkout_token ?? null;
-        if (! $token) {
-            return redirect()->route('domains.index')->with('error', 'Ungültige Checkout-Session.');
-        }
-
-        $payload = $request->session()->get('domain_checkout_'.$token);
-        $request->session()->forget('domain_checkout_'.$token);
-        if (! $payload || ($payload['user_id'] ?? null) != $user->id) {
-            return redirect()->route('domains.index')->with('error', 'Checkout-Daten abgelaufen oder ungültig.');
+        if (! $user || ($payload['user_id'] ?? null) != $user->id) {
+            return redirect()->route('domains.index')->with('error', 'Checkout-Daten ungültig.');
         }
 
         if (! config('skrime.api_key') || ! config('skrime.base_url')) {
@@ -468,6 +423,15 @@ class DomainShopController extends Controller
             : 'Domain '.$payload['domain'].' wurde registriert.';
 
         return redirect()->route('domains.index')->with('success', $successMessage);
+    }
+
+    /**
+     * Legacy success URL (e.g. bookmarks). Mollie payments are completed via CheckoutController::success.
+     */
+    public function checkoutSuccess(Request $request): RedirectResponse
+    {
+        return redirect()->route('domains.index')
+            ->with('info', 'Zahlung erfolgt über Mollie. Falls Sie gerade bezahlt haben, prüfen Sie bitte Ihre Domain-Liste.');
     }
 
     /**

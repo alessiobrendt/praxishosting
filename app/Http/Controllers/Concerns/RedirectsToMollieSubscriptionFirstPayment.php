@@ -61,8 +61,7 @@ trait RedirectsToMollieSubscriptionFirstPayment
                 ->with('error', $errorMessage);
         }
         $request->session()->put('pending_mollie_payment_id', $payment->id);
-        $request->session()->put('mollie_checkout_redirect_url', $checkoutUrl);
 
-        return redirect()->route('checkout.redirect-to-mollie');
+        return redirect()->away($checkoutUrl);
     }
 }

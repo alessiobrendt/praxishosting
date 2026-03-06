@@ -9,6 +9,7 @@ use App\Models\GameServerAccount;
 use App\Models\TeamSpeakServerAccount;
 use App\Models\WebspaceAccount;
 use App\Services\AiTokenService;
+use App\Services\MollieCustomerService;
 use App\Support\MollieWebhookUrl;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -191,9 +192,7 @@ class BillingController extends Controller
                     'amount_eur' => (string) $amount,
                 ],
             ];
-            if ($user->mollie_customer_id) {
-                $params['customerId'] = $user->mollie_customer_id;
-            }
+            $params['customerId'] = app(MollieCustomerService::class)->ensureCustomer($user);
             $webhookUrl = MollieWebhookUrl::get();
             if ($webhookUrl !== null) {
                 $params['webhookUrl'] = $webhookUrl;

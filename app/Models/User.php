@@ -48,6 +48,7 @@ class User extends Authenticatable
         'ticket_signature',
         'admin_dashboard_layout',
         'notification_preferences',
+        'mollie_customer_id',
     ];
 
     /**

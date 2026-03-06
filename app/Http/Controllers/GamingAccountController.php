@@ -9,6 +9,7 @@ use App\Models\CustomerBalance;
 use App\Models\GameServerAccount;
 use App\Services\BalancePaymentService;
 use App\Services\ControlPanels\PterodactylClient;
+use App\Services\MollieCustomerService;
 use App\Services\SyncHostingPlanStripePriceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -470,10 +471,13 @@ class GamingAccountController extends Controller
         }
 
         $user = $request->user();
-        if (! $user->mollie_customer_id) {
+        try {
+            $customerId = app(MollieCustomerService::class)->ensureCustomer($user);
+            $user->refresh();
+        } catch (MollieApiException $e) {
             return redirect()
                 ->route('gaming-accounts.show', $gameServerAccount)
-                ->with('error', 'Kein Mollie-Kunde verknüpft. Bitte haben Sie mindestens einmal mit Mollie bezahlt.');
+                ->with('error', 'Mollie-Kunde konnte nicht angelegt werden: '.$e->getMessage());
         }
 
         $plan = $gameServerAccount->hostingPlan;
@@ -496,7 +500,7 @@ class GamingAccountController extends Controller
 
         try {
             $subscription = app(MollieApiClient::class)->subscriptions->createForId(
-                $user->mollie_customer_id,
+                $customerId,
                 $subscriptionParams
             );
         } catch (MollieApiException $e) {

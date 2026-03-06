@@ -9,6 +9,7 @@ use App\Models\CustomerBalance;
 use App\Models\WebspaceAccount;
 use App\Services\BalancePaymentService;
 use App\Services\ControlPanels\PleskClient;
+use App\Services\MollieCustomerService;
 use App\Support\MollieWebhookUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -191,9 +192,7 @@ class WebspaceAccountController extends Controller
                     'period_months' => (string) $periodMonths,
                 ],
             ];
-            if ($user->mollie_customer_id) {
-                $params['customerId'] = $user->mollie_customer_id;
-            }
+            $params['customerId'] = app(MollieCustomerService::class)->ensureCustomer($user);
             $webhookUrl = MollieWebhookUrl::get();
             if ($webhookUrl !== null) {
                 $params['webhookUrl'] = $webhookUrl;
@@ -266,10 +265,13 @@ class WebspaceAccountController extends Controller
         }
 
         $user = $request->user();
-        if (! $user->mollie_customer_id) {
+        try {
+            $customerId = app(MollieCustomerService::class)->ensureCustomer($user);
+            $user->refresh();
+        } catch (MollieApiException $e) {
             return redirect()
                 ->route('webspace-accounts.show', $webspaceAccount)
-                ->with('error', 'Kein Mollie-Kunde verknüpft. Bitte haben Sie mindestens einmal mit Mollie bezahlt.');
+                ->with('error', 'Mollie-Kunde konnte nicht angelegt werden: '.$e->getMessage());
         }
 
         $plan = $webspaceAccount->hostingPlan;
@@ -292,7 +294,7 @@ class WebspaceAccountController extends Controller
 
         try {
             $subscription = app(MollieApiClient::class)->subscriptions->createForId(
-                $user->mollie_customer_id,
+                $customerId,
                 $subscriptionParams
             );
         } catch (MollieApiException $e) {

@@ -47,7 +47,7 @@ const canSubmit = computed(() => {
     return true;
 });
 
-const paymentMethod = ref<'stripe' | 'balance'>('stripe');
+const paymentMethod = ref<'mollie' | 'balance'>('mollie');
 const canSubmitWithBalance = computed(() =>
     props.canPayWithBalance &&
     (props.customerBalance ?? 0) >= (props.amountRequired ?? 0)
@@ -61,7 +61,7 @@ const form = useForm({
     transfer: Boolean(props.transfer),
     auth_code: '',
     use_profile_contact: true,
-    payment_method: 'stripe' as 'stripe' | 'balance',
+    payment_method: 'mollie' as 'mollie' | 'balance',
     accept_tos: false,
     accept_early_execution: false,
     contact: {
@@ -283,8 +283,8 @@ function submit() {
                             <div class="flex flex-col gap-3">
                                 <label class="flex cursor-pointer flex-col gap-2">
                                     <div class="flex items-center gap-2">
-                                        <input v-model="paymentMethod" type="radio" value="stripe" />
-                                        <span class="text-sm font-medium">Karte, PayPal, SEPA, …</span>
+                                        <input v-model="paymentMethod" type="radio" value="mollie" />
+                                        <span class="text-sm font-medium">Karte, PayPal, SEPA, … (Mollie)</span>
                                     </div>
                                     <div class="flex flex-wrap gap-2 pl-6">
                                         <div

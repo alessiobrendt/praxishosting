@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\CustomerBalance;
 use App\Models\Invoice;
 use App\Models\Setting;
+use App\Services\MollieCustomerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -109,9 +110,7 @@ class InvoiceController extends Controller
                 'user_id' => (string) $user->id,
             ],
         ];
-        if ($user->mollie_customer_id) {
-            $params['customerId'] = $user->mollie_customer_id;
-        }
+        $params['customerId'] = app(MollieCustomerService::class)->ensureCustomer($user);
         $webhookUrl = \App\Support\MollieWebhookUrl::get();
         if ($webhookUrl !== null) {
             $params['webhookUrl'] = $webhookUrl;

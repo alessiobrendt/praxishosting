@@ -9,6 +9,7 @@ use App\Models\TeamSpeakServerAccount;
 use App\Models\TeamSpeakSnapshot;
 use App\Services\BalancePaymentService;
 use App\Services\ControlPanels\TeamSpeakClient;
+use App\Services\MollieCustomerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -632,10 +633,13 @@ class TeamSpeakAccountController extends Controller
         }
 
         $user = $request->user();
-        if (! $user->mollie_customer_id) {
+        try {
+            $customerId = app(MollieCustomerService::class)->ensureCustomer($user);
+            $user->refresh();
+        } catch (MollieApiException $e) {
             return redirect()
                 ->route('teamspeak-accounts.show', $teamSpeakServerAccount)
-                ->with('error', 'Kein Mollie-Kunde verknüpft. Bitte haben Sie mindestens einmal mit Mollie bezahlt.');
+                ->with('error', 'Mollie-Kunde konnte nicht angelegt werden: '.$e->getMessage());
         }
 
         $plan = $teamSpeakServerAccount->hostingPlan;
@@ -658,7 +662,7 @@ class TeamSpeakAccountController extends Controller
 
         try {
             $subscription = app(MollieApiClient::class)->subscriptions->createForId(
-                $user->mollie_customer_id,
+                $customerId,
                 $subscriptionParams
             );
         } catch (MollieApiException $e) {

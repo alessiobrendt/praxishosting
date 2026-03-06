@@ -19,6 +19,7 @@ use App\Services\ControlPanels\PterodactylClient;
 use App\Services\ControlPanels\TeamSpeakClient;
 use App\Services\InvoiceEInvoiceService;
 use App\Services\InvoicePdfService;
+use App\Services\MollieCustomerService;
 use App\Support\MollieWebhookUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -97,9 +98,7 @@ class CheckoutController extends Controller
                     'user_id' => (string) $user->id,
                 ],
             ];
-            if ($user->mollie_customer_id) {
-                $params['customerId'] = $user->mollie_customer_id;
-            }
+            $params['customerId'] = app(MollieCustomerService::class)->ensureCustomer($user);
             $webhookUrl = MollieWebhookUrl::get();
             if ($webhookUrl !== null) {
                 $params['webhookUrl'] = $webhookUrl;
@@ -221,6 +220,9 @@ class CheckoutController extends Controller
             if ($type === 'mollie_subscription_first') {
                 return $this->handleMollieSubscriptionFirstSuccessFromMollie($request, $user, $metadata);
             }
+            if ($type === 'domain') {
+                return $this->handleDomainCheckoutSuccessFromMollie($request, $user, $metadata);
+            }
 
             return redirect()->route('sites.index')->with('success', 'Zahlung erhalten. Vielen Dank.');
         }
@@ -293,9 +295,7 @@ class CheckoutController extends Controller
                     'period_months' => (string) $periodMonths,
                 ],
             ];
-            if ($user->mollie_customer_id) {
-                $params['customerId'] = $user->mollie_customer_id;
-            }
+            $params['customerId'] = app(MollieCustomerService::class)->ensureCustomer($user);
             $webhookUrl = MollieWebhookUrl::get();
             if ($webhookUrl !== null) {
                 $params['webhookUrl'] = $webhookUrl;
@@ -384,9 +384,7 @@ class CheckoutController extends Controller
                 'redirectUrl' => route('checkout.success'),
                 'metadata' => $metadata,
             ];
-            if ($user->mollie_customer_id) {
-                $params['customerId'] = $user->mollie_customer_id;
-            }
+            $params['customerId'] = app(MollieCustomerService::class)->ensureCustomer($user);
             $webhookUrl = MollieWebhookUrl::get();
             if ($webhookUrl !== null) {
                 $params['webhookUrl'] = $webhookUrl;
@@ -475,9 +473,7 @@ class CheckoutController extends Controller
                 'redirectUrl' => route('checkout.success'),
                 'metadata' => $metadata,
             ];
-            if ($user->mollie_customer_id) {
-                $params['customerId'] = $user->mollie_customer_id;
-            }
+            $params['customerId'] = app(MollieCustomerService::class)->ensureCustomer($user);
             $webhookUrl = MollieWebhookUrl::get();
             if ($webhookUrl !== null) {
                 $params['webhookUrl'] = $webhookUrl;
@@ -1037,9 +1033,7 @@ class CheckoutController extends Controller
                 'redirectUrl' => route('checkout.success'),
                 'metadata' => $metadata,
             ];
-            if ($user->mollie_customer_id) {
-                $params['customerId'] = $user->mollie_customer_id;
-            }
+            $params['customerId'] = app(MollieCustomerService::class)->ensureCustomer($user);
             $webhookUrl = MollieWebhookUrl::get();
             if ($webhookUrl !== null) {
                 $params['webhookUrl'] = $webhookUrl;
@@ -1186,6 +1180,30 @@ class CheckoutController extends Controller
 
         return redirect()->route($showRoute, [$account])
             ->with('success', 'Mollie-Abo wurde eingerichtet. Die Abbuchung erfolgt monatlich automatisch.');
+    }
+
+    /**
+     * After successful Mollie payment for domain checkout: complete domain order (Skrime, ResellerDomain, invoice).
+     */
+    protected function handleDomainCheckoutSuccessFromMollie(Request $request, \App\Models\User $user, array $metadata): RedirectResponse
+    {
+        $token = $metadata['domain_checkout_token'] ?? null;
+        if (! $token || ! is_string($token)) {
+            Log::debug('Checkout success domain: missing token in metadata');
+
+            return redirect()->route('domains.index')->with('error', 'Ungültige Checkout-Daten.');
+        }
+
+        $payload = $request->session()->pull('domain_checkout_'.$token);
+        if (! $payload || ! is_array($payload) || ((int) ($payload['user_id'] ?? 0)) !== $user->id) {
+            return redirect()->route('domains.index')->with('error', 'Checkout-Daten abgelaufen oder ungültig.');
+        }
+
+        return app(DomainShopController::class)->completeOrderWithPayload(
+            $request,
+            $payload,
+            app(InvoicePdfService::class)
+        );
     }
 
     /**
