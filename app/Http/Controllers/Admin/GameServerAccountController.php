@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateGameServerAccountRequest;
 use App\Models\Brand;
 use App\Models\GameServerAccount;
 use App\Models\HostingServer;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Mollie\Api\Exceptions\ApiException as MollieApiException;
+use Mollie\Api\MollieApiClient;
 
 class GameServerAccountController extends Controller
 {
@@ -69,10 +72,125 @@ class GameServerAccountController extends Controller
             ? rtrim($panelUrl, '/').'/server/'.$gameServerAccount->identifier
             : null;
 
+        $payload = $gameServerAccount->toArray();
+        $payload['monthly_amount'] = $gameServerAccount->getMonthlyRenewalAmount();
+
         return Inertia::render('admin/gaming-accounts/Show', [
-            'gameServerAccount' => $gameServerAccount,
+            'gameServerAccount' => $payload,
             'loginUrl' => $loginUrl,
         ]);
+    }
+
+    /**
+     * Cancel Mollie subscription at period end (admin).
+     */
+    public function cancelSubscription(Request $request, GameServerAccount $gameServerAccount): RedirectResponse
+    {
+        $this->authorize('update', $gameServerAccount);
+
+        $currentBrand = $this->currentBrand($request);
+        if ($currentBrand !== null && $gameServerAccount->hostingPlan->brand_id !== $currentBrand->id) {
+            abort(404);
+        }
+
+        if (! $gameServerAccount->mollie_subscription_id) {
+            return redirect()
+                ->back()
+                ->with('error', 'Kein Abo mit diesem Game-Server verknüpft.');
+        }
+
+        $user = $gameServerAccount->user;
+        if (! $user || ! $user->mollie_customer_id) {
+            return redirect()
+                ->back()
+                ->with('error', 'Kein Mollie-Kunde verknüpft.');
+        }
+
+        try {
+            app(MollieApiClient::class)->subscriptions->cancelForId($user->mollie_customer_id, $gameServerAccount->mollie_subscription_id);
+        } catch (MollieApiException $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Die Kündigung konnte nicht durchgeführt werden: '.$e->getMessage());
+        }
+
+        $gameServerAccount->update(['cancel_at_period_end' => true]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Game-Server-Abo wurde zum Periodenende gekündigt.');
+    }
+
+    public function edit(Request $request, GameServerAccount $gameServerAccount): Response
+    {
+        $this->authorize('update', $gameServerAccount);
+
+        $currentBrand = $this->currentBrand($request);
+        if ($currentBrand !== null && $gameServerAccount->hostingPlan->brand_id !== $currentBrand->id) {
+            abort(404);
+        }
+
+        $gameServerAccount->load(['user', 'hostingPlan', 'hostingServer', 'product']);
+
+        return Inertia::render('admin/gaming-accounts/Edit', [
+            'gameServerAccount' => $gameServerAccount,
+            'hostingPlanConfig' => $gameServerAccount->hostingPlan->config ?? [],
+        ]);
+    }
+
+    public function update(UpdateGameServerAccountRequest $request, GameServerAccount $gameServerAccount): RedirectResponse
+    {
+        $currentBrand = $this->currentBrand($request);
+        if ($currentBrand !== null && $gameServerAccount->hostingPlan->brand_id !== $currentBrand->id) {
+            abort(404);
+        }
+
+        $data = $request->validated();
+        $optionValues = array_merge(
+            $gameServerAccount->option_values ?? [],
+            $data['option_values'] ?? []
+        );
+        $update = [
+            'name' => $data['name'],
+            'status' => $data['status'],
+            'option_values' => $optionValues,
+            'current_period_ends_at' => ! empty($data['current_period_ends_at']) ? $data['current_period_ends_at'] : null,
+            'custom_monthly_price' => isset($data['custom_monthly_price']) && $data['custom_monthly_price'] !== '' && $data['custom_monthly_price'] !== null ? (float) $data['custom_monthly_price'] : null,
+        ];
+
+        $gameServerAccount->update($update);
+
+        if ($gameServerAccount->pterodactyl_server_id && $gameServerAccount->hostingServer) {
+            $plan = $gameServerAccount->hostingPlan;
+            $config = $plan->config ?? [];
+            $params = [
+                'memory' => (int) ($optionValues['memory'] ?? $config['memory'] ?? 512),
+                'disk' => (int) ($optionValues['disk'] ?? $config['disk'] ?? 5120),
+                'swap' => (int) ($optionValues['swap'] ?? $config['swap'] ?? 0),
+                'io' => (int) ($optionValues['io'] ?? $config['io'] ?? 500),
+                'cpu' => (int) ($optionValues['cpu'] ?? $config['cpu'] ?? 0),
+                'databases' => (int) ($optionValues['databases'] ?? $config['databases'] ?? 0),
+                'backups' => (int) ($optionValues['backups'] ?? $config['backups'] ?? 0),
+            ];
+            try {
+                $ptero = app(PterodactylClient::class);
+                $ptero->setServer($gameServerAccount->hostingServer);
+                $ptero->updateServerBuild($gameServerAccount->pterodactyl_server_id, $params);
+            } catch (\Throwable $e) {
+                Log::warning('Admin gaming update: Pterodactyl sync failed', [
+                    'account_id' => $gameServerAccount->id,
+                    'message' => $e->getMessage(),
+                ]);
+
+                return redirect()
+                    ->route('admin.gaming-accounts.show', $gameServerAccount)
+                    ->with('warning', 'Account gespeichert, aber Pterodactyl-Limits konnten nicht aktualisiert werden: '.$e->getMessage());
+            }
+        }
+
+        return redirect()
+            ->route('admin.gaming-accounts.show', $gameServerAccount)
+            ->with('success', 'Game-Server-Account aktualisiert.');
     }
 
     /**

@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
+use Mollie\Api\Exceptions\ApiException as MollieApiException;
+use Mollie\Api\MollieApiClient;
 
 class TeamSpeakAccountController extends Controller
 {
@@ -62,9 +64,52 @@ class TeamSpeakAccountController extends Controller
 
         $teamSpeakServerAccount->load(['user', 'hostingPlan', 'hostingServer', 'product']);
 
+        $payload = $teamSpeakServerAccount->toArray();
+        $payload['monthly_amount'] = $teamSpeakServerAccount->getMonthlyRenewalAmount();
+
         return Inertia::render('admin/teamspeak-accounts/Show', [
-            'teamSpeakServerAccount' => $teamSpeakServerAccount,
+            'teamSpeakServerAccount' => $payload,
         ]);
+    }
+
+    /**
+     * Cancel Mollie subscription at period end (admin). Same logic as customer cancel.
+     */
+    public function cancelSubscription(Request $request, TeamSpeakServerAccount $teamSpeakServerAccount): RedirectResponse
+    {
+        $this->authorize('update', $teamSpeakServerAccount);
+
+        $currentBrand = $this->currentBrand($request);
+        if ($currentBrand !== null && $teamSpeakServerAccount->hostingPlan->brand_id !== $currentBrand->id) {
+            abort(404);
+        }
+
+        if (! $teamSpeakServerAccount->mollie_subscription_id) {
+            return redirect()
+                ->back()
+                ->with('error', 'Kein Abo mit diesem TeamSpeak-Server verknüpft.');
+        }
+
+        $user = $teamSpeakServerAccount->user;
+        if (! $user || ! $user->mollie_customer_id) {
+            return redirect()
+                ->back()
+                ->with('error', 'Kein Mollie-Kunde verknüpft.');
+        }
+
+        try {
+            app(MollieApiClient::class)->subscriptions->cancelForId($user->mollie_customer_id, $teamSpeakServerAccount->mollie_subscription_id);
+        } catch (MollieApiException $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Die Kündigung konnte nicht durchgeführt werden: '.$e->getMessage());
+        }
+
+        $teamSpeakServerAccount->update(['cancel_at_period_end' => true]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'TeamSpeak-Server-Abo wurde zum Periodenende gekündigt.');
     }
 
     public function edit(Request $request, TeamSpeakServerAccount $teamSpeakServerAccount): Response
@@ -101,6 +146,7 @@ class TeamSpeakAccountController extends Controller
             'option_values' => $optionValues,
             'current_period_ends_at' => ! empty($data['current_period_ends_at']) ? $data['current_period_ends_at'] : null,
             'status' => $data['status'],
+            'custom_monthly_price' => isset($data['custom_monthly_price']) && $data['custom_monthly_price'] !== '' && $data['custom_monthly_price'] !== null ? (float) $data['custom_monthly_price'] : null,
         ];
 
         if ($teamSpeakServerAccount->virtual_server_id && $teamSpeakServerAccount->hostingServer) {

@@ -341,11 +341,16 @@ Route::middleware(['admin.domain', 'auth', 'verified', 'admin'])->prefix('admin'
     Route::resource('hosting-plans', HostingPlanController::class);
     Route::get('webspace-accounts', [\App\Http\Controllers\Admin\WebspaceAccountController::class, 'index'])->name('webspace-accounts.index');
     Route::post('webspace-accounts/{webspace_account}/retry-plesk', [\App\Http\Controllers\Admin\WebspaceAccountController::class, 'retryPlesk'])->name('webspace-accounts.retry-plesk');
+    Route::post('webspace-accounts/{webspace_account}/subscription/cancel', [\App\Http\Controllers\Admin\WebspaceAccountController::class, 'cancelSubscription'])->name('webspace-accounts.subscription.cancel');
     Route::get('webspace-accounts/{webspace_account}', [\App\Http\Controllers\Admin\WebspaceAccountController::class, 'show'])->name('webspace-accounts.show');
     Route::get('gaming-accounts', [GameServerAccountController::class, 'index'])->name('gaming-accounts.index');
+    Route::post('gaming-accounts/{game_server_account}/subscription/cancel', [GameServerAccountController::class, 'cancelSubscription'])->name('gaming-accounts.subscription.cancel');
+    Route::get('gaming-accounts/{game_server_account}/edit', [GameServerAccountController::class, 'edit'])->name('gaming-accounts.edit');
+    Route::put('gaming-accounts/{game_server_account}', [GameServerAccountController::class, 'update'])->name('gaming-accounts.update');
     Route::post('gaming-accounts/{game_server_account}/retry-provisioning', [GameServerAccountController::class, 'retryProvisioning'])->name('gaming-accounts.retry-provisioning');
     Route::get('gaming-accounts/{game_server_account}', [GameServerAccountController::class, 'show'])->name('gaming-accounts.show');
     Route::get('teamspeak-accounts', [AdminTeamSpeakAccountController::class, 'index'])->name('teamspeak-accounts.index');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/subscription/cancel', [AdminTeamSpeakAccountController::class, 'cancelSubscription'])->name('teamspeak-accounts.subscription.cancel');
     Route::get('teamspeak-accounts/{team_speak_server_account}/edit', [AdminTeamSpeakAccountController::class, 'edit'])->name('teamspeak-accounts.edit');
     Route::put('teamspeak-accounts/{team_speak_server_account}', [AdminTeamSpeakAccountController::class, 'update'])->name('teamspeak-accounts.update');
     Route::get('teamspeak-accounts/{team_speak_server_account}', [AdminTeamSpeakAccountController::class, 'show'])->name('teamspeak-accounts.show');

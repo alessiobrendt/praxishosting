@@ -24,6 +24,7 @@ type TeamSpeakServerAccount = {
     status: string;
     current_period_ends_at: string | null;
     option_values: Record<string, unknown> | null;
+    custom_monthly_price?: number | string | null;
     user: User;
     hosting_plan: HostingPlan;
     hosting_server: HostingServer;
@@ -38,6 +39,12 @@ const props = defineProps<Props>();
 const slotsDefault = (props.teamSpeakServerAccount.option_values?.slots as number) ?? 32;
 const slotsNum = typeof slotsDefault === 'number' ? slotsDefault : parseInt(String(slotsDefault), 10) || 32;
 
+const customPrice = props.teamSpeakServerAccount.custom_monthly_price;
+const customPriceStr =
+    customPrice === null || customPrice === undefined || customPrice === ''
+        ? ''
+        : String(customPrice);
+
 const form = useForm({
     name: props.teamSpeakServerAccount.name,
     port: props.teamSpeakServerAccount.port ?? '',
@@ -46,6 +53,7 @@ const form = useForm({
         ? new Date(props.teamSpeakServerAccount.current_period_ends_at).toISOString().slice(0, 10)
         : '',
     status: props.teamSpeakServerAccount.status || 'active',
+    custom_monthly_price: customPriceStr,
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -138,6 +146,20 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <option value="pending">Ausstehend (pending)</option>
                             </Select>
                             <InputError :message="form.errors.status" />
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="custom_monthly_price">Manueller Monatspreis (€)</Label>
+                            <Input
+                                id="custom_monthly_price"
+                                v-model="form.custom_monthly_price"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="Leer = aus Plan + Optionen"
+                                :aria-invalid="!!form.errors.custom_monthly_price"
+                            />
+                            <p class="text-muted-foreground text-sm">Optional. Wenn gesetzt, wird dieser Betrag für Abo/Verlängerung verwendet.</p>
+                            <InputError :message="form.errors.custom_monthly_price" />
                         </div>
                     </CardContent>
                     <CardFooter>

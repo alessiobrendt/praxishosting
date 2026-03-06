@@ -26,6 +26,7 @@ class WebspaceAccount extends Model
         'ends_at',
         'renewal_type',
         'auto_renew_with_balance',
+        'custom_monthly_price',
     ];
 
     /**
@@ -59,6 +60,23 @@ class WebspaceAccount extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Effective monthly renewal amount (custom price or plan price).
+     */
+    public function getMonthlyRenewalAmount(): float
+    {
+        $custom = (float) ($this->custom_monthly_price ?? 0);
+        if ($custom > 0) {
+            return round($custom, 2);
+        }
+        $plan = $this->hostingPlan;
+        if (! $plan || ! $plan->is_active) {
+            return 0.0;
+        }
+
+        return round((float) ($plan->price ?? 0), 2);
     }
 
     /**

@@ -1136,7 +1136,7 @@ class CheckoutController extends Controller
             return redirect()->route($showRoute, [$account])->with('error', 'Paket nicht mehr verfügbar.');
         }
 
-        $amount = $accountType === 'teamspeak'
+        $amount = in_array($accountType, ['teamspeak', 'gaming', 'webspace'], true)
             ? $account->getMonthlyRenewalAmount()
             : (float) $plan->price;
         if ($amount <= 0) {

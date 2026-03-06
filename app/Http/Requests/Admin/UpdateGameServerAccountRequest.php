@@ -4,18 +4,15 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateTeamSpeakAccountRequest extends FormRequest
+class UpdateGameServerAccountRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('update', $this->route('team_speak_server_account')) ?? false;
+        return $this->user()?->can('update', $this->route('game_server_account')) ?? false;
     }
 
     protected function prepareForValidation(): void
     {
-        if ($this->has('port') && $this->input('port') === '') {
-            $this->merge(['port' => null]);
-        }
         if ($this->has('current_period_ends_at') && $this->input('current_period_ends_at') === '') {
             $this->merge(['current_period_ends_at' => null]);
         }
@@ -31,11 +28,17 @@ class UpdateTeamSpeakAccountRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'port' => ['nullable', 'integer', 'min:1', 'max:65535'],
-            'slots' => ['required', 'integer', 'min:1', 'max:9999'],
-            'current_period_ends_at' => ['nullable', 'date'],
             'status' => ['required', 'string', 'in:active,suspended,pending'],
+            'current_period_ends_at' => ['nullable', 'date'],
             'custom_monthly_price' => ['nullable', 'numeric', 'min:0'],
+            'option_values' => ['nullable', 'array'],
+            'option_values.memory' => ['nullable', 'integer', 'min:0'],
+            'option_values.disk' => ['nullable', 'integer', 'min:0'],
+            'option_values.swap' => ['nullable', 'integer', 'min:0'],
+            'option_values.io' => ['nullable', 'integer', 'min:0'],
+            'option_values.cpu' => ['nullable', 'integer', 'min:0'],
+            'option_values.databases' => ['nullable', 'integer', 'min:0'],
+            'option_values.backups' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

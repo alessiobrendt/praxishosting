@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\HostingPlanOptionSurchargeService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -29,6 +30,7 @@ class GameServerAccount extends Model
         'renewal_type',
         'auto_renew_with_balance',
         'option_values',
+        'custom_monthly_price',
     ];
 
     /**
@@ -63,6 +65,26 @@ class GameServerAccount extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Effective monthly renewal amount (custom price, or plan price + option surcharge).
+     */
+    public function getMonthlyRenewalAmount(): float
+    {
+        $custom = (float) ($this->custom_monthly_price ?? 0);
+        if ($custom > 0) {
+            return round($custom, 2);
+        }
+        $plan = $this->hostingPlan;
+        if (! $plan || ! $plan->is_active) {
+            return 0.0;
+        }
+        $base = (float) ($plan->price ?? 0);
+        $optionChoices = is_array($this->option_values) ? $this->option_values : [];
+        $surcharge = app(HostingPlanOptionSurchargeService::class)->computeSurcharge($plan, $optionChoices);
+
+        return round($base + $surcharge, 2);
     }
 
     /**

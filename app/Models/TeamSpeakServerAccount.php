@@ -30,6 +30,7 @@ class TeamSpeakServerAccount extends Model
         'renewal_type',
         'auto_renew_with_balance',
         'option_values',
+        'custom_monthly_price',
     ];
 
     /**
@@ -79,6 +80,10 @@ class TeamSpeakServerAccount extends Model
      */
     public function getMonthlyRenewalAmount(): float
     {
+        $custom = (float) ($this->custom_monthly_price ?? 0);
+        if ($custom > 0) {
+            return round($custom, 2);
+        }
         $plan = $this->hostingPlan;
         if (! $plan || ! $plan->is_active) {
             return 0.0;

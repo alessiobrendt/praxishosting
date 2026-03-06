@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 import { watch } from 'vue';
+import { CreditCard, ExternalLink, HardDrive } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -15,7 +16,7 @@ type WebspaceAccount = {
     domain: string;
     plesk_username: string;
     status: string;
-    stripe_subscription_id: string | null;
+    mollie_subscription_id: string | null;
     current_period_ends_at: string | null;
     cancel_at_period_end: boolean;
     ends_at: string | null;
@@ -31,8 +32,10 @@ type Props = {
 const props = defineProps<Props>();
 
 const page = usePage();
+const csrfToken = () => (page.props.csrfToken as string) ?? '';
+
 watch(
-    () => (page.props.flash as { error?: string; success?: string })?.error,
+    () => (page.props.flash as { error?: string; success?: string; warning?: string })?.error,
     (message) => {
         if (message) notify.error(message);
     },
@@ -57,9 +60,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '–';
-
-const stripeDashboardUrl = (subId: string | null) =>
-    subId ? `https://dashboard.stripe.com/subscriptions/${subId}` : null;
 </script>
 
 <template>
@@ -68,18 +68,22 @@ const stripeDashboardUrl = (subId: string | null) =>
 
         <div class="space-y-6">
             <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <Heading level="h1">{{ webspaceAccount.domain }}</Heading>
-                    <Text class="mt-2" muted>
-                        Webspace-Account · {{ webspaceAccount.hosting_plan.name }}
-                    </Text>
+                <div class="flex items-center gap-2">
+                    <HardDrive class="h-8 w-8" />
+                    <div>
+                        <Heading level="h1">{{ webspaceAccount.domain }}</Heading>
+                        <Text class="mt-2" muted>
+                            Webspace-Account · {{ webspaceAccount.hosting_plan.name }}
+                        </Text>
+                    </div>
                 </div>
-                <div v-if="canRetryPlesk()">
+                <div v-if="canRetryPlesk()" class="flex items-center gap-2">
                     <Form
                         :action="`/admin/webspace-accounts/${webspaceAccount.id}/retry-plesk`"
                         method="post"
                         class="inline"
                     >
+                        <input type="hidden" name="_token" :value="csrfToken()" />
                         <Button type="submit" variant="outline">
                             Plesk-Anlage erneut ausführen
                         </Button>
@@ -90,62 +94,101 @@ const stripeDashboardUrl = (subId: string | null) =>
             <Card>
                 <CardHeader>
                     <CardTitle>Details</CardTitle>
-                    <CardDescription>Kunde, Plan, Server, Abo</CardDescription>
+                    <CardDescription>Kunde, Domain, Plan, Server, Status, Abo-Ende</CardDescription>
                 </CardHeader>
-                <CardContent class="space-y-2">
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Kunde</span>
-                        <span>{{ webspaceAccount.user.name }} ({{ webspaceAccount.user.email }})</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Domain</span>
-                        <code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">{{ webspaceAccount.domain }}</code>
-                    </div>
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Plesk-Benutzer</span>
-                        <code class="text-sm">{{ webspaceAccount.plesk_username }}</code>
-                    </div>
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Plan</span>
-                        <Link :href="`/admin/hosting-plans/${webspaceAccount.hosting_plan.id}`" class="text-primary hover:underline">
-                            {{ webspaceAccount.hosting_plan.name }}
-                        </Link>
-                    </div>
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Server</span>
-                        <span>{{ webspaceAccount.hosting_server?.hostname ?? '-' }}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Status</span>
-                        <Badge variant="secondary">{{ webspaceAccount.status }}</Badge>
-                    </div>
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Abo-Ende (aktueller Zeitraum)</span>
-                        <span>{{ formatDate(webspaceAccount.current_period_ends_at) }}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Kündigung zum Periodenende</span>
-                        <span>{{ webspaceAccount.cancel_at_period_end ? 'Ja' : 'Nein' }}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Beendet am</span>
-                        <span>{{ formatDate(webspaceAccount.ends_at) }}</span>
-                    </div>
-                    <div class="flex justify-between py-2">
-                        <span class="text-muted-foreground">Stripe Subscription</span>
-                        <a
-                            v-if="stripeDashboardUrl(webspaceAccount.stripe_subscription_id)"
-                            :href="stripeDashboardUrl(webspaceAccount.stripe_subscription_id)!"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-primary hover:underline text-sm"
-                        >
-                            {{ webspaceAccount.stripe_subscription_id }}
-                        </a>
-                        <span v-else>-</span>
+                <CardContent>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <Text class="text-sm font-medium text-muted-foreground">Kunde</Text>
+                            <p class="font-medium">{{ webspaceAccount.user.name }}</p>
+                            <p class="text-sm text-muted-foreground">{{ webspaceAccount.user.email }}</p>
+                        </div>
+                        <div>
+                            <Text class="text-sm font-medium text-muted-foreground">Domain</Text>
+                            <code class="rounded bg-muted px-2 py-1 text-sm">{{ webspaceAccount.domain }}</code>
+                        </div>
+                        <div>
+                            <Text class="text-sm font-medium text-muted-foreground">Plesk-Benutzer</Text>
+                            <p class="font-mono text-sm">{{ webspaceAccount.plesk_username }}</p>
+                        </div>
+                        <div>
+                            <Text class="text-sm font-medium text-muted-foreground">Plan</Text>
+                            <Link :href="`/admin/hosting-plans/${webspaceAccount.hosting_plan.id}`" class="text-primary hover:underline font-medium">
+                                {{ webspaceAccount.hosting_plan.name }}
+                            </Link>
+                        </div>
+                        <div>
+                            <Text class="text-sm font-medium text-muted-foreground">Server</Text>
+                            <p class="font-medium">{{ webspaceAccount.hosting_server?.hostname ?? '–' }}</p>
+                        </div>
+                        <div>
+                            <Text class="text-sm font-medium text-muted-foreground">Status</Text>
+                            <p><Badge variant="secondary">{{ webspaceAccount.status }}</Badge></p>
+                        </div>
+                        <div>
+                            <Text class="text-sm font-medium text-muted-foreground">Abo-Ende (aktueller Zeitraum)</Text>
+                            <p class="font-medium">{{ formatDate(webspaceAccount.current_period_ends_at) }}</p>
+                        </div>
+                        <div>
+                            <Text class="text-sm font-medium text-muted-foreground">Kündigung zum Periodenende</Text>
+                            <p class="font-medium">{{ webspaceAccount.cancel_at_period_end ? 'Ja' : 'Nein' }}</p>
+                        </div>
+                        <div>
+                            <Text class="text-sm font-medium text-muted-foreground">Beendet am</Text>
+                            <p class="font-medium">{{ formatDate(webspaceAccount.ends_at) }}</p>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
+
+            <Card v-if="webspaceAccount.mollie_subscription_id">
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <CreditCard class="h-5 w-5" />
+                        Mollie-Abo
+                    </CardTitle>
+                    <CardDescription>Subscription bei Mollie – Abo kündigen zum Periodenende</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-3">
+                    <div>
+                        <Text class="text-sm font-medium text-muted-foreground">Subscription-ID</Text>
+                        <p class="font-mono text-sm">{{ webspaceAccount.mollie_subscription_id }}</p>
+                    </div>
+                    <div v-if="webspaceAccount.cancel_at_period_end" class="text-amber-600 dark:text-amber-400 text-sm">
+                        Wird zum Periodenende gekündigt.
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a
+                            href="https://www.mollie.com/dashboard/customers"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex"
+                        >
+                            <Button variant="outline" size="sm" as="span">
+                                <ExternalLink class="mr-2 h-4 w-4" />
+                                Bei Mollie anzeigen
+                            </Button>
+                        </a>
+                        <Form
+                            v-if="!webspaceAccount.cancel_at_period_end"
+                            :action="`/admin/webspace-accounts/${webspaceAccount.id}/subscription/cancel`"
+                            method="post"
+                            class="inline"
+                        >
+                            <input type="hidden" name="_token" :value="csrfToken()" />
+                            <Button type="submit" variant="outline" size="sm">
+                                Abo kündigen
+                            </Button>
+                        </Form>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div class="flex gap-2">
+                <Link href="/admin/webspace-accounts">
+                    <Button variant="outline">Zurück zur Liste</Button>
+                </Link>
+            </div>
         </div>
     </AdminLayout>
 </template>

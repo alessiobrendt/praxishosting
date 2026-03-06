@@ -127,6 +127,70 @@ class PterodactylClient implements ControlPanelContract
     }
 
     /**
+     * PATCH request to Pterodactyl Application API (e.g. update server build).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function apiPatch(string $path, array $data): void
+    {
+        $config = $this->server?->config ?? [];
+        $baseUri = rtrim((string) ($config['base_uri'] ?? $config['host'] ?? ''), '/');
+        $apiKey = $config['api_key'] ?? $this->server?->api_token ?? '';
+        if ($baseUri === '' || $apiKey === '') {
+            throw new Exception('Pterodactyl: base_uri and api_key must be set in server config');
+        }
+        $url = $baseUri.$path;
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer '.$apiKey,
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ])->timeout(15)->patch($url, $data);
+        if (! $response->successful()) {
+            $body = $response->json();
+            $msg = $body['errors'][0]['detail'] ?? $body['errors'][0]['code'] ?? $response->reason();
+
+            throw new Exception('Pterodactyl API: '.$msg);
+        }
+    }
+
+    /**
+     * Update server build (limits, feature_limits) on an existing Pterodactyl server.
+     *
+     * @param  array<string, mixed>  $params  memory, disk, swap, io, cpu, databases, backups, allocations
+     */
+    public function updateServerBuild(int $pterodactylServerId, array $params): void
+    {
+        $memory = (int) ($params['memory'] ?? 512);
+        $swap = (int) ($params['swap'] ?? 0);
+        $disk = (int) ($params['disk'] ?? 5120);
+        $io = (int) ($params['io'] ?? 500);
+        $cpu = (int) ($params['cpu'] ?? 0);
+        $databases = (int) ($params['databases'] ?? 0);
+        $backups = (int) ($params['backups'] ?? 0);
+        $allocations = (int) ($params['allocations'] ?? 1);
+        if ($allocations < 1) {
+            $allocations = 1;
+        }
+
+        $payload = [
+            'limits' => [
+                'memory' => $memory,
+                'swap' => $swap,
+                'disk' => $disk,
+                'io' => $io,
+                'cpu' => $cpu,
+            ],
+            'feature_limits' => [
+                'databases' => $databases,
+                'backups' => $backups,
+                'allocations' => $allocations,
+            ],
+        ];
+
+        $this->apiPatch('/api/application/servers/'.$pterodactylServerId.'/build', $payload);
+    }
+
+    /**
      * Suspend a server (Application API). Use when account period has expired.
      */
     public function suspendServer(GameServerAccount $account): void

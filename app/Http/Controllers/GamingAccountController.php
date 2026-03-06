@@ -120,9 +120,7 @@ class GamingAccountController extends Controller
         $currentBrand = $request->attributes->get('current_brand') ?? Brand::getDefault();
         $brandFeatures = $currentBrand?->getFeaturesArray() ?? [];
         $canRenew = $this->accountCanRenew($gameServerAccount);
-        $renewalAmount = $canRenew && $gameServerAccount->hostingPlan
-            ? (float) $gameServerAccount->hostingPlan->price
-            : 0.0;
+        $renewalAmount = $canRenew ? $gameServerAccount->getMonthlyRenewalAmount() : 0.0;
         $canPayWithBalance = (bool) ($brandFeatures['prepaid_balance'] ?? false);
         $customerBalance = 0.0;
         if ($canPayWithBalance) {
@@ -237,9 +235,8 @@ class GamingAccountController extends Controller
                 ->with('error', 'Dieser Game-Server kann nicht über diese Seite verlängert werden.');
         }
 
-        $plan = $gameServerAccount->hostingPlan;
         $periodMonths = (int) $request->validated('period_months', 1);
-        $amount = (float) $plan->price * $periodMonths;
+        $amount = round($gameServerAccount->getMonthlyRenewalAmount() * $periodMonths, 2);
         $user = $request->user();
         $paymentMethod = $request->validated('payment_method');
 
@@ -480,8 +477,7 @@ class GamingAccountController extends Controller
                 ->with('error', 'Mollie-Kunde konnte nicht angelegt werden: '.$e->getMessage());
         }
 
-        $plan = $gameServerAccount->hostingPlan;
-        $amount = (float) $plan->price;
+        $amount = $gameServerAccount->getMonthlyRenewalAmount();
         if ($amount <= 0) {
             return redirect()
                 ->route('gaming-accounts.show', $gameServerAccount)
@@ -541,7 +537,7 @@ class GamingAccountController extends Controller
             return false;
         }
 
-        return $plan->price !== null && (float) $plan->price > 0;
+        return $account->getMonthlyRenewalAmount() > 0;
     }
 
     protected function getBalancePeriodMonths(Request $request, \App\Models\User $user): int

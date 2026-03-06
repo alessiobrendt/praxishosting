@@ -84,9 +84,7 @@ class WebspaceAccountController extends Controller
         $currentBrand = $request->attributes->get('current_brand') ?? Brand::getDefault();
         $brandFeatures = $currentBrand?->getFeaturesArray() ?? [];
         $canRenew = $this->accountCanRenew($webspaceAccount);
-        $renewalAmount = $canRenew && $webspaceAccount->hostingPlan
-            ? (float) $webspaceAccount->hostingPlan->price
-            : 0.0;
+        $renewalAmount = $canRenew ? (float) $webspaceAccount->getMonthlyRenewalAmount() : 0.0;
         $canPayWithBalance = (bool) ($brandFeatures['prepaid_balance'] ?? false);
         $customerBalance = 0.0;
         if ($canPayWithBalance) {
@@ -123,9 +121,8 @@ class WebspaceAccountController extends Controller
                 ->with('error', 'Dieser Webspace kann nicht über diese Seite verlängert werden.');
         }
 
-        $plan = $webspaceAccount->hostingPlan;
         $periodMonths = (int) $request->validated('period_months', 1);
-        $amount = (float) $plan->price * $periodMonths;
+        $amount = (float) $webspaceAccount->getMonthlyRenewalAmount() * $periodMonths;
         $user = $request->user();
         $paymentMethod = $request->validated('payment_method');
 
@@ -274,8 +271,7 @@ class WebspaceAccountController extends Controller
                 ->with('error', 'Mollie-Kunde konnte nicht angelegt werden: '.$e->getMessage());
         }
 
-        $plan = $webspaceAccount->hostingPlan;
-        $amount = (float) $plan->price;
+        $amount = (float) $webspaceAccount->getMonthlyRenewalAmount();
         if ($amount <= 0) {
             return redirect()
                 ->route('webspace-accounts.show', $webspaceAccount)

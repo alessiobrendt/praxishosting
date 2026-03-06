@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Mollie\Api\Exceptions\ApiException as MollieApiException;
+use Mollie\Api\MollieApiClient;
 
 class WebspaceAccountController extends Controller
 {
@@ -97,5 +99,40 @@ class WebspaceAccountController extends Controller
         Log::info('Admin retry Plesk: account created', ['webspace_account_id' => $webspaceAccount->id]);
 
         return redirect()->back()->with('success', 'Plesk-Account wurde angelegt. Der Kunde kann sich nun anmelden.');
+    }
+
+    /**
+     * Cancel Mollie subscription at period end (admin).
+     */
+    public function cancelSubscription(Request $request, WebspaceAccount $webspaceAccount): RedirectResponse
+    {
+        $this->authorize('update', $webspaceAccount);
+
+        if (! $webspaceAccount->mollie_subscription_id) {
+            return redirect()
+                ->back()
+                ->with('error', 'Kein Abo mit diesem Webspace-Account verknüpft.');
+        }
+
+        $user = $webspaceAccount->user;
+        if (! $user || ! $user->mollie_customer_id) {
+            return redirect()
+                ->back()
+                ->with('error', 'Kein Mollie-Kunde verknüpft.');
+        }
+
+        try {
+            app(MollieApiClient::class)->subscriptions->cancelForId($user->mollie_customer_id, $webspaceAccount->mollie_subscription_id);
+        } catch (MollieApiException $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Die Kündigung konnte nicht durchgeführt werden: '.$e->getMessage());
+        }
+
+        $webspaceAccount->update(['cancel_at_period_end' => true]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Webspace-Abo wurde zum Periodenende gekündigt.');
     }
 }
