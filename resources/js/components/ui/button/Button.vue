@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { cn } from '@/lib/utils';
 
-type ButtonVariant = 'default' | 'outline' | 'ghost' | 'destructive' | 'link';
+type ButtonVariant = 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'link' | 'orange';
 type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
 interface Props {
@@ -26,10 +26,12 @@ const baseClasses = 'inline-flex items-center justify-center gap-2 whitespace-no
 
 const variantClasses: Record<ButtonVariant, string> = {
     default: 'gradient-primary text-white shadow-primary hover:shadow-primary/80 active:scale-[0.98] dark:shadow-primary/50',
+    secondary: 'bg-secondary text-secondary-foreground shadow-modern hover:bg-secondary/90 active:scale-[0.98] dark:bg-secondary dark:hover:bg-secondary/90',
     outline: 'border-2 border-gray-300 bg-white text-gray-900 shadow-modern hover:bg-gray-50 hover:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700',
     ghost: 'text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800',
     destructive: 'bg-red-600 text-white shadow-modern-md hover:bg-red-700 active:scale-[0.98] dark:bg-red-600 dark:hover:bg-red-700',
     link: 'text-primary underline-offset-4 hover:underline',
+    orange: 'bg-orange-500 text-white shadow-modern hover:bg-orange-600 active:scale-[0.98] dark:bg-orange-600 dark:hover:bg-orange-700',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

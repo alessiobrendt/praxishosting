@@ -54,6 +54,8 @@ const THEME_COLOR_KEYS: { key: string; label: string }[] = [
     { key: 'primary_hover', label: 'Primär (Hover)' },
     { key: 'primary_light', label: 'Primär (hell)' },
     { key: 'primary_dark', label: 'Primär (dunkel)' },
+    { key: 'secondary', label: 'Sekundär' },
+    { key: 'secondary_foreground', label: 'Sekundär (Schrift)' },
 ];
 
 type ThemeColors = Record<string, string>;
@@ -63,6 +65,8 @@ const defaultThemeColors: ThemeColors = {
     primary_hover: '#047857',
     primary_light: '#ecfdf5',
     primary_dark: '#065f46',
+    secondary: '#64748b',
+    secondary_foreground: '#ffffff',
 };
 
 const form = useForm({

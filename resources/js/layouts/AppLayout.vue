@@ -14,7 +14,7 @@ import {
     HelpCircle,
     Settings,
 } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import DashboardIcon from '@/components/icons/DashboardIcon.vue';
 import { MainLayout } from '@/components/layout';
 import PinUnlockOverlay from '@/components/PinUnlockOverlay.vue';
@@ -70,6 +70,35 @@ const brandThemeStyle = computed(() => {
         vars['--sidebar-ring'] = primary;
     }
     return Object.keys(vars).length ? vars : undefined;
+});
+
+const BRAND_THEME_VAR_KEYS = [
+    '--primary', '--primary-hover', '--primary-light', '--primary-dark',
+    '--secondary', '--secondary-foreground',
+    '--sidebar-primary', '--sidebar-primary-foreground', '--ring', '--accent', '--accent-foreground', '--sidebar-ring',
+];
+
+function applyBrandThemeToDocument(vars: Record<string, string> | undefined) {
+    const root = document.documentElement;
+    if (!vars) {
+        for (const key of BRAND_THEME_VAR_KEYS) {
+            root.style.removeProperty(key);
+        }
+        return;
+    }
+    for (const [key, value] of Object.entries(vars)) {
+        root.style.setProperty(key, value);
+    }
+}
+
+onMounted(() => {
+    applyBrandThemeToDocument(brandThemeStyle.value ?? undefined);
+});
+watch(brandThemeStyle, (vars) => {
+    applyBrandThemeToDocument(vars ?? undefined);
+}, { immediate: false });
+onBeforeUnmount(() => {
+    applyBrandThemeToDocument(undefined);
 });
 
 const discordInviteUrl = computed(() => (page.props.discordInviteUrl as string | null) ?? null);

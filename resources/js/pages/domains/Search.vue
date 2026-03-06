@@ -142,7 +142,7 @@ function goToTransferCheckout(r: Result) {
                                     <span class="text-muted">Fehler beim Prüfen</span>
                                 </template>
                                 <template v-else>
-                                    <Badge :variant="r.available ? 'success' : 'secondary'">
+                                    <Badge :variant="r.available ? 'success' : 'orange'">
                                         {{ r.available ? 'Verfügbar' : 'Belegt' }}
                                     </Badge>
                                     <Badge v-if="r.premium" variant="info">Premium</Badge>
@@ -157,6 +157,7 @@ function goToTransferCheckout(r: Result) {
                                     <Button
                                         v-else-if="(r.transfer_sale_price ?? 0) > 0"
                                         size="sm"
+                                        variant="secondary"
                                         @click="goToTransferCheckout(r)"
                                     >
                                         Transfer
