@@ -37,8 +37,6 @@ class ResolveSiteByDomain
 
         $host = strtolower($request->getHost());
 
-        Log::debug('ResolveSiteByDomain request', ['host' => $host, 'path' => $request->path()]);
-
         $domain = Domain::query()
             ->where('domain', $host)
             ->with(['site'])
@@ -54,7 +52,6 @@ class ResolveSiteByDomain
 
         if (! $domain) {
             $mainAppHosts = Setting::getMainAppHosts();
-            Log::debug('ResolveSiteByDomain no domain', ['host' => $host, 'mainAppHosts' => $mainAppHosts]);
             if (in_array($host, $mainAppHosts, true)) {
                 return $next($request);
             }
@@ -90,14 +87,6 @@ class ResolveSiteByDomain
 
         $normalizedSlug = $this->siteRenderService->normalizePageSlug($pageSlug, $site);
         $isActive = $this->siteRenderService->isPageActive($site->custom_page_data, $normalizedSlug);
-
-        Log::debug('ResolveSiteByDomain', [
-            'host' => $host,
-            'path' => $path,
-            'pageSlug' => $pageSlug,
-            'normalizedSlug' => $normalizedSlug,
-            'isActive' => $isActive,
-        ]);
 
         if ($pageSlug !== null && $normalizedSlug === 'index') {
             abort(404);

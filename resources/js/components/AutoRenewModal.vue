@@ -32,25 +32,15 @@ function close(): void {
     emit('update:open', false);
 }
 
+function getCsrfToken(): string {
+    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
 function submitBalance(enabled: boolean): void {
     if (submitting.value) return;
     submitting.value = 'balance';
     router.post(props.balanceUrl, { enabled: enabled ? '1' : '0' }, {
-        preserveScroll: true,
-        preserveState: true,
-        onFinish: () => {
-            submitting.value = null;
-        },
-        onSuccess: () => {
-            close();
-        },
-    });
-}
-
-function submitMollie(): void {
-    if (submitting.value) return;
-    submitting.value = 'mollie';
-    router.post(props.mollieUrl, {}, {
         preserveScroll: true,
         preserveState: true,
         onFinish: () => {
@@ -117,16 +107,24 @@ function submitMollie(): void {
                     <div v-if="hasMollieSubscription" class="text-sm text-green-600 dark:text-green-400">
                         Mollie-Abo ist aktiv.
                     </div>
-                    <Button
+                    <form
                         v-else
-                        variant="outline"
+                        :action="mollieUrl"
+                        method="post"
                         class="w-full"
-                        :disabled="submitting !== null"
-                        @click="submitMollie()"
+                        @submit="submitting = 'mollie'"
                     >
-                        <RefreshCcw v-if="submitting === 'mollie'" class="mr-2 h-4 w-4 animate-spin" />
-                        {{ submitting === 'mollie' ? 'Wird eingerichtet…' : 'Mollie-Abo einrichten' }}
-                    </Button>
+                        <input type="hidden" name="_token" :value="getCsrfToken()" />
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            class="w-full"
+                            :disabled="submitting !== null"
+                        >
+                            <RefreshCcw v-if="submitting === 'mollie'" class="mr-2 h-4 w-4 animate-spin" />
+                            {{ submitting === 'mollie' ? 'Weiterleitung…' : 'Mollie-Abo einrichten' }}
+                        </Button>
+                    </form>
                 </div>
             </div>
 
