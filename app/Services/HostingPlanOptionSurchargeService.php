@@ -61,6 +61,11 @@ class HostingPlanOptionSurchargeService
             $min = (float) ($opt['min'] ?? 0);
             $step = (float) ($opt['step'] ?? 1);
             $pricePerUnit = (float) ($opt['price_per_unit'] ?? 0);
+            $optId = $opt['id'] ?? '';
+
+            if (($optId === 'slots') && $num >= 0) {
+                return $pricePerUnit * $num;
+            }
             if ($step <= 0) {
                 return 0.0;
             }

@@ -141,7 +141,7 @@ const sidebarItems = computed<NavItem[]>(() => {
         ...(brandFeatures.value.teamspeak === true
             ? [
                   {
-                      title: 'TeamSpeak-Server',
+                      title: 'TeamSpeak',
                       icon: Headphones,
                       children: [
                           { title: 'TeamSpeak-Server mieten', href: '/teamspeak', icon: Package },

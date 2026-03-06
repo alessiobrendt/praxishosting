@@ -598,7 +598,9 @@ const breadcrumbs: BreadcrumbItem[] = [
                         </template>
 
                         <div class="space-y-2">
-                            <Label for="price">Preis (€/Monat) *</Label>
+                            <Label for="price">
+                                {{ showTeamspeakFields ? 'Grundpreis (€/Monat) – 0 = nur Preis pro Slot' : 'Preis (€/Monat) *' }}
+                            </Label>
                             <Input
                                 id="price"
                                 name="price"

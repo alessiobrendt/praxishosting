@@ -84,6 +84,9 @@ function optionSurcharge(opt: PlanOption, value: string | number | undefined): n
     }
     if (opt.type === 'range_slider') {
         const num = Number(value);
+        if (opt.id === 'slots' && num >= 0) {
+            return Number(opt.price_per_unit ?? 0) * num;
+        }
         const min = Number(opt.min ?? 0);
         const step = Number(opt.step ?? 1);
         if (step <= 0) return 0;
@@ -114,6 +117,18 @@ const optionSurchargeItems = computed(() => {
 
 const basePrice = computed(() => Number(currentPlan.value?.price ?? 0));
 const totalAmount = computed(() => basePrice.value + totalOptionSurcharge.value);
+
+const isPricePerSlotOnly = computed(() => basePrice.value === 0 && currentPlan.value != null);
+
+function planPriceLabel(plan: HostingPlan): string {
+    const p = Number(plan.price ?? 0);
+    if (p > 0) return `${plan.price} €/Monat`;
+    const opts = plan.config?.plan_options ?? [];
+    const slotsOpt = opts.find((o) => o.id === 'slots');
+    const slotPrice = slotsOpt?.price_per_unit ?? 0;
+    if (slotPrice > 0) return `ab ${slotPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} € pro Slot`;
+    return 'Preis pro Slot';
+}
 
 const canSubmitWithBalance = computed(() =>
     Boolean(props.canPayWithBalance && (props.customerBalance ?? 0) >= totalAmount.value),
@@ -149,8 +164,9 @@ watch(
             const existing = optionChoices.value[opt.id];
             if (existing !== undefined) {
                 next[opt.id] = existing;
-            } else if (opt.type === 'range_slider' && typeof opt.min === 'number') {
-                next[opt.id] = opt.min;
+            } else if (opt.type === 'range_slider') {
+                const minVal = opt.min;
+                next[opt.id] = minVal != null && minVal !== '' ? Number(minVal) : 0;
             } else if (opt.type === 'choice' || opt.type === 'select') {
                 const first = opt.choices?.[0];
                 if (first) next[opt.id] = first.value;
@@ -213,7 +229,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                         :key="plan.id"
                                         :value="String(plan.id)"
                                     >
-                                        {{ plan.name }} – {{ plan.price }} €/Monat
+                                        {{ plan.name }} – {{ planPriceLabel(plan) }}
                                     </option>
                                 </Select>
                                 <InputError :message="errors.hosting_plan_id" />
@@ -330,7 +346,8 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     <div class="space-y-2 text-sm">
                                         <div class="flex justify-between">
                                             <span class="text-muted-foreground">Basis-Preis</span>
-                                            <span class="tabular-nums">{{ basePrice.toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} €/Monat</span>
+                                            <span v-if="!isPricePerSlotOnly" class="tabular-nums">{{ basePrice.toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} €/Monat</span>
+                                            <span v-else class="text-muted-foreground">– (nur pro Slot)</span>
                                         </div>
                                         <template v-for="item in optionSurchargeItems" :key="item.name">
                                             <div class="flex justify-between">

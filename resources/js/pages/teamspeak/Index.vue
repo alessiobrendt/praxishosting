@@ -12,7 +12,7 @@ type HostingPlan = {
     id: number;
     name: string;
     price: string;
-    config?: { plan_options?: { id: string; name: string; min?: number; max?: number }[] };
+    config?: { plan_options?: { id: string; name: string; min?: number; max?: number; price_per_unit?: number }[] };
 };
 
 type Props = {
@@ -33,6 +33,20 @@ function planSpec(plan: HostingPlan): string {
         return `${slotsOpt.min}–${slotsOpt.max} Slots wählbar`;
     }
     return 'TeamSpeak Voice Server';
+}
+
+function planPriceDisplay(plan: HostingPlan): string {
+    const priceNum = Number(plan.price ?? 0);
+    if (priceNum > 0) {
+        return `${plan.price} € / Monat`;
+    }
+    const opts = plan.config?.plan_options ?? [];
+    const slotsOpt = opts.find((o) => o.id === 'slots');
+    const slotPrice = slotsOpt?.price_per_unit ?? 0;
+    if (slotPrice > 0) {
+        return `ab ${slotPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} € pro Slot`;
+    }
+    return 'Preis pro Slot';
 }
 </script>
 
@@ -69,7 +83,7 @@ function planSpec(plan: HostingPlan): string {
                             <li>Slots nach Bedarf wählbar</li>
                             <li>Token-Verwaltung & Backups</li>
                         </ul>
-                        <div class="text-2xl font-semibold">{{ plan.price }} € <span class="text-sm font-normal text-muted-foreground">/ Monat</span></div>
+                        <div class="text-2xl font-semibold">{{ planPriceDisplay(plan) }}</div>
                     </CardContent>
                     <CardContent class="pt-0">
                         <Link :href="`/teamspeak/checkout?plan=${plan.id}`">
