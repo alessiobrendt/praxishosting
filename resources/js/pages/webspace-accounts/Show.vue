@@ -19,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Heading, Text } from '@/components/ui/typography';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
-import { autoRenewBalance, autoRenewMollieSubscription } from '@/routes/webspace-accounts';
+import webspaceAccounts, { autoRenewBalance, autoRenewMollieSubscription } from '@/routes/webspace-accounts';
 import type { BreadcrumbItem } from '@/types';
 
 type WebspaceAccount = {
@@ -577,6 +577,7 @@ function resourcePercent(used: number, limit: number): number {
             :open="autoRenewModalOpen"
             :balance-url="autoRenewBalance.url(props.webspaceAccount.id)"
             :mollie-url="autoRenewMollieSubscription.url(props.webspaceAccount.id)"
+            :mollie-cancel-url="webspaceAccounts.subscription.cancel.url(props.webspaceAccount.id)"
             :auto-renew-with-balance="props.auto_renew_with_balance"
             :has-mollie-subscription="props.has_mollie_subscription"
             @update:open="autoRenewModalOpen = $event"

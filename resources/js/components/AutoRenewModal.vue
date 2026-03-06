@@ -16,6 +16,7 @@ interface Props {
     open: boolean;
     balanceUrl: string;
     mollieUrl: string;
+    mollieCancelUrl?: string;
     autoRenewWithBalance: boolean;
     hasMollieSubscription: boolean;
 }
@@ -26,7 +27,7 @@ const emit = defineEmits<{
     (e: 'update:open', value: boolean): void;
 }>();
 
-const submitting = ref<'balance' | 'mollie' | null>(null);
+const submitting = ref<'balance' | 'mollie' | 'mollie-cancel' | null>(null);
 
 const page = usePage();
 const csrfToken = () => (page.props.csrfToken as string) ?? '';
@@ -41,6 +42,20 @@ function submitBalance(enabled: boolean): void {
     router.post(props.balanceUrl, { enabled: enabled ? '1' : '0' }, {
         preserveScroll: true,
         preserveState: true,
+        onFinish: () => {
+            submitting.value = null;
+        },
+        onSuccess: () => {
+            close();
+        },
+    });
+}
+
+function cancelMollieSubscription(): void {
+    if (submitting.value || !props.mollieCancelUrl) return;
+    submitting.value = 'mollie-cancel';
+    router.post(props.mollieCancelUrl, {}, {
+        preserveScroll: true,
         onFinish: () => {
             submitting.value = null;
         },
@@ -103,8 +118,18 @@ function submitBalance(enabled: boolean): void {
                         Es wird eine Subscription mit Mollie erstellt; das Geld wird monatlich automatisch abgebucht.
                         Die erste Zahlung verlängert die Laufzeit um 1 Monat, danach erfolgt die Abbuchung automatisch.
                     </p>
-                    <div v-if="hasMollieSubscription" class="text-sm text-green-600 dark:text-green-400">
-                        Mollie-Abo ist aktiv.
+                    <div v-if="hasMollieSubscription" class="flex flex-col gap-3">
+                        <span class="text-sm text-green-600 dark:text-green-400">Mollie-Abo ist aktiv.</span>
+                        <Button
+                            v-if="mollieCancelUrl"
+                            variant="outline"
+                            class="w-full border-dashed border-amber-500/50 text-amber-700 hover:bg-amber-50 hover:border-amber-500/70 dark:text-amber-400 dark:hover:bg-amber-950/30 dark:border-amber-500/40"
+                            :disabled="submitting !== null"
+                            @click="cancelMollieSubscription"
+                        >
+                            <RefreshCcw v-if="submitting === 'mollie-cancel'" class="mr-2 h-4 w-4 animate-spin" />
+                            {{ submitting === 'mollie-cancel' ? 'Wird gekündigt…' : 'Mollie-Abo kündigen' }}
+                        </Button>
                     </div>
                     <form
                         v-else

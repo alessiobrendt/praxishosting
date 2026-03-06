@@ -383,14 +383,14 @@ class GamingAccountController extends Controller
 
         if (! $gameServerAccount->mollie_subscription_id) {
             return redirect()
-                ->route('billing.subscriptions')
+                ->back()
                 ->with('error', 'Kein Abo mit diesem Game-Server verknüpft.');
         }
 
         $user = $request->user();
         if (! $user->mollie_customer_id) {
             return redirect()
-                ->route('billing.subscriptions')
+                ->back()
                 ->with('error', 'Kein Mollie-Kunde verknüpft.');
         }
 
@@ -398,14 +398,14 @@ class GamingAccountController extends Controller
             app(MollieApiClient::class)->subscriptions->cancelForId($user->mollie_customer_id, $gameServerAccount->mollie_subscription_id);
         } catch (MollieApiException $e) {
             return redirect()
-                ->route('billing.subscriptions')
+                ->back()
                 ->with('error', 'Die Kündigung konnte nicht durchgeführt werden. Bitte versuchen Sie es später erneut.');
         }
 
         $gameServerAccount->update(['cancel_at_period_end' => true]);
 
         return redirect()
-            ->route('billing.subscriptions')
+            ->back()
             ->with('success', 'Ihr Game-Server-Abo wurde zum Periodenende gekündigt.');
     }
 

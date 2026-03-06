@@ -548,14 +548,14 @@ class TeamSpeakAccountController extends Controller
 
         if (! $teamSpeakServerAccount->mollie_subscription_id) {
             return redirect()
-                ->route('billing.subscriptions')
+                ->back()
                 ->with('error', 'Kein Abo mit diesem TeamSpeak-Server verknüpft.');
         }
 
         $user = $request->user();
         if (! $user->mollie_customer_id) {
             return redirect()
-                ->route('billing.subscriptions')
+                ->back()
                 ->with('error', 'Kein Mollie-Kunde verknüpft.');
         }
 
@@ -563,14 +563,14 @@ class TeamSpeakAccountController extends Controller
             app(MollieApiClient::class)->subscriptions->cancelForId($user->mollie_customer_id, $teamSpeakServerAccount->mollie_subscription_id);
         } catch (MollieApiException $e) {
             return redirect()
-                ->route('billing.subscriptions')
+                ->back()
                 ->with('error', 'Die Kündigung konnte nicht durchgeführt werden. Bitte versuchen Sie es später erneut.');
         }
 
         $teamSpeakServerAccount->update(['cancel_at_period_end' => true]);
 
         return redirect()
-            ->route('billing.subscriptions')
+            ->back()
             ->with('success', 'Ihr TeamSpeak-Server-Abo wurde zum Periodenende gekündigt.');
     }
 

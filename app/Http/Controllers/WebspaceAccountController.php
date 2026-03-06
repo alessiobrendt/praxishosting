@@ -347,14 +347,14 @@ class WebspaceAccountController extends Controller
 
         if (! $webspaceAccount->mollie_subscription_id) {
             return redirect()
-                ->route('billing.subscriptions')
+                ->back()
                 ->with('error', 'Kein Abo mit diesem Webspace verknüpft.');
         }
 
         $user = $request->user();
         if (! $user->mollie_customer_id) {
             return redirect()
-                ->route('billing.subscriptions')
+                ->back()
                 ->with('error', 'Kein Mollie-Kunde verknüpft.');
         }
 
@@ -362,14 +362,14 @@ class WebspaceAccountController extends Controller
             app(MollieApiClient::class)->subscriptions->cancelForId($user->mollie_customer_id, $webspaceAccount->mollie_subscription_id);
         } catch (MollieApiException $e) {
             return redirect()
-                ->route('billing.subscriptions')
+                ->back()
                 ->with('error', 'Die Kündigung konnte nicht durchgeführt werden. Bitte versuchen Sie es später erneut.');
         }
 
         $webspaceAccount->update(['cancel_at_period_end' => true]);
 
         return redirect()
-            ->route('billing.subscriptions')
+            ->back()
             ->with('success', 'Ihr Webspace-Abo wurde zum Periodenende gekündigt.');
     }
 

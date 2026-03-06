@@ -43,7 +43,7 @@ import { Heading, Text } from '@/components/ui/typography';
 import { notify } from '@/composables/useNotify';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
-import { autoRenewBalance, autoRenewMollieSubscription } from '@/routes/teamspeak-accounts';
+import teamspeakAccounts, { autoRenewBalance, autoRenewMollieSubscription } from '@/routes/teamspeak-accounts';
 import type { BreadcrumbItem } from '@/types';
 
 type TeamSpeakServerAccount = {
@@ -873,6 +873,7 @@ function deleteBackup(snapshotId: number) {
             :open="autoRenewModalOpen"
             :balance-url="autoRenewBalance.url(props.teamSpeakServerAccount.id)"
             :mollie-url="autoRenewMollieSubscription.url(props.teamSpeakServerAccount.id)"
+            :mollie-cancel-url="teamspeakAccounts.subscription.cancel.url(props.teamSpeakServerAccount.id)"
             :auto-renew-with-balance="props.auto_renew_with_balance"
             :has-mollie-subscription="props.has_mollie_subscription"
             @update:open="autoRenewModalOpen = $event"

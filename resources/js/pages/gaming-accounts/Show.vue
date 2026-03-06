@@ -34,7 +34,7 @@ import { Heading, Text } from '@/components/ui/typography';
 import { notify } from '@/composables/useNotify';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
-import { autoRenewBalance, autoRenewMollieSubscription } from '@/routes/gaming-accounts';
+import gamingAccounts, { autoRenewBalance, autoRenewMollieSubscription } from '@/routes/gaming-accounts';
 import type { BreadcrumbItem } from '@/types';
 
 type GameServerAccount = {
@@ -720,6 +720,7 @@ function sendPower(action: 'start' | 'stop' | 'restart') {
             :open="autoRenewModalOpen"
             :balance-url="autoRenewBalance.url(props.gameServerAccount.id)"
             :mollie-url="autoRenewMollieSubscription.url(props.gameServerAccount.id)"
+            :mollie-cancel-url="gamingAccounts.subscription.cancel.url(props.gameServerAccount.id)"
             :auto-renew-with-balance="props.auto_renew_with_balance"
             :has-mollie-subscription="props.has_mollie_subscription"
             @update:open="autoRenewModalOpen = $event"

@@ -112,6 +112,7 @@ class CustomerController extends Controller
             'resellerDomains' => fn ($q) => $q->latest()->limit(15),
             'webspaceAccounts' => fn ($q) => $q->with(['hostingPlan:id,name', 'hostingServer:id,hostname'])->latest()->limit(15),
             'gameServerAccounts' => fn ($q) => $q->with(['hostingPlan:id,name', 'hostingServer:id,hostname'])->latest()->limit(15),
+            'teamSpeakServerAccounts' => fn ($q) => $q->with(['hostingPlan:id,name', 'hostingServer:id,hostname'])->latest()->limit(15),
         ]);
         $customer->loadCount(['invoices', 'tickets', 'resellerDomains']);
 
@@ -150,6 +151,13 @@ class CustomerController extends Controller
                 }
                 if (! empty($d['registered_at'])) {
                     $d['registered_at'] = Carbon::parse($d['registered_at'])->format('d.m.Y');
+                }
+            }
+        }
+        if (! empty($customerArray['team_speak_server_accounts'] ?? [])) {
+            foreach ($customerArray['team_speak_server_accounts'] as &$ts) {
+                if (! empty($ts['current_period_ends_at'])) {
+                    $ts['current_period_ends_at'] = Carbon::parse($ts['current_period_ends_at'])->format('d.m.Y');
                 }
             }
         }

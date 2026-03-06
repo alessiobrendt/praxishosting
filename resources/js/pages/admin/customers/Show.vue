@@ -10,6 +10,8 @@ import {
     MessageCircle,
     HardDrive,
     Server,
+    CreditCard,
+    Headphones,
 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
@@ -103,6 +105,17 @@ type GameServerAccount = {
     hosting_server?: { hostname: string };
 };
 
+type TeamSpeakServerAccount = {
+    id: number;
+    name: string;
+    status: string;
+    current_period_ends_at?: string | null;
+    hosting_plan?: { name: string };
+    hosting_server?: { hostname: string };
+    mollie_subscription_id?: string | null;
+    cancel_at_period_end?: boolean;
+};
+
 type Customer = {
     id: number;
     name: string;
@@ -128,6 +141,8 @@ type Customer = {
     reseller_domains_count?: number;
     webspace_accounts?: WebspaceAccount[];
     game_server_accounts?: GameServerAccount[];
+    team_speak_server_accounts?: TeamSpeakServerAccount[];
+    mollie_customer_id?: string | null;
 };
 
 type ActivityLogEntry = {
@@ -541,6 +556,35 @@ onMounted(() => {
                         </CardContent>
                     </Card>
 
+                    <Card>
+                        <CardHeader>
+                            <CardTitle class="flex items-center gap-2">
+                                <CreditCard class="h-5 w-5" />
+                                Mollie
+                            </CardTitle>
+                            <CardDescription>Zahlungen, Abos – Kunden-ID bei Mollie</CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-2">
+                            <div>
+                                <Text variant="small" muted>Mollie-Kunden-ID</Text>
+                                <div class="mt-1 flex flex-wrap items-center gap-2">
+                                    <code v-if="customer.mollie_customer_id" class="rounded bg-muted px-2 py-1 text-sm font-mono">{{ customer.mollie_customer_id }}</code>
+                                    <Text v-else class="text-muted-foreground">–</Text>
+                                    <a
+                                        v-if="customer.mollie_customer_id"
+                                        :href="`https://www.mollie.com/dashboard/customers/${customer.mollie_customer_id}`"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                                    >
+                                        Bei Mollie anzeigen
+                                        <ExternalLink class="h-3.5 w-3.5" />
+                                    </a>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
             <Card v-if="customer.customer_notes !== undefined">
                 <CardHeader>
                     <CardTitle>Notizen</CardTitle>
@@ -684,6 +728,10 @@ onMounted(() => {
                                 <Server class="mr-1.5 h-4 w-4" />
                                 Game-Server ({{ customer.game_server_accounts?.length ?? 0 }})
                             </TabsTrigger>
+                            <TabsTrigger value="teamspeak">
+                                <Headphones class="mr-1.5 h-4 w-4" />
+                                TeamSpeak ({{ customer.team_speak_server_accounts?.length ?? 0 }})
+                            </TabsTrigger>
                             <TabsTrigger value="domains">
                                 <Globe class="mr-1.5 h-4 w-4" />
                                 Reseller-Domains ({{ customer.reseller_domains?.length ?? 0 }})
@@ -815,6 +863,61 @@ onMounted(() => {
                                 class="mt-3 inline-block text-sm text-primary hover:underline"
                             >
                                 Alle Game-Server anzeigen →
+                            </Link>
+                        </TabsContent>
+
+                        <TabsContent value="teamspeak" class="mt-0">
+                            <div class="overflow-x-auto rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>ID</TableHead>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Paket / Plan</TableHead>
+                                            <TableHead>Server</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Laufzeit Ende</TableHead>
+                                            <TableHead class="text-right w-20">Aktionen</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow v-for="ts in customer.team_speak_server_accounts" :key="ts.id">
+                                            <TableCell class="font-mono text-sm text-muted-foreground">{{ ts.id }}</TableCell>
+                                            <TableCell class="font-medium">{{ ts.name ?? '–' }}</TableCell>
+                                            <TableCell>{{ ts.hosting_plan?.name ?? '–' }}</TableCell>
+                                            <TableCell>
+                                                <code class="rounded bg-muted px-1.5 py-0.5 text-xs">{{ ts.hosting_server?.hostname ?? '–' }}</code>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span class="inline-flex items-center rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                                                    {{ ts.status }}
+                                                </span>
+                                                <span v-if="ts.mollie_subscription_id" class="ml-1 text-xs text-green-600 dark:text-green-400" title="Mollie-Abo aktiv">Abo</span>
+                                                <span v-if="ts.cancel_at_period_end" class="ml-1 text-xs text-amber-600 dark:text-amber-400" title="Zum Periodenende gekündigt">↷</span>
+                                            </TableCell>
+                                            <TableCell class="text-muted-foreground text-sm">{{ ts.current_period_ends_at ?? '–' }}</TableCell>
+                                            <TableCell class="text-right">
+                                                <Link :href="`/admin/teamspeak-accounts/${ts.id}`">
+                                                    <Button variant="ghost" size="sm" aria-label="Anzeigen">
+                                                        <ExternalLink class="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </Link>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow v-if="!customer.team_speak_server_accounts?.length">
+                                            <TableCell colspan="7" class="text-center text-muted-foreground py-8">
+                                                Keine TeamSpeak-Server
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <Link
+                                v-if="customer.team_speak_server_accounts?.length"
+                                :href="`/admin/teamspeak-accounts?user_id=${customer.id}`"
+                                class="mt-3 inline-block text-sm text-primary hover:underline"
+                            >
+                                Alle TeamSpeak-Server anzeigen →
                             </Link>
                         </TabsContent>
 
