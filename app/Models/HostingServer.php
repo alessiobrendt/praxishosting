@@ -75,4 +75,12 @@ class HostingServer extends Model
     {
         return $this->hasMany(TeamSpeakServerAccount::class, 'hosting_server_id');
     }
+
+    /**
+     * @return HasMany<PterodactylEggConfig>
+     */
+    public function pterodactylEggConfigs(): HasMany
+    {
+        return $this->hasMany(PterodactylEggConfig::class);
+    }
 }

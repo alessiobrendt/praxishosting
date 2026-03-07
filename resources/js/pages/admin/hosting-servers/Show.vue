@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Edit, Server, HardDrive } from 'lucide-vue-next';
+import { Edit, Server, HardDrive, Egg } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -81,12 +81,23 @@ const formatCurrency = (value: number) =>
                         {{ isPterodactyl() ? 'Pterodactyl-Panel' : isTeamSpeak() ? 'TeamSpeak-Node' : 'Plesk-Hosting-Server' }}
                     </Text>
                 </div>
-                <Link :href="hostingServers.edit.url(hostingServer.id)">
-                    <Button>
-                        <Edit class="mr-2 h-4 w-4" />
-                        Bearbeiten
-                    </Button>
-                </Link>
+                <div class="flex gap-2">
+                    <Link
+                        v-if="isPterodactyl()"
+                        :href="`/admin/hosting-servers/${hostingServer.id}/pterodactyl-nests`"
+                    >
+                        <Button variant="outline">
+                            <Egg class="mr-2 h-4 w-4" />
+                            Nests & Eggs
+                        </Button>
+                    </Link>
+                    <Link :href="hostingServers.edit.url(hostingServer.id)">
+                        <Button>
+                            <Edit class="mr-2 h-4 w-4" />
+                            Bearbeiten
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             <Card>

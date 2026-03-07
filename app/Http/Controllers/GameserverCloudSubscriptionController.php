@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\InsufficientBalanceException;
 use App\Http\Requests\StoreCloudServerRequest;
+use App\Http\Requests\UpdateCloudServerResourcesRequest;
 use App\Models\Brand;
 use App\Models\CustomerBalance;
 use App\Models\GameServerAccount;
 use App\Models\GameserverCloudSubscription;
+use App\Models\PterodactylEggConfig;
 use App\Services\BalancePaymentService;
+use App\Services\CloudflareDnsService;
 use App\Services\ControlPanels\PterodactylClient;
 use App\Services\MollieCustomerService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -176,7 +180,76 @@ class GameserverCloudSubscriptionController extends Controller
             'has_mollie_subscription' => ! empty($subscription->mollie_subscription_id),
             'balanceUrl' => route('gaming.cloud.subscriptions.auto-renew-balance', $subscription),
             'mollieUrl' => route('gaming.cloud.subscriptions.auto-renew-mollie-subscription', $subscription),
+            'domainsSearchUrl' => route('domains.search'),
         ]);
+    }
+
+    /**
+     * Return egg variables for the selected nest/egg (for dynamic create-server form).
+     * Includes default_value (from egg config or egg) and required_from_user from PterodactylEggConfig.
+     */
+    public function eggVariables(Request $request, GameserverCloudSubscription $subscription): JsonResponse
+    {
+        if ($subscription->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        $nestId = $request->integer('nest_id');
+        $eggId = $request->integer('egg_id');
+        if ($nestId < 1 || $eggId < 1) {
+            return response()->json(['variables' => []]);
+        }
+
+        $plan = $subscription->gameserverCloudPlan;
+        $server = $plan->hostingServer;
+        if (! $server) {
+            return response()->json(['variables' => []]);
+        }
+
+        try {
+            $client = app(PterodactylClient::class);
+            $client->setServer($server);
+            $eggData = $client->getEggWithVariables($nestId, $eggId);
+        } catch (\Throwable $e) {
+            Log::warning('eggVariables: failed to fetch egg', ['error' => $e->getMessage()]);
+
+            return response()->json(['variables' => []]);
+        }
+
+        $eggConfig = PterodactylEggConfig::query()
+            ->where('hosting_server_id', $server->id)
+            ->where('nest_id', $nestId)
+            ->where('egg_id', $eggId)
+            ->first();
+
+        $config = $eggConfig?->config ?? [];
+        $variableDefaults = $config['variable_defaults'] ?? [];
+        $requiredEnvVariables = array_flip($config['required_env_variables'] ?? []);
+
+        $variablesData = $eggData['attributes']['relationships']['variables']['data']
+            ?? $eggData['relationships']['variables']['data']
+            ?? [];
+        $variables = [];
+        foreach ($variablesData as $v) {
+            $va = $v['attributes'] ?? $v;
+            $envVar = (string) ($va['env_variable'] ?? '');
+            if ($envVar === '') {
+                continue;
+            }
+            $defaultValue = $variableDefaults[$envVar] ?? $va['default_value'] ?? '';
+            $variables[] = [
+                'id' => (int) ($va['id'] ?? 0),
+                'name' => (string) ($va['name'] ?? ''),
+                'env_variable' => $envVar,
+                'default_value' => $defaultValue,
+                'rules' => (string) ($va['rules'] ?? ''),
+                'user_viewable' => (bool) ($va['user_viewable'] ?? true),
+                'user_editable' => (bool) ($va['user_editable'] ?? true),
+                'required_from_user' => isset($requiredEnvVariables[$envVar]),
+            ];
+        }
+
+        return response()->json(['variables' => $variables]);
     }
 
     public function storeServer(StoreCloudServerRequest $request, GameserverCloudSubscription $subscription): RedirectResponse
@@ -197,16 +270,49 @@ class GameserverCloudSubscriptionController extends Controller
         $diskMb = (int) $request->input('disk_mb');
 
         if ($cpu > $remainingCpu || $memoryMb > $remainingMemoryMb || $diskMb > $remainingDiskMb) {
+            Log::info('Cloud server create: resources exceed quota', [
+                'subscription_id' => $subscription->id,
+                'requested' => ['cpu' => $cpu, 'memory_mb' => $memoryMb, 'disk_mb' => $diskMb],
+                'remaining' => ['cpu' => $remainingCpu, 'memory_mb' => $remainingMemoryMb, 'disk_mb' => $remainingDiskMb],
+            ]);
+
+            $hint = [];
+            if ($remainingCpu <= 0) {
+                $hint[] = 'CPU-Kontingent ist aufgebraucht oder im Plan nicht gesetzt (Admin: Gameserver-Cloud-Pläne → Plan bearbeiten → config: max_cpu).';
+            }
+            if ($remainingDiskMb <= 0) {
+                $hint[] = 'Disk-Kontingent ist aufgebraucht oder im Plan nicht gesetzt (Admin: config: max_disk_gb).';
+            }
+            if ($remainingMemoryMb < $memoryMb) {
+                $hint[] = 'Nicht genug freies RAM.';
+            }
+            $message = 'Die gewählten Ressourcen übersteigen das verfügbare Kontingent.';
+            if (count($hint) > 0) {
+                $message .= ' '.implode(' ', $hint);
+            }
+
             return redirect()->back()
-                ->withErrors(['allocation' => 'Die gewählten Ressourcen übersteigen das verfügbare Kontingent.'])
+                ->withErrors(['allocation' => $message])
                 ->withInput();
         }
 
         $server = $plan->hostingServer;
         if (! $server) {
+            Log::warning('Cloud server create: no hosting server for plan', [
+                'subscription_id' => $subscription->id,
+                'plan_id' => $plan->id,
+            ]);
+
             return redirect()->route('gaming.cloud.subscriptions.show', $subscription->id)
                 ->with('error', 'Für diesen Plan ist kein Pterodactyl-Server konfiguriert.');
         }
+
+        Log::info('Cloud server create: start', [
+            'subscription_id' => $subscription->id,
+            'plan_id' => $plan->id,
+            'hosting_server_id' => $server->id,
+            'user_id' => $request->user()?->id,
+        ]);
 
         $user = $request->user();
         $name = $request->input('name') ? trim($request->input('name')) : null;
@@ -223,6 +329,54 @@ class GameserverCloudSubscriptionController extends Controller
             $environment = [];
         }
 
+        $eggConfig = PterodactylEggConfig::query()
+            ->where('hosting_server_id', $server->id)
+            ->where('nest_id', $nestId)
+            ->where('egg_id', $eggId)
+            ->first();
+        $eggConfigData = $eggConfig?->config ?? [];
+        $requiredEnvVars = $eggConfigData['required_env_variables'] ?? [];
+        if (is_array($requiredEnvVars) && count($requiredEnvVars) > 0) {
+            foreach ($requiredEnvVars as $key) {
+                $key = (string) $key;
+                $val = $environment[$key] ?? null;
+                if ($val === null || trim((string) $val) === '') {
+                    Log::info('Cloud server create: validation failed (required env)', [
+                        'subscription_id' => $subscription->id,
+                        'missing_key' => $key,
+                    ]);
+
+                    return redirect()->back()
+                        ->withErrors(['environment.'.$key => 'Dieses Feld ist erforderlich.'])
+                        ->withInput();
+                }
+            }
+        }
+
+        $customSubdomain = $request->input('custom_subdomain') ? trim((string) $request->input('custom_subdomain')) : null;
+        $srvProtocol = (string) ($eggConfigData['subdomain_srv_protocol'] ?? '');
+        $protocolType = (string) ($eggConfigData['subdomain_protocol_type'] ?? 'none');
+        $cloudflareDnsForSrv = app(CloudflareDnsService::class);
+        $willCreateSrv = $srvProtocol !== '' && $protocolType !== 'none' && $cloudflareDnsForSrv->isConfigured();
+
+        $subdomainForDns = null;
+        if ($willCreateSrv) {
+            if ($customSubdomain !== null && $customSubdomain !== '') {
+                $subdomainForDns = $customSubdomain;
+                $srvName = $cloudflareDnsForSrv->buildSrvRecordName($subdomainForDns, $srvProtocol, $protocolType);
+                if ($srvName !== '' && $cloudflareDnsForSrv->srvRecordExists($srvName)) {
+                    Log::info('Cloud server create: subdomain already taken', [
+                        'subscription_id' => $subscription->id,
+                        'srv_name' => $srvName,
+                    ]);
+
+                    return redirect()->back()
+                        ->with('error', 'Diese Subdomain ist bereits vergeben.')
+                        ->withInput();
+                }
+            }
+        }
+
         $locationIds = $config['location_ids'] ?? [];
         if (! is_array($locationIds)) {
             $locationIds = $locationIds ? [$locationIds] : [];
@@ -233,6 +387,20 @@ class GameserverCloudSubscriptionController extends Controller
         }
 
         $serverName = $name ?: 'Server '.Str::random(6);
+        if ($willCreateSrv && $subdomainForDns === null) {
+            $slug = strtolower((string) preg_replace('/[^a-z0-9-]/', '', Str::slug($serverName)));
+            $subdomainForDns = ($slug !== '' ? $slug : 'server').'-'.Str::lower(Str::random(6));
+        }
+        Log::debug('Cloud server create: creating local account', [
+            'server_name' => $serverName,
+            'nest_id' => $nestId,
+            'egg_id' => $eggId,
+            'memory_mb' => $memoryMb,
+            'cpu' => $cpu,
+            'disk_mb' => $diskMb,
+            'location_ids' => $locationIds,
+        ]);
+
         $account = $user->gameServerAccounts()->create([
             'hosting_plan_id' => null,
             'gameserver_cloud_subscription_id' => $subscription->id,
@@ -276,8 +444,30 @@ class GameserverCloudSubscriptionController extends Controller
         try {
             $client = app(PterodactylClient::class);
             $client->setServer($server);
+            Log::info('Cloud server create: calling Pterodactyl createAccount', [
+                'account_id' => $account->id,
+                'hosting_server_id' => $server->id,
+                'nest_id' => $nestId,
+                'egg_id' => $eggId,
+            ]);
             $client->createAccount($params);
             $created = $client->getLastCreatedServerData();
+            Log::info('Cloud server create: Pterodactyl createAccount succeeded', [
+                'account_id' => $account->id,
+                'pterodactyl_server_id' => $created['pterodactyl_server_id'] ?? null,
+                'identifier' => $created['identifier'] ?? null,
+            ]);
+            $allocation = [
+                'cpu' => $cpu,
+                'memory_mb' => $memoryMb,
+                'disk_mb' => $diskMb,
+                'nest_id' => $nestId,
+                'egg_id' => $eggId,
+            ];
+            if ($subdomainForDns !== null && $subdomainForDns !== '') {
+                $suffix = (string) ($config['subdomain_suffix'] ?? '.neroserv.cloud');
+                $allocation['subdomain'] = strtolower($subdomainForDns).(str_starts_with($suffix, '.') ? $suffix : '.'.$suffix);
+            }
             $account->update([
                 'pterodactyl_server_id' => $created['pterodactyl_server_id'] ?? null,
                 'pterodactyl_user_id' => $created['pterodactyl_user_id'] ?? null,
@@ -287,21 +477,49 @@ class GameserverCloudSubscriptionController extends Controller
                     'password' => $password,
                 ])),
                 'status' => 'active',
-                'allocation' => [
-                    'cpu' => $cpu,
-                    'memory_mb' => $memoryMb,
-                    'disk_mb' => $diskMb,
-                    'nest_id' => $nestId,
-                    'egg_id' => $eggId,
-                ],
+                'allocation' => $allocation,
             ]);
             Log::debug('Cloud server created', ['account_id' => $account->id]);
+
+            if ($subdomainForDns !== null && $subdomainForDns !== '') {
+                $protocolTypeForSrv = $protocolType === 'none' ? 'tcp' : $protocolType;
+                $cloudflareDns = app(CloudflareDnsService::class);
+                if ($srvProtocol !== '' && $cloudflareDns->isConfigured()) {
+                    try {
+                        $nodeAndPort = $client->getNodeFqdnAndPortForServer((int) $created['pterodactyl_server_id']);
+                        if ($nodeAndPort !== null) {
+                            $srvName = $cloudflareDns->buildSrvRecordName($subdomainForDns, $srvProtocol, $protocolTypeForSrv);
+                            if ($srvName !== '') {
+                                $cloudflareDns->createSrvRecord(
+                                    $srvName,
+                                    $nodeAndPort['node_fqdn'],
+                                    $nodeAndPort['port']
+                                );
+                                $account->update([
+                                    'allocation' => array_merge($account->allocation ?? [], ['srv_record_name' => $srvName]),
+                                ]);
+                            }
+                        }
+                    } catch (\Throwable $dnsEx) {
+                        Log::warning('Cloud server: Cloudflare SRV create failed', [
+                            'account_id' => $account->id,
+                            'error' => $dnsEx->getMessage(),
+                        ]);
+                    }
+                }
+            }
 
             return redirect()->route('gaming-accounts.show', $account->id)
                 ->with('success', 'Der Game-Server wurde angelegt.');
         } catch (\Throwable $e) {
             $account->delete();
-            Log::error('Cloud server create failed', ['message' => $e->getMessage()]);
+            Log::error('Cloud server create failed', [
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
             return redirect()->back()
                 ->with('error', 'Server konnte nicht angelegt werden: '.$e->getMessage())
@@ -318,6 +536,7 @@ class GameserverCloudSubscriptionController extends Controller
             abort(404);
         }
 
+        $srvRecordName = $gameServerAccount->allocation['srv_record_name'] ?? null;
         if ($gameServerAccount->hostingServer && $gameServerAccount->pterodactyl_server_id) {
             try {
                 $client = app(PterodactylClient::class);
@@ -329,10 +548,87 @@ class GameserverCloudSubscriptionController extends Controller
                 ]);
             }
         }
+        if ($srvRecordName !== null && $srvRecordName !== '') {
+            try {
+                $cloudflare = app(CloudflareDnsService::class);
+                if ($cloudflare->isConfigured()) {
+                    $cloudflare->deleteSrvRecord((string) $srvRecordName);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Cloud server: Cloudflare SRV delete failed', [
+                    'game_server_account_id' => $gameServerAccount->id,
+                    'srv_record_name' => $srvRecordName,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
         $gameServerAccount->delete();
 
         return redirect()->route('gaming.cloud.subscriptions.show', $subscription->id)
             ->with('success', 'Der Server wurde gelöscht.');
+    }
+
+    public function updateServerResources(
+        UpdateCloudServerResourcesRequest $request,
+        GameserverCloudSubscription $subscription,
+        GameServerAccount $gameServerAccount
+    ): RedirectResponse {
+        $redirect = $this->ensureGameserverCloudFeature($request);
+        if ($redirect !== null) {
+            return $redirect;
+        }
+
+        if ($subscription->status !== 'active' && ! $subscription->current_period_ends_at?->isFuture()) {
+            return redirect()->route('gaming.cloud.subscriptions.show', $subscription->id)
+                ->with('error', 'Das Abo ist nicht aktiv. Bitte verlängern Sie zuerst.');
+        }
+
+        if (! $gameServerAccount->hostingServer || ! $gameServerAccount->pterodactyl_server_id) {
+            return redirect()->back()
+                ->with('error', 'Der Server ist noch nicht bereit oder wurde nicht gefunden.');
+        }
+
+        $plan = $subscription->gameserverCloudPlan;
+        $config = $plan->config ?? [];
+        $cpu = (int) $request->input('cpu');
+        $memoryMb = (int) $request->input('memory_mb');
+        $diskMb = (int) $request->input('disk_mb');
+
+        try {
+            $client = app(PterodactylClient::class);
+            $client->setServer($gameServerAccount->hostingServer);
+            $client->updateServerBuild($gameServerAccount->pterodactyl_server_id, [
+                'memory' => $memoryMb,
+                'disk' => $diskMb,
+                'cpu' => $cpu,
+                'swap' => 0,
+                'io' => (int) ($config['io'] ?? 500),
+                'databases' => 0,
+                'backups' => 0,
+                'allocations' => 1,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Cloud server update resources: Pterodactyl failed', [
+                'game_server_account_id' => $gameServerAccount->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Ressourcen konnten nicht aktualisiert werden: '.$e->getMessage())
+                ->withInput();
+        }
+
+        $allocation = is_array($gameServerAccount->allocation) ? $gameServerAccount->allocation : [];
+        $gameServerAccount->update([
+            'allocation' => array_merge($allocation, [
+                'cpu' => $cpu,
+                'memory_mb' => $memoryMb,
+                'disk_mb' => $diskMb,
+            ]),
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Ressourcen wurden aktualisiert.');
     }
 
     public function renew(Request $request, GameserverCloudSubscription $subscription): RedirectResponse

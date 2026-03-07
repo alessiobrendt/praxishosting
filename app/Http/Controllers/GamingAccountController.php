@@ -3,13 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\InsufficientBalanceException;
+use App\Http\Requests\ConnectGameServerDomainRequest;
 use App\Http\Requests\RenewGamingAccountRequest;
+use App\Http\Requests\UpdateGameServerSubdomainRequest;
 use App\Models\Brand;
 use App\Models\CustomerBalance;
 use App\Models\GameServerAccount;
+use App\Models\PterodactylEggConfig;
+use App\Models\ResellerDomain;
 use App\Services\BalancePaymentService;
+use App\Services\CloudflareDnsService;
 use App\Services\ControlPanels\PterodactylClient;
 use App\Services\MollieCustomerService;
+use App\Services\SkrimeApiService;
 use App\Services\SyncHostingPlanStripePriceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -139,8 +145,41 @@ class GamingAccountController extends Controller
                 'current_period_ends_at' => $sub->current_period_ends_at?->toIso8601String(),
                 'cancel_at_period_end' => $sub->cancel_at_period_end,
                 'plan' => ['name' => $sub->gameserverCloudPlan?->name ?? 'Cloud'],
+                'remaining_cpu' => $sub->getRemainingCpu(),
+                'remaining_memory_mb' => $sub->getRemainingMemoryMb(),
+                'remaining_disk_mb' => $sub->getRemainingDiskMb(),
             ];
             $cloudSubscriptionUrl = route('gaming.cloud.subscriptions.show', $sub->id);
+        }
+
+        $cloudResourcesUpdateUrl = null;
+        if ($gameServerAccount->isCloudAccount() && $gameServerAccount->gameserverCloudSubscription) {
+            $cloudResourcesUpdateUrl = route('gaming.cloud.subscriptions.servers.resources.update', [
+                $gameServerAccount->gameserverCloudSubscription->id,
+                $gameServerAccount->id,
+            ]);
+        }
+
+        $domainsSearchUrl = null;
+        $connectDomainShowUrl = null;
+        $subdomainCheckUrl = null;
+        $subdomainUpdateUrl = null;
+        $subdomainSuffix = null;
+        $currentSubdomainPart = null;
+        $allocation = is_array($gameServerAccount->allocation) ? $gameServerAccount->allocation : [];
+        if (! empty($allocation['subdomain'])) {
+            $domainsSearchUrl = route('domains.search');
+            $connectDomainShowUrl = route('gaming-accounts.connect-domain.show', $gameServerAccount);
+            $subdomainCheckUrl = route('gaming-accounts.subdomain.check', $gameServerAccount);
+            $subdomainUpdateUrl = route('gaming-accounts.subdomain.update', $gameServerAccount);
+            $sub = $gameServerAccount->gameserverCloudSubscription;
+            $planConfig = $sub?->gameserverCloudPlan?->config ?? [];
+            $suffix = (string) ($planConfig['subdomain_suffix'] ?? '.neroserv.cloud');
+            $subdomainSuffix = str_starts_with($suffix, '.') ? $suffix : '.'.$suffix;
+            $full = (string) ($allocation['subdomain'] ?? '');
+            $currentSubdomainPart = $full !== '' && $subdomainSuffix !== '' && str_ends_with(strtolower($full), strtolower($subdomainSuffix))
+                ? substr($full, 0, -strlen($subdomainSuffix))
+                : $full;
         }
 
         return Inertia::render('gaming-accounts/Show', [
@@ -158,6 +197,13 @@ class GamingAccountController extends Controller
             'has_mollie_subscription' => ! empty($gameServerAccount->mollie_subscription_id),
             'gameserverCloudSubscription' => $gameserverCloudSubscription,
             'cloudSubscriptionUrl' => $cloudSubscriptionUrl,
+            'cloudResourcesUpdateUrl' => $cloudResourcesUpdateUrl,
+            'domainsSearchUrl' => $domainsSearchUrl,
+            'connectDomainShowUrl' => $connectDomainShowUrl,
+            'subdomainCheckUrl' => $subdomainCheckUrl,
+            'subdomainUpdateUrl' => $subdomainUpdateUrl,
+            'subdomainSuffix' => $subdomainSuffix,
+            'currentSubdomainPart' => $currentSubdomainPart,
         ]);
     }
 
@@ -200,6 +246,332 @@ class GamingAccountController extends Controller
         return redirect()
             ->route('gaming-accounts.show', $gameServerAccount)
             ->with('success', 'Befehl gesendet.');
+    }
+
+    /**
+     * Show connect-domain page: list user's domains and form to connect one to this game server.
+     */
+    public function showConnectDomain(Request $request, GameServerAccount $gameServerAccount): Response|RedirectResponse
+    {
+        $redirect = $this->ensureGamingFeature($request);
+        if ($redirect !== null) {
+            return $redirect;
+        }
+
+        if ($gameServerAccount->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        if (! $gameServerAccount->isCloudAccount()) {
+            return redirect()->route('gaming-accounts.show', $gameServerAccount)
+                ->with('error', 'Nur Cloud-Server mit Subdomain können eine eigene Domain verbinden.');
+        }
+
+        $allocation = is_array($gameServerAccount->allocation) ? $gameServerAccount->allocation : [];
+        if (empty($allocation['subdomain'])) {
+            return redirect()->route('gaming-accounts.show', $gameServerAccount)
+                ->with('error', 'Dieser Server hat keine Subdomain. Eigene Domain ist nur bei Servern mit Subdomain möglich.');
+        }
+
+        $resellerDomains = $request->user()
+            ->resellerDomains()
+            ->orderBy('domain')
+            ->get()
+            ->map(fn (ResellerDomain $d) => ['id' => $d->id, 'domain' => $d->domain]);
+
+        $srvProtocol = '';
+        $srvProtocolType = 'tcp';
+        $allocationData = $gameServerAccount->allocation;
+        if (is_array($allocationData) && $gameServerAccount->hostingServer) {
+            $nestId = (int) ($allocationData['nest_id'] ?? 0);
+            $eggId = (int) ($allocationData['egg_id'] ?? 0);
+            if ($nestId > 0 && $eggId > 0) {
+                $eggConfig = PterodactylEggConfig::query()
+                    ->where('hosting_server_id', $gameServerAccount->hosting_server_id)
+                    ->where('nest_id', $nestId)
+                    ->where('egg_id', $eggId)
+                    ->first();
+                $cfg = $eggConfig?->config ?? [];
+                $srvProtocol = (string) ($cfg['subdomain_srv_protocol'] ?? '');
+                $srvProtocolType = (string) ($cfg['subdomain_protocol_type'] ?? 'tcp');
+                if ($srvProtocolType === 'none') {
+                    $srvProtocolType = 'tcp';
+                }
+            }
+        }
+
+        return Inertia::render('gaming-accounts/ConnectDomain', [
+            'gameServerAccount' => [
+                'id' => $gameServerAccount->id,
+                'name' => $gameServerAccount->name,
+                'subdomain' => $allocation['subdomain'] ?? '',
+            ],
+            'resellerDomains' => $resellerDomains,
+            'srvProtocol' => $srvProtocol,
+            'srvProtocolType' => $srvProtocolType,
+            'connectDomainUrl' => route('gaming-accounts.connect-domain.store', $gameServerAccount),
+            'gameServerShowUrl' => route('gaming-accounts.show', $gameServerAccount),
+        ]);
+    }
+
+    /**
+     * Store: create SRV record on user's domain pointing to this game server.
+     */
+    public function storeConnectDomain(
+        ConnectGameServerDomainRequest $request,
+        GameServerAccount $gameServerAccount
+    ): RedirectResponse {
+        $resellerDomain = ResellerDomain::query()
+            ->where('id', $request->validated('reseller_domain_id'))
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $subdomain = strtolower(trim($request->validated('subdomain')));
+
+        if (! $gameServerAccount->hostingServer || ! $gameServerAccount->pterodactyl_server_id) {
+            return redirect()->route('gaming-accounts.connect-domain.show', $gameServerAccount)
+                ->with('error', 'Server-Daten fehlen. Bitte später erneut versuchen.');
+        }
+
+        try {
+            $client = app(PterodactylClient::class);
+            $client->setServer($gameServerAccount->hostingServer);
+            $nodeAndPort = $client->getNodeFqdnAndPortForServer($gameServerAccount->pterodactyl_server_id);
+        } catch (\Throwable $e) {
+            return redirect()->route('gaming-accounts.connect-domain.show', $gameServerAccount)
+                ->with('error', 'Knoten-Daten konnten nicht geladen werden: '.$e->getMessage());
+        }
+
+        if ($nodeAndPort === null) {
+            return redirect()->route('gaming-accounts.connect-domain.show', $gameServerAccount)
+                ->with('error', 'Knoten oder Port für diesen Server konnte nicht ermittelt werden.');
+        }
+
+        $allocation = is_array($gameServerAccount->allocation) ? $gameServerAccount->allocation : [];
+        $nestId = (int) ($allocation['nest_id'] ?? 0);
+        $eggId = (int) ($allocation['egg_id'] ?? 0);
+        $srvProtocol = '';
+        $srvProtocolType = 'tcp';
+        if ($nestId > 0 && $eggId > 0) {
+            $eggConfig = PterodactylEggConfig::query()
+                ->where('hosting_server_id', $gameServerAccount->hosting_server_id)
+                ->where('nest_id', $nestId)
+                ->where('egg_id', $eggId)
+                ->first();
+            $cfg = $eggConfig?->config ?? [];
+            $srvProtocol = (string) ($cfg['subdomain_srv_protocol'] ?? '');
+            $srvProtocolType = (string) ($cfg['subdomain_protocol_type'] ?? 'tcp');
+            if ($srvProtocolType === 'none') {
+                $srvProtocolType = 'tcp';
+            }
+        }
+
+        if ($srvProtocol === '') {
+            return redirect()->route('gaming-accounts.connect-domain.show', $gameServerAccount)
+                ->with('error', 'SRV-Protokoll für dieses Spiel ist nicht konfiguriert. Bitte Support kontaktieren.');
+        }
+
+        $srvName = strtolower($srvProtocol.'.'.$srvProtocolType.'.'.$subdomain);
+        $target = rtrim($nodeAndPort['node_fqdn'], '.');
+        $port = $nodeAndPort['port'];
+        $srvData = '0 5 '.$port.' '.$target.'.';
+
+        $skrime = app(SkrimeApiService::class);
+        try {
+            $existingRecords = $skrime->getDns($resellerDomain->domain);
+            $records = array_map(fn ($r) => [
+                'name' => $r['name'],
+                'type' => $r['type'],
+                'data' => $r['data'],
+            ], $existingRecords);
+            foreach ($records as $rec) {
+                if (isset($rec['name']) && isset($rec['type']) && $rec['type'] === 'SRV' && $rec['name'] === $srvName) {
+                    return redirect()->route('gaming-accounts.connect-domain.show', $gameServerAccount)
+                        ->with('error', 'Ein SRV-Eintrag für diese Subdomain existiert bereits auf der gewählten Domain.');
+                }
+            }
+            $records[] = [
+                'name' => $srvName,
+                'type' => 'SRV',
+                'data' => $srvData,
+            ];
+            $skrime->setDns($resellerDomain->domain, $records);
+        } catch (\Throwable $e) {
+            return redirect()->route('gaming-accounts.connect-domain.show', $gameServerAccount)
+                ->with('error', 'DNS konnte nicht gesetzt werden: '.$e->getMessage());
+        }
+
+        $fullHost = $subdomain.'.'.$resellerDomain->domain;
+
+        return redirect()->route('gaming-accounts.show', $gameServerAccount)
+            ->with('success', 'Domain verbunden. '.$fullHost.' zeigt nun auf Ihren Server. Bitte stellen Sie ggf. die Nameserver der Domain auf uns ein.');
+    }
+
+    /**
+     * Check if a subdomain is available (no existing SRV record for it). JSON response.
+     */
+    public function checkSubdomain(Request $request, GameServerAccount $gameServerAccount): JsonResponse
+    {
+        $redirect = $this->ensureGamingFeature($request);
+        if ($redirect !== null) {
+            return response()->json(['error' => 'unauthorized'], 403);
+        }
+
+        if ($gameServerAccount->user_id !== $request->user()->id) {
+            return response()->json(['error' => 'not found'], 404);
+        }
+
+        if (! $gameServerAccount->isCloudAccount()) {
+            return response()->json(['available' => false, 'error' => 'Nur Cloud-Server mit Subdomain']);
+        }
+
+        $allocation = is_array($gameServerAccount->allocation) ? $gameServerAccount->allocation : [];
+        if (empty($allocation['subdomain'])) {
+            return response()->json(['available' => false, 'error' => 'Keine Subdomain']);
+        }
+
+        $subdomain = strtolower(trim((string) $request->query('subdomain', '')));
+        if ($subdomain === '' || strlen($subdomain) > 32 || ! preg_match('/^[a-z0-9-]+$/', $subdomain)) {
+            return response()->json(['available' => false, 'error' => 'Ungültige Subdomain']);
+        }
+
+        [$srvProtocol, $srvProtocolType] = $this->getSubdomainSrvConfig($gameServerAccount);
+        if ($srvProtocol === '') {
+            return response()->json(['available' => false, 'error' => 'SRV nicht konfiguriert']);
+        }
+
+        $cloudflare = app(CloudflareDnsService::class);
+        if (! $cloudflare->isConfigured()) {
+            return response()->json(['available' => false, 'error' => 'DNS nicht konfiguriert']);
+        }
+
+        $srvName = $cloudflare->buildSrvRecordName($subdomain, $srvProtocol, $srvProtocolType);
+        if ($srvName === '') {
+            return response()->json(['available' => false, 'error' => 'SRV-Name konnte nicht erstellt werden']);
+        }
+
+        $currentSrvName = $allocation['srv_record_name'] ?? '';
+        if ($currentSrvName !== '' && strtolower($currentSrvName) === strtolower($srvName)) {
+            return response()->json(['available' => true, 'message' => 'Das ist Ihre aktuelle Subdomain.']);
+        }
+
+        $exists = $cloudflare->srvRecordExists($srvName);
+
+        return response()->json(['available' => ! $exists]);
+    }
+
+    /**
+     * Update the game server's subdomain (Cloudflare SRV + allocation).
+     */
+    public function updateSubdomain(
+        UpdateGameServerSubdomainRequest $request,
+        GameServerAccount $gameServerAccount
+    ): RedirectResponse {
+        $subdomainPart = strtolower(trim($request->validated('subdomain')));
+
+        if (! $gameServerAccount->hostingServer || ! $gameServerAccount->pterodactyl_server_id) {
+            return redirect()->back()->with('error', 'Server-Daten fehlen.');
+        }
+
+        $cloudflare = app(CloudflareDnsService::class);
+        if (! $cloudflare->isConfigured()) {
+            return redirect()->back()->with('error', 'DNS ist nicht konfiguriert.');
+        }
+
+        [$srvProtocol, $srvProtocolType] = $this->getSubdomainSrvConfig($gameServerAccount);
+        if ($srvProtocol === '') {
+            return redirect()->back()->with('error', 'SRV-Protokoll für dieses Spiel ist nicht konfiguriert.');
+        }
+
+        $srvName = $cloudflare->buildSrvRecordName($subdomainPart, $srvProtocol, $srvProtocolType);
+        if ($srvName === '') {
+            return redirect()->back()->with('error', 'SRV-Name konnte nicht erstellt werden.');
+        }
+
+        $allocation = is_array($gameServerAccount->allocation) ? $gameServerAccount->allocation : [];
+        $currentSrvName = $allocation['srv_record_name'] ?? null;
+        if ($currentSrvName !== null && strtolower($currentSrvName) === strtolower($srvName)) {
+            return redirect()->back()->with('info', 'Die Subdomain ist unverändert.');
+        }
+
+        if ($cloudflare->srvRecordExists($srvName)) {
+            return redirect()->back()->with('error', 'Diese Subdomain ist bereits vergeben.');
+        }
+
+        try {
+            $client = app(PterodactylClient::class);
+            $client->setServer($gameServerAccount->hostingServer);
+            $nodeAndPort = $client->getNodeFqdnAndPortForServer($gameServerAccount->pterodactyl_server_id);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Knoten-Daten konnten nicht geladen werden.');
+        }
+
+        if ($nodeAndPort === null) {
+            return redirect()->back()->with('error', 'Knoten oder Port konnte nicht ermittelt werden.');
+        }
+
+        if ($currentSrvName !== null && $currentSrvName !== '') {
+            try {
+                $cloudflare->deleteSrvRecord($currentSrvName);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Subdomain update: old SRV delete failed', [
+                    'account_id' => $gameServerAccount->id,
+                    'srv_name' => $currentSrvName,
+                ]);
+            }
+        }
+
+        try {
+            $cloudflare->createSrvRecord(
+                $srvName,
+                $nodeAndPort['node_fqdn'],
+                $nodeAndPort['port']
+            );
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Neuer DNS-Eintrag konnte nicht erstellt werden: '.$e->getMessage());
+        }
+
+        $subscription = $gameServerAccount->gameserverCloudSubscription;
+        $planConfig = $subscription?->gameserverCloudPlan?->config ?? [];
+        $suffix = (string) ($planConfig['subdomain_suffix'] ?? '.neroserv.cloud');
+        $suffix = str_starts_with($suffix, '.') ? $suffix : '.'.$suffix;
+        $fullSubdomain = $subdomainPart.$suffix;
+
+        $gameServerAccount->update([
+            'allocation' => array_merge($allocation, [
+                'subdomain' => $fullSubdomain,
+                'srv_record_name' => $srvName,
+            ]),
+        ]);
+
+        return redirect()->back()->with('success', 'Subdomain wurde auf '.$fullSubdomain.' geändert.');
+    }
+
+    /**
+     * @return array{0: string, 1: string} [srv_protocol, srv_protocol_type]
+     */
+    private function getSubdomainSrvConfig(GameServerAccount $gameServerAccount): array
+    {
+        $allocation = is_array($gameServerAccount->allocation) ? $gameServerAccount->allocation : [];
+        $nestId = (int) ($allocation['nest_id'] ?? 0);
+        $eggId = (int) ($allocation['egg_id'] ?? 0);
+        $srvProtocol = '';
+        $srvProtocolType = 'tcp';
+        if ($nestId > 0 && $eggId > 0 && $gameServerAccount->hostingServer) {
+            $eggConfig = PterodactylEggConfig::query()
+                ->where('hosting_server_id', $gameServerAccount->hosting_server_id)
+                ->where('nest_id', $nestId)
+                ->where('egg_id', $eggId)
+                ->first();
+            $cfg = $eggConfig?->config ?? [];
+            $srvProtocol = (string) ($cfg['subdomain_srv_protocol'] ?? '');
+            $srvProtocolType = (string) ($cfg['subdomain_protocol_type'] ?? 'tcp');
+            if ($srvProtocolType === 'none') {
+                $srvProtocolType = 'tcp';
+            }
+        }
+
+        return [$srvProtocol, $srvProtocolType];
     }
 
     /**

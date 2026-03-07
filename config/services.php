@@ -41,6 +41,12 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'cloudflare' => [
+        'zone_id' => env('CLOUDFLARE_ZONE_ID'),
+        'api_token' => env('CLOUDFLARE_API_TOKEN'),
+        'zone_domain' => env('CLOUDFLARE_ZONE_DOMAIN', ''),
+    ],
+
     'discord' => [
         'client_id' => env('DISCORD_CLIENT_ID'),
         'client_secret' => env('DISCORD_CLIENT_SECRET'),

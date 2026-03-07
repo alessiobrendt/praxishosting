@@ -1001,6 +1001,7 @@ class PterodactylClient implements ControlPanelContract
         }
 
         try {
+            Log::debug('Pterodactyl createAccount: findOrCreateUser', ['email' => $email, 'username' => $username]);
             $user = $this->findOrCreateUser($sdk, $email, $username, $firstName, $lastName, $password);
             $userId = is_object($user) && isset($user->id) ? (int) $user->id : (int) $user['id'] ?? 0;
             if ($userId === 0 && is_array($user)) {
@@ -1009,6 +1010,7 @@ class PterodactylClient implements ControlPanelContract
             if ($userId === 0) {
                 throw new Exception('Pterodactyl: could not resolve user id after create');
             }
+            Log::debug('Pterodactyl createAccount: user resolved', ['user_id' => $userId]);
 
             $nodeId = isset($params['node']) ? (int) $params['node'] : 0;
             if ($nodeId > 0) {
@@ -1016,16 +1018,25 @@ class PterodactylClient implements ControlPanelContract
                 if ($allocationId > 0) {
                     $params['allocation_id'] = $allocationId;
                 }
+                Log::debug('Pterodactyl createAccount: allocation for node', ['node_id' => $nodeId, 'allocation_id' => $allocationId ?? 0]);
             } else {
                 $allocationId = $this->resolveDeployableAllocation($params);
                 if ($allocationId > 0) {
                     $params['allocation_id'] = $allocationId;
                 }
+                Log::debug('Pterodactyl createAccount: deployable allocation', ['allocation_id' => $allocationId]);
             }
 
             $serverPayload = $this->buildServerCreationPayload($params, $userId);
             $serverPayload['name'] = $serverName;
             $serverPayload['user'] = $userId;
+            Log::info('Pterodactyl createAccount: creating server', [
+                'server_name' => $serverName,
+                'user_id' => $userId,
+                'nest_id' => $serverPayload['nest_id'] ?? null,
+                'egg_id' => $serverPayload['egg_id'] ?? null,
+                'allocation_id' => $serverPayload['allocation_id'] ?? null,
+            ]);
 
             $server = $sdk->servers->create($serverPayload);
             $serverId = is_object($server) && isset($server->id) ? $server->id : ($server['attributes']['id'] ?? null);
@@ -1050,12 +1061,19 @@ class PterodactylClient implements ControlPanelContract
             unset($paramsForLog['password']);
             $previous = $e->getPrevious();
             $detail = $previous ? $previous->getMessage() : null;
-            Log::error('Pterodactyl createAccount error', [
+            $logContext = [
                 'server' => $this->server->name ?? null,
                 'error' => $e->getMessage(),
                 'detail' => $detail,
+                'exception' => $e::class,
                 'params' => $paramsForLog,
-            ]);
+            ];
+            if ($previous instanceof \GuzzleHttp\Exception\RequestException && $previous->hasResponse()) {
+                $body = (string) $previous->getResponse()->getBody();
+                $logContext['response_body'] = strlen($body) > 2000 ? substr($body, 0, 2000).'...' : $body;
+                $logContext['response_status'] = $previous->getResponse()->getStatusCode();
+            }
+            Log::error('Pterodactyl createAccount error', $logContext);
 
             $msg = $e->getMessage();
             if (str_contains($msg, 'No nodes satisfying the requirements') || str_contains($msg, 'could not be found')) {
@@ -1405,5 +1423,69 @@ class PterodactylClient implements ControlPanelContract
         $data = $this->apiRequest('/api/application/nests/'.$nestId.'/eggs', ['per_page' => 100]);
 
         return $data['data'] ?? [];
+    }
+
+    /**
+     * Get a single egg with variables. GET /api/application/nests/{nest}/eggs/{egg}?include=variables.
+     *
+     * @return array<string, mixed> API response (object, attributes, relationships.variables)
+     */
+    public function getEggWithVariables(int $nestId, int $eggId): array
+    {
+        return $this->apiRequest('/api/application/nests/'.$nestId.'/eggs/'.$eggId, ['include' => 'variables']);
+    }
+
+    /**
+     * Get node details by id. GET /api/application/nodes/{id}. Returns attributes (id, name, fqdn, etc.).
+     *
+     * @return array<string, mixed> Node attributes
+     */
+    public function getNodeById(int $nodeId): array
+    {
+        $data = $this->apiRequest('/api/application/nodes/'.$nodeId);
+
+        return $data['attributes'] ?? $data;
+    }
+
+    /**
+     * Get node FQDN and allocation port for a Pterodactyl server (by Application API server id).
+     * Used after server creation to create DNS SRV record.
+     *
+     * @return array{node_fqdn: string, port: int}|null
+     */
+    public function getNodeFqdnAndPortForServer(int $pterodactylServerId): ?array
+    {
+        try {
+            $data = $this->apiRequest('/api/application/servers/'.$pterodactylServerId);
+            $attrs = $data['attributes'] ?? $data;
+            $allocationId = (int) ($attrs['allocation'] ?? 0);
+            $nodeId = (int) ($attrs['node'] ?? 0);
+            if ($allocationId < 1 || $nodeId < 1) {
+                return null;
+            }
+            $allocData = $this->apiRequest('/api/application/nodes/'.$nodeId.'/allocations', ['per_page' => 100]);
+            $port = 0;
+            foreach ($allocData['data'] ?? [] as $alloc) {
+                $a = $alloc['attributes'] ?? $alloc;
+                if ((int) ($a['id'] ?? 0) === $allocationId) {
+                    $port = (int) ($a['port'] ?? 0);
+                    break;
+                }
+            }
+            if ($port < 1) {
+                return null;
+            }
+            $nodeAttrs = $this->getNodeById($nodeId);
+            $fqdn = (string) ($nodeAttrs['fqdn'] ?? $nodeAttrs['name'] ?? '');
+            if ($fqdn === '') {
+                return null;
+            }
+
+            return ['node_fqdn' => $fqdn, 'port' => $port];
+        } catch (\Throwable $e) {
+            Log::debug('Pterodactyl getNodeFqdnAndPortForServer failed', ['server_id' => $pterodactylServerId, 'error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 }

@@ -24,7 +24,7 @@ type GameServerAccount = {
     option_values: Record<string, unknown> | null;
     custom_monthly_price?: number | string | null;
     user: User;
-    hosting_plan: HostingPlan;
+    hosting_plan: HostingPlan | null;
     hosting_server: HostingServer;
 };
 
@@ -43,9 +43,10 @@ type HostingPlanConfig = {
 type Props = {
     gameServerAccount: GameServerAccount;
     hostingPlanConfig: HostingPlanConfig;
+    isCloudAccount?: boolean;
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { isCloudAccount: false });
 
 const config = props.hostingPlanConfig ?? {};
 const opt = props.gameServerAccount.option_values ?? {};
@@ -135,30 +136,33 @@ const breadcrumbs: BreadcrumbItem[] = [
                             </Select>
                             <InputError :message="form.errors.status" />
                         </div>
-                        <div class="space-y-2">
-                            <Label for="current_period_ends_at">Abo-Ende (Laufzeit)</Label>
-                            <Input
-                                id="current_period_ends_at"
-                                v-model="form.current_period_ends_at"
-                                type="date"
-                                :aria-invalid="!!form.errors.current_period_ends_at"
-                            />
-                            <InputError :message="form.errors.current_period_ends_at" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="custom_monthly_price">Manueller Monatspreis (€)</Label>
-                            <Input
-                                id="custom_monthly_price"
-                                v-model="form.custom_monthly_price"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="Leer = aus Plan + Optionen"
-                                :aria-invalid="!!form.errors.custom_monthly_price"
-                            />
-                            <p class="text-muted-foreground text-sm">Optional. Wenn gesetzt, wird dieser Betrag für Abo/Verlängerung verwendet.</p>
-                            <InputError :message="form.errors.custom_monthly_price" />
-                        </div>
+                        <template v-if="!isCloudAccount">
+                            <div class="space-y-2">
+                                <Label for="current_period_ends_at">Abo-Ende (Laufzeit)</Label>
+                                <Input
+                                    id="current_period_ends_at"
+                                    v-model="form.current_period_ends_at"
+                                    type="date"
+                                    :aria-invalid="!!form.errors.current_period_ends_at"
+                                />
+                                <InputError :message="form.errors.current_period_ends_at" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="custom_monthly_price">Manueller Monatspreis (€)</Label>
+                                <Input
+                                    id="custom_monthly_price"
+                                    v-model="form.custom_monthly_price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="Leer = aus Plan + Optionen"
+                                    :aria-invalid="!!form.errors.custom_monthly_price"
+                                />
+                                <p class="text-muted-foreground text-sm">Optional. Wenn gesetzt, wird dieser Betrag für Abo/Verlängerung verwendet.</p>
+                                <InputError :message="form.errors.custom_monthly_price" />
+                            </div>
+                        </template>
+                        <p v-else class="text-muted-foreground text-sm">Cloud-Server: Laufzeit und Preis werden über das Cloud-Abo verwaltet.</p>
 
                         <div class="border-t pt-4">
                             <Text class="font-medium">Pterodactyl-Limits (Upgrade)</Text>

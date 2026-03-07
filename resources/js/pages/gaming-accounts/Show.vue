@@ -3,7 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     Copy,
     ExternalLink,
-    KeyRound,
+    Globe,
     Pencil,
     LayoutDashboard,
     Terminal,
@@ -31,9 +31,12 @@ import GamingAccountConsoleTab from '@/components/gaming-accounts/GamingAccountC
 import GamingAccountFilesTab from '@/components/gaming-accounts/GamingAccountFilesTab.vue';
 import GamingAccountBackupsTab from '@/components/gaming-accounts/GamingAccountBackupsTab.vue';
 import GamingAccountSchedulesTab from '@/components/gaming-accounts/GamingAccountSchedulesTab.vue';
+import Alert from '@/components/ui/alert/Alert.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/typography';
 import { notify } from '@/composables/useNotify';
@@ -58,6 +61,7 @@ type GameServerAccount = {
     current_period_ends_at: string | null;
     cancel_at_period_end: boolean;
     hosting_plan?: { name: string };
+    allocation?: { subdomain?: string; [key: string]: unknown };
 };
 
 type GameserverCloudSubscription = {
@@ -65,6 +69,9 @@ type GameserverCloudSubscription = {
     current_period_ends_at: string | null;
     cancel_at_period_end?: boolean;
     plan: { name: string };
+    remaining_cpu?: number;
+    remaining_memory_mb?: number;
+    remaining_disk_mb?: number;
 };
 
 type Props = {
@@ -82,6 +89,13 @@ type Props = {
     has_mollie_subscription?: boolean;
     gameserverCloudSubscription?: GameserverCloudSubscription | null;
     cloudSubscriptionUrl?: string | null;
+    cloudResourcesUpdateUrl?: string | null;
+    domainsSearchUrl?: string | null;
+    connectDomainShowUrl?: string | null;
+    subdomainCheckUrl?: string | null;
+    subdomainUpdateUrl?: string | null;
+    subdomainSuffix?: string | null;
+    currentSubdomainPart?: string | null;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -95,12 +109,110 @@ const props = withDefaults(defineProps<Props>(), {
     has_mollie_subscription: false,
     gameserverCloudSubscription: null,
     cloudSubscriptionUrl: null,
+    cloudResourcesUpdateUrl: null,
+    domainsSearchUrl: null,
+    connectDomainShowUrl: null,
+    subdomainCheckUrl: null,
+    subdomainUpdateUrl: null,
+    subdomainSuffix: null,
+    currentSubdomainPart: null,
 });
+
+const subdomainPart = ref('');
+const subdomainCheckResult = ref<{ available?: boolean; error?: string; message?: string } | null>(null);
+const subdomainCheckLoading = ref(false);
+const subdomainUpdateLoading = ref(false);
+
+function initSubdomainPart() {
+    subdomainPart.value = props.currentSubdomainPart ?? '';
+}
+
+function checkSubdomainAvailability() {
+    const part = subdomainPart.value.trim().toLowerCase();
+    if (!part || !props.subdomainCheckUrl) return;
+    if (!/^[a-z0-9-]+$/.test(part) || part.length > 32) {
+        subdomainCheckResult.value = { available: false, error: 'Nur Kleinbuchstaben, Ziffern und Bindestriche (max. 32 Zeichen).' };
+        return;
+    }
+    subdomainCheckLoading.value = true;
+    subdomainCheckResult.value = null;
+    fetch(`${props.subdomainCheckUrl}?subdomain=${encodeURIComponent(part)}`, {
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            subdomainCheckResult.value = data;
+        })
+        .catch(() => {
+            subdomainCheckResult.value = { available: false, error: 'Prüfung fehlgeschlagen.' };
+        })
+        .finally(() => {
+            subdomainCheckLoading.value = false;
+        });
+}
+
+function submitSubdomainChange() {
+    const part = subdomainPart.value.trim().toLowerCase();
+    if (!part || !props.subdomainUpdateUrl) return;
+    if (!/^[a-z0-9-]+$/.test(part) || part.length > 32) return;
+    subdomainUpdateLoading.value = true;
+    router.put(props.subdomainUpdateUrl, { subdomain: part }, {
+        preserveScroll: true,
+        onFinish: () => { subdomainUpdateLoading.value = false; },
+    });
+}
 
 const powerLoading = ref<string | null>(null);
 const liveOverview = ref<ServerOverview | null>(props.serverOverview ?? null);
 const renewModalOpen = ref(false);
 const autoRenewModalOpen = ref(false);
+
+const currentAllocation = computed(() => {
+    const a = props.gameServerAccount.allocation;
+    if (!a || typeof a !== 'object') return { cpu: 0, memory_mb: 512, disk_mb: 1024 };
+    return {
+        cpu: typeof a.cpu === 'number' ? a.cpu : 0,
+        memory_mb: typeof a.memory_mb === 'number' ? a.memory_mb : 512,
+        disk_mb: typeof a.disk_mb === 'number' ? a.disk_mb : 1024,
+    };
+});
+
+const resourcesMax = computed(() => {
+    const sub = props.gameserverCloudSubscription;
+    if (!sub) return { cpu: 0, memory_mb: 512, disk_mb: 1024 };
+    const cur = currentAllocation.value;
+    return {
+        cpu: cur.cpu + (sub.remaining_cpu ?? 0),
+        memory_mb: cur.memory_mb + (sub.remaining_memory_mb ?? 0),
+        disk_mb: cur.disk_mb + (sub.remaining_disk_mb ?? 0),
+    };
+});
+
+const resourcesForm = ref({
+    cpu: 0,
+    memory_mb: 512,
+    disk_mb: 1024,
+});
+const resourcesSubmitting = ref(false);
+
+function initResourcesForm() {
+    const cur = currentAllocation.value;
+    resourcesForm.value = { cpu: cur.cpu, memory_mb: cur.memory_mb, disk_mb: cur.disk_mb };
+}
+
+function submitResources() {
+    if (!props.cloudResourcesUpdateUrl) return;
+    resourcesSubmitting.value = true;
+    router.put(props.cloudResourcesUpdateUrl, {
+        cpu: resourcesForm.value.cpu,
+        memory_mb: resourcesForm.value.memory_mb,
+        disk_mb: resourcesForm.value.disk_mb,
+    }, {
+        preserveScroll: true,
+        onFinish: () => { resourcesSubmitting.value = false; },
+    });
+}
 
 const renewalPeriodOptions: { months: 1 | 3 | 6 | 12; label: string }[] = [
     { months: 1, label: '30 Tage (1 Monat)' },
@@ -129,6 +241,7 @@ const cancelAtPeriodEnd = computed(
 );
 
 const page = usePage();
+const flash = computed(() => (page.props.flash as { error?: string; success?: string }) ?? {});
 const brandFeatures = computed(() => (page.props.brandFeatures as Record<string, boolean> | undefined) ?? {});
 const showAboVerwalten = computed(
     () =>
@@ -167,10 +280,29 @@ function fetchOverview() {
 onMounted(() => {
     fetchOverview();
     overviewPollInterval = setInterval(fetchOverview, 3000);
+    if (props.cloudResourcesUpdateUrl) {
+        initResourcesForm();
+    }
+    if (props.subdomainUpdateUrl) {
+        initSubdomainPart();
+    }
 });
 onUnmounted(() => {
     if (overviewPollInterval) clearInterval(overviewPollInterval);
 });
+
+const DOMAIN_HINT_STORAGE_KEY = 'gameserver-domain-hint-dismissed';
+const domainHintDismissed = ref(
+    typeof localStorage !== 'undefined' && localStorage.getItem(DOMAIN_HINT_STORAGE_KEY) === '1',
+);
+function dismissDomainHint() {
+    domainHintDismissed.value = true;
+    try {
+        localStorage.setItem(DOMAIN_HINT_STORAGE_KEY, '1');
+    } catch {
+        // ignore
+    }
+}
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -251,6 +383,44 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
 
             <!-- Hauptbereich: Header, Stats, Tabs -->
             <div class="lg:col-span-3">
+                <div
+                    v-if="flash.success"
+                    class="mb-4 rounded-md border border-green-500/50 bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-400"
+                >
+                    {{ flash.success }}
+                </div>
+                <div
+                    v-if="flash.error"
+                    class="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                >
+                    {{ flash.error }}
+                </div>
+                <Alert
+                    v-if="(domainsSearchUrl || connectDomainShowUrl) && !domainHintDismissed"
+                    variant="info"
+                    dismissible
+                    class="mb-4"
+                    @dismiss="dismissDomainHint"
+                >
+                    <p class="text-sm">
+                        Mit einer eigenen Domain wirkt dein Server professioneller – z. B. mc.deinedomain.de
+                        <Link
+                            v-if="domainsSearchUrl"
+                            :href="domainsSearchUrl"
+                            class="ml-1 font-medium underline underline-offset-2"
+                        >
+                            Domain finden
+                        </Link>
+                        <template v-if="domainsSearchUrl && connectDomainShowUrl"> · </template>
+                        <Link
+                            v-if="connectDomainShowUrl"
+                            :href="connectDomainShowUrl"
+                            class="font-medium underline underline-offset-2"
+                        >
+                            Eigene Domain verbinden
+                        </Link>
+                    </p>
+                </Alert>
                 <Card
                     v-if="!loginUrl && gameServerAccount.status === 'pending'"
                     class="mb-4 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30"
@@ -268,17 +438,17 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
                 <Card class="mb-4">
                     <CardContent class="pt-6">
                         <div class="flex flex-wrap items-center gap-4">
-                            <div class="flex min-w-0 flex-1 items-center gap-3">
+                            <div class="flex min-w-[180px] flex-1 items-center gap-3">
                                 <div
                                     class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15"
                                 >
                                     <Power class="h-5 w-5 text-primary" />
                                 </div>
-                                <div class="min-w-0">
-                                    <h2 class="truncate font-semibold">
+                                <div class="min-w-0 flex-1">
+                                    <h2 class="break-words font-semibold">
                                         {{ displayOverview?.name ?? gameServerAccount.name }}
                                     </h2>
-                                    <p class="text-sm text-muted-foreground">{{ planLabel || 'Game Server' }}</p>
+                                    <p class="break-words text-sm text-muted-foreground">{{ planLabel || 'Game Server' }}</p>
                                     <Badge
                                         :variant="statusVariant(displayOverview, gameServerAccount.status)"
                                         class="mt-1"
@@ -289,11 +459,11 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
                             </div>
                             <div
                                 v-if="displayOverview?.allocation"
-                                class="flex flex-1 min-w-[200px] flex-col items-center justify-center text-center"
+                                class="flex min-w-0 flex-1 flex-col items-center justify-center text-center"
                             >
                                 <p class="text-xs text-muted-foreground">Server-Adresse</p>
-                                <div class="mt-1 flex items-center gap-2">
-                                    <code class="rounded bg-muted px-2 py-1 text-sm">
+                                <div class="mt-1 flex w-full max-w-sm items-center justify-center gap-2">
+                                    <code class="min-w-0 flex-1 break-all rounded bg-muted px-2 py-1.5 text-left text-sm">
                                         {{ displayOverview.allocation }}
                                     </code>
                                     <Button
@@ -301,6 +471,22 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
                                         size="icon"
                                         class="h-8 w-8 shrink-0"
                                         @click="copyToClipboard(displayOverview!.allocation!)"
+                                    >
+                                        <Copy class="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                <div
+                                    v-if="gameServerAccount.allocation?.subdomain"
+                                    class="mt-2 flex w-full max-w-sm items-center justify-center gap-2"
+                                >
+                                    <code class="min-w-0 flex-1 break-all rounded bg-muted px-2 py-1.5 text-left text-sm">
+                                        {{ gameServerAccount.allocation.subdomain }}
+                                    </code>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        class="h-8 w-8 shrink-0"
+                                        @click="copyToClipboard(gameServerAccount.allocation!.subdomain!)"
                                     >
                                         <Copy class="h-4 w-4" />
                                     </Button>
@@ -486,13 +672,25 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
                             <ExternalLink class="h-4 w-4" />
                             <span class="hidden sm:inline">Zugang</span>
                         </TabsTrigger>
-                        <TabsTrigger value="password" class="gap-2 px-3 py-2">
-                            <KeyRound class="h-4 w-4" />
-                            <span class="hidden sm:inline">Passwort</span>
-                        </TabsTrigger>
                         <TabsTrigger value="rename" class="gap-2 px-3 py-2">
                             <Pencil class="h-4 w-4" />
                             <span class="hidden sm:inline">Umbenennen</span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            v-if="domainsSearchUrl || connectDomainShowUrl"
+                            value="domain"
+                            class="gap-2 px-3 py-2"
+                        >
+                            <Globe class="h-4 w-4" />
+                            <span class="hidden sm:inline">Domain</span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            v-if="isCloudAccount && cloudResourcesUpdateUrl && !isSuspendedOrExpired"
+                            value="ressourcen"
+                            class="gap-2 px-3 py-2"
+                        >
+                            <Cpu class="h-4 w-4" />
+                            <span class="hidden sm:inline">Ressourcen</span>
                         </TabsTrigger>
                     </TabsList>
 
@@ -527,20 +725,19 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
                     </TabsContent>
 
                     <TabsContent value="access" class="mt-4">
-                        <GamingAccountAccessTab
-                            :game-server-account="gameServerAccount"
-                            :user-email="userEmail"
-                            :login-url="loginUrl"
-                            :is-suspended-or-expired="isSuspendedOrExpired"
-                            @copy-to-clipboard="copyToClipboard"
-                        />
-                    </TabsContent>
-
-                    <TabsContent value="password" class="mt-4">
-                        <GamingAccountPasswordTab
-                            :login-url="loginUrl"
-                            :is-suspended-or-expired="isSuspendedOrExpired"
-                        />
+                        <div class="space-y-4">
+                            <GamingAccountAccessTab
+                                :game-server-account="gameServerAccount"
+                                :user-email="userEmail"
+                                :login-url="loginUrl"
+                                :is-suspended-or-expired="isSuspendedOrExpired"
+                                @copy-to-clipboard="copyToClipboard"
+                            />
+                            <GamingAccountPasswordTab
+                                :login-url="loginUrl"
+                                :is-suspended-or-expired="isSuspendedOrExpired"
+                            />
+                        </div>
                     </TabsContent>
 
                     <TabsContent value="rename" class="mt-4">
@@ -549,6 +746,159 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
                             :login-url="loginUrl"
                             :is-suspended-or-expired="isSuspendedOrExpired"
                         />
+                    </TabsContent>
+
+                    <TabsContent v-if="domainsSearchUrl || connectDomainShowUrl" value="domain" class="mt-4">
+                        <div class="space-y-4">
+                            <Card>
+                                <CardContent class="pt-6">
+                                    <p class="mb-4 text-sm text-muted-foreground">
+                                        Mit einer eigenen Domain wirkt dein Server professioneller (z. B. mc.deinedomain.de).
+                                        Gekaufte Domains können Sie mit wenigen Klicks auf diesen Server zeigen lassen.
+                                    </p>
+                                    <div class="flex flex-wrap gap-3">
+                                        <Link v-if="domainsSearchUrl" :href="domainsSearchUrl">
+                                            <Button variant="default" size="sm">
+                                                Domain finden
+                                            </Button>
+                                        </Link>
+                                        <Link v-if="connectDomainShowUrl" :href="connectDomainShowUrl">
+                                            <Button variant="outline" size="sm">
+                                                Eigene Domain verbinden
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card v-if="subdomainUpdateUrl && subdomainSuffix">
+                                <CardContent class="pt-6">
+                                    <h3 class="mb-2 font-semibold">Subdomain ändern</h3>
+                                    <p class="mb-4 text-sm text-muted-foreground">
+                                        Aktuelle Subdomain: {{ gameServerAccount.allocation?.subdomain ?? '—' }}
+                                    </p>
+                                    <div class="flex flex-wrap items-end gap-3">
+                                        <div class="space-y-2">
+                                            <Label for="subdomain-part">Neue Subdomain</Label>
+                                            <div class="flex items-center gap-2">
+                                                <Input
+                                                    id="subdomain-part"
+                                                    v-model="subdomainPart"
+                                                    type="text"
+                                                    placeholder="mein-server"
+                                                    class="w-48"
+                                                    maxlength="32"
+                                                />
+                                                <span class="text-sm text-muted-foreground">{{ subdomainSuffix }}</span>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
+                                            :disabled="subdomainCheckLoading"
+                                            @click="checkSubdomainAvailability"
+                                        >
+                                            <Loader2
+                                                v-if="subdomainCheckLoading"
+                                                class="mr-2 h-4 w-4 animate-spin"
+                                            />
+                                            Prüfen ob frei
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            :disabled="subdomainUpdateLoading || !subdomainPart.trim()"
+                                            @click="submitSubdomainChange"
+                                        >
+                                            <Loader2
+                                                v-if="subdomainUpdateLoading"
+                                                class="mr-2 h-4 w-4 animate-spin"
+                                            />
+                                            Subdomain ändern
+                                        </Button>
+                                    </div>
+                                    <p
+                                        v-if="subdomainCheckResult"
+                                        class="mt-3 text-sm"
+                                        :class="subdomainCheckResult.available ? 'text-green-600 dark:text-green-400' : 'text-destructive'"
+                                    >
+                                        <template v-if="subdomainCheckResult.available">
+                                            {{ subdomainCheckResult.message ?? 'Subdomain ist frei.' }}
+                                        </template>
+                                        <template v-else>
+                                            {{ subdomainCheckResult.error ?? 'Subdomain ist vergeben.' }}
+                                        </template>
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent
+                        v-if="isCloudAccount && cloudResourcesUpdateUrl && !isSuspendedOrExpired"
+                        value="ressourcen"
+                        class="mt-4"
+                    >
+                        <Card>
+                            <CardContent class="pt-6">
+                                <h3 class="mb-3 font-semibold">Ressourcen anpassen</h3>
+                                <p class="mb-4 text-sm text-muted-foreground">
+                                    CPU, RAM und Speicher innerhalb Ihres Abo-Kontingents anpassen.
+                                </p>
+                                <form
+                                    class="flex flex-wrap items-end gap-4"
+                                    @submit.prevent="submitResources"
+                                >
+                                    <div class="space-y-2">
+                                        <Label for="resources-cpu">CPU (%)</Label>
+                                        <Input
+                                            id="resources-cpu"
+                                            v-model.number="resourcesForm.cpu"
+                                            type="number"
+                                            :min="0"
+                                            :max="resourcesMax.cpu"
+                                            step="1"
+                                            class="w-24"
+                                        />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <Label for="resources-memory">RAM (MB)</Label>
+                                        <Input
+                                            id="resources-memory"
+                                            v-model.number="resourcesForm.memory_mb"
+                                            type="number"
+                                            :min="64"
+                                            :max="resourcesMax.memory_mb"
+                                            step="64"
+                                            class="w-28"
+                                        />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <Label for="resources-disk">Speicher (MB)</Label>
+                                        <Input
+                                            id="resources-disk"
+                                            v-model.number="resourcesForm.disk_mb"
+                                            type="number"
+                                            :min="256"
+                                            :max="resourcesMax.disk_mb"
+                                            step="256"
+                                            class="w-28"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        :disabled="resourcesSubmitting"
+                                    >
+                                        <Loader2
+                                            v-if="resourcesSubmitting"
+                                            class="mr-2 h-4 w-4 animate-spin"
+                                        />
+                                        Übernehmen
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                 </Tabs>
             </div>

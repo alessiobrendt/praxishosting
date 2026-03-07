@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Form, Head, Link, router } from '@inertiajs/vue3';
-import { ref, computed, watch } from 'vue';
+import { Form, Head, Link, router, usePage } from '@inertiajs/vue3';
+import { ref, computed, watch, onMounted } from 'vue';
 import {
     Cloud,
     Server,
@@ -20,6 +20,7 @@ import {
     Square,
     RotateCw,
 } from 'lucide-vue-next';
+import Alert from '@/components/ui/alert/Alert.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ import type { BreadcrumbItem } from '@/types';
 import { storeServer } from '@/actions/App/Http/Controllers/GameserverCloudSubscriptionController';
 import AutoRenewModal from '@/components/AutoRenewModal.vue';
 import PaymentMethodModal from '@/components/PaymentMethodModal.vue';
+import { notify } from '@/composables/useNotify';
 
 type GameServerAccount = {
     id: number;
@@ -78,9 +80,27 @@ type Props = {
     has_mollie_subscription: boolean;
     balanceUrl: string;
     mollieUrl: string;
+    domainsSearchUrl?: string;
 };
 
 const props = defineProps<Props>();
+
+const hasAnySubdomain = computed(() =>
+    props.subscription.game_server_accounts?.some((acc) => acc.allocation?.subdomain) ?? false,
+);
+
+const SUBSCRIPTION_DOMAIN_HINT_STORAGE_KEY = 'gameserver-subscription-domain-hint-dismissed';
+const subscriptionDomainHintDismissed = ref(
+    typeof localStorage !== 'undefined' && localStorage.getItem(SUBSCRIPTION_DOMAIN_HINT_STORAGE_KEY) === '1',
+);
+function dismissSubscriptionDomainHint() {
+    subscriptionDomainHintDismissed.value = true;
+    try {
+        localStorage.setItem(SUBSCRIPTION_DOMAIN_HINT_STORAGE_KEY, '1');
+    } catch {
+        // ignore
+    }
+}
 
 const renewModalOpen = ref(false);
 const autoRenewModalOpen = ref(false);
@@ -104,18 +124,68 @@ const createServer = ref({
     environment: {} as Record<string, string>,
 });
 const createServerSubmitting = ref(false);
+const createServerTimeoutMessage = ref('');
+
+const page = usePage();
+const flash = computed(() => (page.props.flash as { error?: string; success?: string }) ?? {});
+const formErrors = computed(() => (page.props.errors as Record<string, string>) ?? {});
 
 const nests = computed(() => props.subscription.nests ?? []);
 const selectedNest = computed(() => nests.value.find((n) => n.id === createServer.value.nest_id));
 const eggsForSelectedNest = computed(() => selectedNest.value?.eggs ?? []);
 const subdomainSuffix = computed(
-    () => (props.subscription.plan.config?.subdomain_suffix as string) || '.gamesrv',
+    () => (props.subscription.plan.config?.subdomain_suffix as string) || '.neroserv.cloud',
 );
 
 const selectedEgg = computed(() => eggsForSelectedNest.value.find((e) => e.id === createServer.value.egg_id));
 const selectedEggName = computed(() => selectedEgg.value?.name ?? '');
 const showHytaleFields = computed(() => selectedEggName.value.toLowerCase().includes('hytale'));
 const showFiveMFields = computed(() => selectedEggName.value.toLowerCase().includes('fivem'));
+
+type EggVariable = {
+    id: number;
+    name: string;
+    env_variable: string;
+    default_value: string;
+    rules: string;
+    user_viewable: boolean;
+    user_editable: boolean;
+    required_from_user: boolean;
+};
+const eggVariables = ref<EggVariable[]>([]);
+const eggVariablesLoading = ref(false);
+
+function eggVariablesUrl() {
+    return `/gaming/cloud/subscriptions/${props.subscription.id}/egg-variables?nest_id=${createServer.value.nest_id}&egg_id=${createServer.value.egg_id}`;
+}
+
+async function fetchEggVariables() {
+    if (createServer.value.nest_id < 1 || createServer.value.egg_id < 1) {
+        eggVariables.value = [];
+        return;
+    }
+    eggVariablesLoading.value = true;
+    eggVariables.value = [];
+    try {
+        const res = await fetch(eggVariablesUrl(), {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { variables?: EggVariable[] };
+        const vars = data.variables ?? [];
+        eggVariables.value = vars;
+        const env = { ...createServer.value.environment };
+        for (const v of vars) {
+            if (v.env_variable && (env[v.env_variable] === undefined || env[v.env_variable] === '')) {
+                env[v.env_variable] = v.default_value ?? '';
+            }
+        }
+        createServer.value.environment = env;
+    } finally {
+        eggVariablesLoading.value = false;
+    }
+}
 
 const maxMemoryMb = computed(() => Math.max(512, props.subscription.remaining_memory_mb));
 const maxCpu = computed(() => Math.max(50, props.subscription.remaining_cpu));
@@ -156,6 +226,11 @@ function initAddServerForm() {
         disk_mb: Math.min(10240, maxDiskMb.value),
         environment: env,
     };
+    if (createServer.value.nest_id && createServer.value.egg_id) {
+        fetchEggVariables();
+    } else {
+        eggVariables.value = [];
+    }
 }
 
 watch(
@@ -169,33 +244,35 @@ watch(
 );
 
 watch(
-    () => createServer.value.egg_id,
-    (newId) => {
-        const egg = eggsForSelectedNest.value.find((e) => e.id === newId);
-        const name = egg?.name ?? '';
-        if (name.toLowerCase().includes('hytale') && !name.toLowerCase().includes('fivem')) {
-            createServer.value.environment = {
-                ...createServer.value.environment,
-                AUTH_MODE: createServer.value.environment.AUTH_MODE ?? 'AUTHENTICATED',
-                PATCHLINE: createServer.value.environment.PATCHLINE ?? 'release',
-                GAME_PROFILE: createServer.value.environment.GAME_PROFILE ?? '',
-                BOOT_COMMANDS: createServer.value.environment.BOOT_COMMANDS ?? '',
-                ENABLE_BACKUPS: createServer.value.environment.ENABLE_BACKUPS ?? '',
-                DISABLE_SENTRY: createServer.value.environment.DISABLE_SENTRY ?? '1',
-                AUTOMATIC_UPDATE: createServer.value.environment.AUTOMATIC_UPDATE ?? '1',
-            };
-        } else if (name.toLowerCase().includes('fivem')) {
-            createServer.value.environment = {
-                ...createServer.value.environment,
-                FIVEM_LICENSE: createServer.value.environment.FIVEM_LICENSE ?? '',
-                FIVEM_FRAMEWORK: createServer.value.environment.FIVEM_FRAMEWORK ?? 'esx',
-                MAX_PLAYERS: createServer.value.environment.MAX_PLAYERS ?? '48',
-                SERVER_HOSTNAME: createServer.value.environment.SERVER_HOSTNAME ?? 'Mein FiveM Server',
-                STEAM_WEBAPIKEY: createServer.value.environment.STEAM_WEBAPIKEY ?? '',
-            };
+    () => [createServer.value.nest_id, createServer.value.egg_id] as const,
+    ([nestId, eggId]) => {
+        if (nestId && eggId) {
+            fetchEggVariables();
+        } else {
+            eggVariables.value = [];
         }
     },
     { immediate: false },
+);
+
+onMounted(() => {
+    if (flash.value.error || Object.keys(formErrors.value).length > 0) {
+        showAddServerForm.value = true;
+        initAddServerForm();
+    }
+});
+
+watch(
+    () => {
+        if (flash.value.error) return flash.value.error;
+        if (formErrors.value.allocation) return formErrors.value.allocation;
+        const keys = Object.keys(formErrors.value);
+        return keys.length > 0 ? formErrors.value[keys[0]] : null;
+    },
+    (message) => {
+        if (message) notify.error(message, 6000);
+    },
+    { immediate: true },
 );
 
 function submitCreateServer() {
@@ -214,9 +291,19 @@ function submitCreateServer() {
         environment: Object.keys(env).length ? env : undefined,
     };
     createServerSubmitting.value = true;
+    createServerTimeoutMessage.value = '';
+    const timeoutMs = 90000;
+    const timeoutId = window.setTimeout(() => {
+        if (createServerSubmitting.value) {
+            createServerSubmitting.value = false;
+            createServerTimeoutMessage.value =
+                'Die Erstellung dauert ungewöhnlich lange. Prüfen Sie unter „Meine Gameserver“, ob der Server angelegt wurde, oder die Logs (z. B. Pterodactyl / Laravel).';
+        }
+    }, timeoutMs);
     router.post(storeServer.url({ subscription: props.subscription.id }), payload, {
         preserveScroll: true,
         onFinish: () => {
+            window.clearTimeout(timeoutId);
             createServerSubmitting.value = false;
         },
         onSuccess: () => {
@@ -388,6 +475,31 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                             </Button>
                         </CardHeader>
                         <CardContent class="space-y-4 p-5">
+                            <!-- Immer sichtbar: Flash nach Redirect + Timeout-Hinweis -->
+                            <div
+                                v-if="flash.error"
+                                class="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                            >
+                                {{ flash.error }}
+                            </div>
+                            <div
+                                v-if="formErrors.allocation"
+                                class="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                            >
+                                {{ formErrors.allocation }}
+                            </div>
+                            <div
+                                v-if="createServerTimeoutMessage"
+                                class="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200"
+                            >
+                                {{ createServerTimeoutMessage }}
+                            </div>
+                            <div
+                                v-if="flash.success"
+                                class="rounded-md border border-green-500/50 bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-400"
+                            >
+                                {{ flash.success }}
+                            </div>
                             <form
                                 v-if="showAddServerForm"
                                 class="space-y-4 rounded-xl border border-dashed border-border bg-muted/20 p-4"
@@ -403,11 +515,11 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                         class="w-full"
                                     />
                                     <p class="text-xs text-muted-foreground">Optional – wird automatisch generiert wenn leer</p>
-                                    <InputError name="name" />
+                                    <InputError :message="formErrors.name" />
                                 </div>
 
                                 <div class="space-y-2">
-                                    <Label for="customSubdomain">Eigene Subdomain (optional)</Label>
+                                    <Label for="customSubdomain">Subdomain</Label>
                                     <div class="flex flex-wrap items-center gap-2">
                                         <Input
                                             id="customSubdomain"
@@ -420,9 +532,9 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                         <span class="text-sm text-muted-foreground">{{ subdomainSuffix }}</span>
                                     </div>
                                     <p class="text-xs text-muted-foreground">
-                                        Nur Kleinbuchstaben, Zahlen und Bindestriche. Leer lassen für automatische Generierung.
+                                        Leer lassen für automatische Generierung. Nur Kleinbuchstaben, Zahlen und Bindestriche.
                                     </p>
-                                    <InputError name="custom_subdomain" />
+                                    <InputError :message="formErrors.custom_subdomain" />
                                 </div>
 
                                 <div class="grid gap-4 sm:grid-cols-2">
@@ -443,7 +555,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                                 {{ nest.name }}
                                             </option>
                                         </select>
-                                        <InputError name="nest_id" />
+                                        <InputError :message="formErrors.nest_id" />
                                     </div>
                                     <div class="space-y-2">
                                         <Label for="eggSelect">Version <span class="text-destructive">*</span></Label>
@@ -463,12 +575,57 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                                 {{ egg.name }}
                                             </option>
                                         </select>
-                                        <InputError name="egg_id" />
+                                        <InputError :message="formErrors.egg_id" />
                                     </div>
                                 </div>
 
-                                <!-- Hytale -->
-                                <div v-if="showHytaleFields" class="space-y-4 rounded-lg border border-border bg-muted/20 p-4">
+                                <!-- Dynamic egg variables (from admin egg config) -->
+                                <div
+                                    v-if="eggVariablesLoading"
+                                    class="rounded-lg border border-border bg-muted/20 p-4 text-center text-sm text-muted-foreground"
+                                >
+                                    Lade Einstellungen …
+                                </div>
+                                <div
+                                    v-else-if="eggVariables.length > 0"
+                                    class="space-y-4 rounded-lg border border-border bg-muted/20 p-4"
+                                >
+                                    <h6 class="flex items-center gap-2 text-sm font-semibold text-primary">
+                                        <Gamepad2 class="h-4 w-4" />
+                                        Egg-Einstellungen
+                                    </h6>
+                                    <div class="grid gap-4 sm:grid-cols-2">
+                                        <div
+                                            v-for="v in eggVariables.filter((x) => x.user_editable)"
+                                            :key="v.id"
+                                            class="space-y-2"
+                                        >
+                                            <Label :for="`env_${v.env_variable}`">
+                                                {{ v.name }}
+                                                <Badge
+                                                    v-if="v.required_from_user"
+                                                    variant="destructive"
+                                                    class="ml-1 text-xs"
+                                                >
+                                                    Erforderlich
+                                                </Badge>
+                                            </Label>
+                                            <Input
+                                                :id="`env_${v.env_variable}`"
+                                                v-model="createServer.environment[v.env_variable]"
+                                                :placeholder="v.default_value"
+                                                class="w-full"
+                                            />
+                                            <InputError :message="formErrors[`environment.${v.env_variable}`]" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Hytale (fallback when no egg variables from API) -->
+                                <div
+                                    v-if="showHytaleFields && eggVariables.length === 0"
+                                    class="space-y-4 rounded-lg border border-border bg-muted/20 p-4"
+                                >
                                     <h6 class="flex items-center gap-2 text-sm font-semibold text-primary">
                                         <Gamepad2 class="h-4 w-4" />
                                         Hytale Einstellungen
@@ -548,8 +705,11 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                     </div>
                                 </div>
 
-                                <!-- FiveM -->
-                                <div v-if="showFiveMFields" class="space-y-4 rounded-lg border border-border bg-muted/20 p-4">
+                                <!-- FiveM (fallback when no egg variables from API) -->
+                                <div
+                                    v-if="showFiveMFields && eggVariables.length === 0"
+                                    class="space-y-4 rounded-lg border border-border bg-muted/20 p-4"
+                                >
                                     <h6 class="flex items-center gap-2 text-sm font-semibold text-amber-600">
                                         <Gamepad2 class="h-4 w-4" />
                                         FiveM Einstellungen
@@ -575,7 +735,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                             >keymaster.fivem.net</a>
                                             registrieren.
                                         </p>
-                                        <InputError name="environment.FIVEM_LICENSE" />
+                                        <InputError :message="formErrors['environment.FIVEM_LICENSE']" />
                                     </div>
                                     <div class="space-y-2">
                                         <Label>FiveM Framework (optional)</Label>
@@ -667,7 +827,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                         <p class="text-xs text-muted-foreground">
                                             Verfügbar: {{ maxMemoryMb.toLocaleString('de-DE') }} MB (Min: 512)
                                         </p>
-                                        <InputError name="memory_mb" />
+                                        <InputError :message="formErrors.memory_mb" />
                                     </div>
                                     <div class="space-y-2">
                                         <Label for="cpu">CPU (%) <span class="text-destructive">*</span></Label>
@@ -682,7 +842,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                         <p class="text-xs text-muted-foreground">
                                             Verfügbar: {{ maxCpu }}% (Min: 50%)
                                         </p>
-                                        <InputError name="cpu" />
+                                        <InputError :message="formErrors.cpu" />
                                     </div>
                                     <div class="space-y-2">
                                         <Label for="disk">Speicher (MB) <span class="text-destructive">*</span></Label>
@@ -697,7 +857,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                         <p class="text-xs text-muted-foreground">
                                             Verfügbar: {{ maxDiskMb.toLocaleString('de-DE') }} MB (Min: 1024)
                                         </p>
-                                        <InputError name="disk_mb" />
+                                        <InputError :message="formErrors.disk_mb" />
                                     </div>
                                 </div>
 
@@ -722,6 +882,20 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                 </div>
                             </form>
 
+                            <Alert
+                                v-if="hasAnySubdomain && domainsSearchUrl && !subscriptionDomainHintDismissed"
+                                variant="info"
+                                dismissible
+                                class="mb-3"
+                                @dismiss="dismissSubscriptionDomainHint"
+                            >
+                                <p class="text-sm">
+                                    Eigene Domain für Ihren Server?
+                                    <Link :href="domainsSearchUrl" class="ml-1 font-medium underline underline-offset-2">
+                                        Domain finden
+                                    </Link>
+                                </p>
+                            </Alert>
                             <div
                                 v-if="subscription.game_server_accounts.length === 0 && !showAddServerForm"
                                 class="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground"

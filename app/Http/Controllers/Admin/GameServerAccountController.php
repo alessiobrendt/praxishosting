@@ -169,12 +169,48 @@ class GameServerAccountController extends Controller
     {
         $this->authorize('update', $gameServerAccount);
 
+        $currentBrand = $this->currentBrand($request);
+
         if ($gameServerAccount->isCloudAccount()) {
-            return redirect()->route('admin.gaming-accounts.show', $gameServerAccount)
-                ->with('error', 'Cloud-Server werden über das Cloud-Abo bearbeitet.');
+            $gameServerAccount->load(['user', 'hostingServer', 'gameserverCloudSubscription.gameserverCloudPlan']);
+            $plan = $gameServerAccount->gameserverCloudSubscription?->gameserverCloudPlan;
+            if ($currentBrand !== null && $plan && $plan->brand_id !== $currentBrand->id) {
+                abort(404);
+            }
+            $planConfig = $plan->config ?? [];
+            $allocation = $gameServerAccount->allocation ?? [];
+            $optionValues = array_merge(
+                $gameServerAccount->option_values ?? [],
+                [
+                    'memory' => (int) ($allocation['memory_mb'] ?? 0),
+                    'disk' => (int) ($allocation['disk_mb'] ?? 0),
+                    'cpu' => (int) ($allocation['cpu'] ?? 0),
+                    'swap' => (int) ($gameServerAccount->option_values['swap'] ?? 0),
+                    'io' => (int) ($gameServerAccount->option_values['io'] ?? 500),
+                    'databases' => (int) ($gameServerAccount->option_values['databases'] ?? 0),
+                    'backups' => (int) ($gameServerAccount->option_values['backups'] ?? 0),
+                ]
+            );
+            $hostingPlanConfig = [
+                'memory' => (int) ($planConfig['max_memory_mb'] ?? 0),
+                'disk' => (int) (($planConfig['max_disk_gb'] ?? 0) * 1024),
+                'cpu' => (int) ($planConfig['max_cpu'] ?? 0),
+                'swap' => 0,
+                'io' => 500,
+                'databases' => 0,
+                'backups' => 0,
+            ];
+            $accountData = $gameServerAccount->toArray();
+            $accountData['option_values'] = $optionValues;
+            $accountData['hosting_plan'] = $plan ? ['id' => $plan->id, 'name' => $plan->name] : null;
+
+            return Inertia::render('admin/gaming-accounts/Edit', [
+                'gameServerAccount' => $accountData,
+                'hostingPlanConfig' => $hostingPlanConfig,
+                'isCloudAccount' => true,
+            ]);
         }
 
-        $currentBrand = $this->currentBrand($request);
         if ($currentBrand !== null && $gameServerAccount->hostingPlan->brand_id !== $currentBrand->id) {
             abort(404);
         }
@@ -184,17 +220,69 @@ class GameServerAccountController extends Controller
         return Inertia::render('admin/gaming-accounts/Edit', [
             'gameServerAccount' => $gameServerAccount,
             'hostingPlanConfig' => $gameServerAccount->hostingPlan->config ?? [],
+            'isCloudAccount' => false,
         ]);
     }
 
     public function update(UpdateGameServerAccountRequest $request, GameServerAccount $gameServerAccount): RedirectResponse
     {
+        $currentBrand = $this->currentBrand($request);
+
         if ($gameServerAccount->isCloudAccount()) {
-            return redirect()->route('admin.gaming-accounts.show', $gameServerAccount)
-                ->with('error', 'Cloud-Server werden über das Cloud-Abo bearbeitet.');
+            $gameServerAccount->load(['hostingServer', 'gameserverCloudSubscription.gameserverCloudPlan']);
+            if ($currentBrand !== null && $gameServerAccount->gameserverCloudSubscription?->gameserverCloudPlan?->brand_id !== $currentBrand->id) {
+                abort(404);
+            }
+            $data = $request->validated();
+            $optionValues = array_merge(
+                $gameServerAccount->option_values ?? [],
+                $data['option_values'] ?? []
+            );
+            $memoryMb = (int) ($optionValues['memory'] ?? 0);
+            $diskMb = (int) ($optionValues['disk'] ?? 0);
+            $cpu = (int) ($optionValues['cpu'] ?? 0);
+            $allocation = $gameServerAccount->allocation ?? [];
+            $allocation['memory_mb'] = $memoryMb;
+            $allocation['disk_mb'] = $diskMb;
+            $allocation['cpu'] = $cpu;
+            $gameServerAccount->update([
+                'name' => $data['name'],
+                'status' => $data['status'],
+                'option_values' => $optionValues,
+                'allocation' => $allocation,
+            ]);
+
+            if ($gameServerAccount->pterodactyl_server_id && $gameServerAccount->hostingServer) {
+                $params = [
+                    'memory' => $memoryMb,
+                    'disk' => $diskMb,
+                    'swap' => (int) ($optionValues['swap'] ?? 0),
+                    'io' => (int) ($optionValues['io'] ?? 500),
+                    'cpu' => $cpu,
+                    'databases' => (int) ($optionValues['databases'] ?? 0),
+                    'backups' => (int) ($optionValues['backups'] ?? 0),
+                ];
+                try {
+                    $ptero = app(PterodactylClient::class);
+                    $ptero->setServer($gameServerAccount->hostingServer);
+                    $ptero->updateServerBuild($gameServerAccount->pterodactyl_server_id, $params);
+                } catch (\Throwable $e) {
+                    Log::warning('Admin gaming update: Pterodactyl sync failed (cloud)', [
+                        'account_id' => $gameServerAccount->id,
+                        'message' => $e->getMessage(),
+                    ]);
+
+                    return redirect()
+                        ->route('admin.gaming-accounts.show', $gameServerAccount)
+                        ->with('warning', 'Account gespeichert, aber Pterodactyl-Limits konnten nicht aktualisiert werden: '.$e->getMessage());
+                }
+            }
+
+            return redirect()
+                ->route('admin.gaming-accounts.show', $gameServerAccount)
+                ->with('success', 'Game-Server-Account aktualisiert.');
         }
 
-        $currentBrand = $this->currentBrand($request);
         if ($currentBrand !== null && $gameServerAccount->hostingPlan->brand_id !== $currentBrand->id) {
             abort(404);
         }

@@ -71,20 +71,12 @@ const sidebarItems = computed<NavItem[]>(() => {
     const hostingChildren: NavItem[] = [];
     if (hasPermissionOrView('admin.hosting-servers')) hostingChildren.push({ title: 'Hosting-Server', href: '/admin/hosting-servers', icon: GitBranch });
     if (hasPermissionOrView('admin.hosting-plans') || (hasPermissionOrView('admin.gameserver-cloud-plans') && brandFeatures.value.gameserver_cloud === true)) {
-        const planChildren: NavItem[] = [];
-        if (hasPermissionOrView('admin.hosting-plans')) planChildren.push({ title: 'Webspace-Pakete', href: '/admin/hosting-plans', icon: Package });
-        if (hasPermissionOrView('admin.gameserver-cloud-plans') && brandFeatures.value.gameserver_cloud === true) {
-            planChildren.push({ title: 'Gameserver-Cloud-Pläne', href: '/admin/hosting-plans?tab=cloud', icon: Package });
-        }
-        if (planChildren.length === 1) {
-            hostingChildren.push(planChildren[0]);
-        } else {
-            hostingChildren.push({ title: 'Hosting-Pläne', icon: Package, children: planChildren });
-        }
+        hostingChildren.push({ title: 'Hosting-Pläne', href: '/admin/hosting-plans', icon: Package });
     }
     if (hasPermissionOrView('admin.webspace-accounts') && brandFeatures.value.webspace !== false) hostingChildren.push({ title: 'Webspace-Accounts', href: '/admin/webspace-accounts', icon: LayoutGrid });
     if (hasPermissionOrView('admin.gaming-accounts') && brandFeatures.value.gaming === true) hostingChildren.push({ title: 'Game-Server-Accounts', href: '/admin/gaming-accounts', icon: LayoutGrid });
     if (hasPermissionOrView('admin.gaming-accounts') && brandFeatures.value.gameserver_cloud === true) hostingChildren.push({ title: 'Gameserver-Cloud-Accounts', href: '/admin/gameserver-cloud-accounts', icon: LayoutGrid });
+    if (hasPermissionOrView('admin.gaming-accounts') && brandFeatures.value.gameserver_cloud === true) hostingChildren.push({ title: 'Subdomains', href: '/admin/subdomains', icon: Globe });
     if (hasPermissionOrView('admin.hosting-servers') && brandFeatures.value.teamspeak === true) hostingChildren.push({ title: 'TeamSpeak-Server-Accounts', href: '/admin/teamspeak-accounts', icon: LayoutGrid });
     if (hostingChildren.length > 0) {
         items.push({ title: 'Hosting', icon: PackageCheck, children: hostingChildren });
