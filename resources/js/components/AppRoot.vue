@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
 import type { Component } from 'vue';
+import CookieBanner from '@/components/CookieBanner.vue';
 import LoadingOverlay from '@/components/LoadingOverlay.vue';
 import ToastContainer from '@/components/ToastContainer.vue';
 
@@ -26,6 +27,7 @@ onMounted(() => {
     <div class="min-h-full">
         <LoadingOverlay v-if="isNavigating" />
         <ToastContainer />
+        <CookieBanner />
         <component :is="appComponent" v-bind="appProps" />
     </div>
 </template>

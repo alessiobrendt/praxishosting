@@ -162,6 +162,7 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'discordInviteUrl' => $discordInviteUrl ? (string) $discordInviteUrl : null,
             'molliePaymentMethods' => $molliePaymentMethods,
+            'privacyUrl' => config('billing.privacy_url', '#'),
         ];
     }
 }

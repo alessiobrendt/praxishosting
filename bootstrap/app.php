@@ -26,7 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Caddy als vertrauenswürdigen Proxy konfigurieren
         $middleware->trustProxies(at: env('TRUSTED_PROXIES', '127.0.0.1'));
 
-        $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+        $middleware->encryptCookies(except: ['appearance', 'sidebar_state', 'cookie_consent']);
 
         $middleware->validateCsrfTokens(except: [
             'api/verify-domain', // Caddy On-Demand TLS verification (GET, no session)
