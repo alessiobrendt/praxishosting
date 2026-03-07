@@ -529,11 +529,72 @@ class GamingAccountController extends Controller
                 'files',
                 file_get_contents($uploadedFile->getRealPath()),
                 $uploadedFile->getClientOriginalName()
-            )->post($signedUrl, ['directory' => $directory]);
+            )->post($signedUrl);
 
             if (! $response->successful()) {
-                return response()->json(['success' => false, 'message' => $response->reason()], 502);
+                $body = $response->json();
+                $message = $body['errors'][0]['detail'] ?? $body['errors'][0]['code'] ?? $response->reason();
+
+                return response()->json(['success' => false, 'message' => $message], 502);
             }
+
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 502);
+        }
+    }
+
+    /**
+     * Compress files to zip. Only owner.
+     */
+    public function filesCompress(Request $request, GameServerAccount $gameServerAccount): JsonResponse
+    {
+        $err = $this->ensureAccountOwnerApi($request, $gameServerAccount);
+        if ($err !== null) {
+            return $err;
+        }
+        $root = $request->input('root', '/');
+        $files = $request->input('files', []);
+        if (! is_string($root)) {
+            $root = '/';
+        }
+        if (! is_array($files)) {
+            return response()->json(['success' => false, 'message' => 'files muss ein Array sein.'], 422);
+        }
+        $files = array_values(array_filter(array_map(fn ($f) => is_string($f) ? $f : null, $files)));
+        if (count($files) === 0) {
+            return response()->json(['success' => false, 'message' => 'Keine Dateien angegeben.'], 422);
+        }
+        try {
+            $client = app(PterodactylClient::class);
+            $client->compressFiles($gameServerAccount, $root, $files);
+
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 502);
+        }
+    }
+
+    /**
+     * Decompress zip archive. Only owner.
+     */
+    public function filesDecompress(Request $request, GameServerAccount $gameServerAccount): JsonResponse
+    {
+        $err = $this->ensureAccountOwnerApi($request, $gameServerAccount);
+        if ($err !== null) {
+            return $err;
+        }
+        $root = $request->input('root', '/');
+        $file = $request->input('file', '');
+        if (! is_string($root)) {
+            $root = '/';
+        }
+        if (! is_string($file) || $file === '') {
+            return response()->json(['success' => false, 'message' => 'Dateiname fehlt.'], 422);
+        }
+        try {
+            $client = app(PterodactylClient::class);
+            $client->decompressFile($gameServerAccount, $root, $file);
 
             return response()->json(['success' => true]);
         } catch (\Throwable $e) {

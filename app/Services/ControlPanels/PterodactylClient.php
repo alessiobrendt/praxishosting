@@ -505,6 +505,40 @@ class PterodactylClient implements ControlPanelContract
     }
 
     /**
+     * Compress files into a zip archive. root = parent path, files = array of file/folder names.
+     *
+     * @param  array<int, string>  $files
+     */
+    public function compressFiles(GameServerAccount $account, string $root, array $files): void
+    {
+        $server = $account->hostingServer;
+        if (! $server || ! $account->identifier) {
+            throw new Exception('Pterodactyl: server or identifier missing');
+        }
+        $this->setServer($server);
+        $this->clientApiRequestAllow204('/api/client/servers/'.$account->identifier.'/files/compress', 'POST', [
+            'root' => $root,
+            'files' => $files,
+        ]);
+    }
+
+    /**
+     * Decompress an archive. root = parent path, file = archive file name.
+     */
+    public function decompressFile(GameServerAccount $account, string $root, string $file): void
+    {
+        $server = $account->hostingServer;
+        if (! $server || ! $account->identifier) {
+            throw new Exception('Pterodactyl: server or identifier missing');
+        }
+        $this->setServer($server);
+        $this->clientApiRequestAllow204('/api/client/servers/'.$account->identifier.'/files/decompress', 'POST', [
+            'root' => $root,
+            'file' => $file,
+        ]);
+    }
+
+    /**
      * Get backup list. Returns array of backup attributes (uuid, name, bytes, created_at, is_successful, etc.).
      *
      * @return array<int, array<string, mixed>>

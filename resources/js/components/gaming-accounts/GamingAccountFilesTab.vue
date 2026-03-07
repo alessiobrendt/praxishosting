@@ -16,6 +16,8 @@ import {
     Pencil,
     Trash2,
     Search,
+    Archive,
+    FileArchive,
 } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -97,6 +99,8 @@ const editContent = ref('');
 const editSaving = ref(false);
 const uploadInput = ref<HTMLInputElement | null>(null);
 const actionLoading = ref(false);
+const compressOpen = ref(false);
+const selectedFilesForZip = ref<string[]>([]);
 
 function getLanguageFromPath(path: string): string {
     const ext = path.split('.').pop()?.toLowerCase() ?? '';
@@ -391,6 +395,75 @@ function onUploadChange(e: Event) {
             input.value = '';
         });
 }
+
+const compressUrl = () =>
+    api.value.list.url(props.gameServerAccountId).replace('/list', '/compress');
+const decompressUrl = () =>
+    api.value.list.url(props.gameServerAccountId).replace('/list', '/decompress');
+
+function openCompressModal() {
+    selectedFilesForZip.value = [];
+    compressOpen.value = true;
+}
+
+function toggleFileForZip(name: string) {
+    const idx = selectedFilesForZip.value.indexOf(name);
+    if (idx === -1) {
+        selectedFilesForZip.value = [...selectedFilesForZip.value, name];
+    } else {
+        selectedFilesForZip.value = selectedFilesForZip.value.filter((n) => n !== name);
+    }
+}
+
+function submitCompress() {
+    if (selectedFilesForZip.value.length === 0) {
+        notify.error('Mindestens eine Datei oder einen Ordner auswählen.');
+        return;
+    }
+    actionLoading.value = true;
+    const url = compressUrl();
+    apiFetch(url, {
+        method: 'POST',
+        body: { root: getRoot(), files: selectedFilesForZip.value },
+    })
+        .then((data) => {
+            if (data.success) {
+                notify.success('ZIP-Archiv wird erstellt.');
+                compressOpen.value = false;
+                fetchFiles();
+            } else {
+                notify.error(data.message ?? 'Fehler');
+            }
+        })
+        .finally(() => (actionLoading.value = false));
+}
+
+function isArchiveFile(item: FileItem): boolean {
+    const n = item.name.toLowerCase();
+    return (
+        (item.is_file === true || item.mimetype !== 'inode/directory') &&
+        (n.endsWith('.zip') || n.endsWith('.tar.gz') || n.endsWith('.tar'))
+    );
+}
+
+function submitDecompress(item: FileItem) {
+    if (!isArchiveFile(item)) return;
+    actionLoading.value = true;
+    const url = decompressUrl();
+    apiFetch(url, {
+        method: 'POST',
+        body: { root: getRoot(), file: item.name },
+    })
+        .then((data) => {
+            if (data.success) {
+                notify.success('Archiv wird entpackt.');
+                fetchFiles();
+            } else {
+                notify.error(data.message ?? 'Fehler');
+            }
+        })
+        .finally(() => (actionLoading.value = false));
+}
 </script>
 
 <template>
@@ -478,6 +551,10 @@ function onUploadChange(e: Event) {
                         <FilePlus class="mr-2 h-4 w-4" />
                         Neue Datei
                     </Button>
+                    <Button variant="outline" size="sm" @click="openCompressModal">
+                        <Archive class="mr-2 h-4 w-4" />
+                        ZIP packen
+                    </Button>
                 </div>
             </div>
 
@@ -545,6 +622,10 @@ function onUploadChange(e: Event) {
                                     <Download class="mr-2 h-4 w-4" />
                                     Herunterladen
                                 </DropdownMenuItem>
+                                <DropdownMenuItem v-if="isArchiveFile(item)" @click="submitDecompress(item)">
+                                    <FileArchive class="mr-2 h-4 w-4" />
+                                    ZIP entpacken
+                                </DropdownMenuItem>
                                 <DropdownMenuItem @click="openRename(item)">
                                     Umbenennen
                                 </DropdownMenuItem>
@@ -608,6 +689,10 @@ function onUploadChange(e: Event) {
                                 <DropdownMenuItem v-if="isFile(item)" @click="downloadFile(item.name)">
                                     <Download class="mr-2 h-4 w-4" />
                                     Herunterladen
+                                </DropdownMenuItem>
+                                <DropdownMenuItem v-if="isArchiveFile(item)" @click="submitDecompress(item)">
+                                    <FileArchive class="mr-2 h-4 w-4" />
+                                    ZIP entpacken
                                 </DropdownMenuItem>
                                 <DropdownMenuItem @click="openRename(item)">
                                     Umbenennen
@@ -714,6 +799,52 @@ function onUploadChange(e: Event) {
             <Button variant="outline" @click="deleteOpen = false">Abbrechen</Button>
             <Button variant="destructive" :disabled="actionLoading" @click="submitDelete">
                 Löschen
+            </Button>
+        </ModalFooter>
+    </Modal>
+
+    <Modal v-model="compressOpen" size="md">
+        <ModalHeader>
+            <h3 class="text-lg font-semibold">ZIP packen</h3>
+        </ModalHeader>
+        <ModalContent>
+            <p class="mb-3 text-sm text-muted-foreground">
+                Wählen Sie die Dateien und Ordner aus, die ins Archiv sollen.
+            </p>
+            <div class="max-h-64 space-y-2 overflow-y-auto rounded-lg border p-2">
+                <label
+                    v-for="item in files"
+                    :key="item.name"
+                    class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-muted/50"
+                >
+                    <input
+                        type="checkbox"
+                        :checked="selectedFilesForZip.includes(item.name)"
+                        class="rounded"
+                        @change="toggleFileForZip(item.name)"
+                    />
+                    <FolderOpen
+                        v-if="!isFile(item)"
+                        class="h-4 w-4 shrink-0 text-amber-500"
+                    />
+                    <FileText
+                        v-else
+                        class="h-4 w-4 shrink-0 text-muted-foreground"
+                    />
+                    <span class="truncate text-sm">{{ item.name }}</span>
+                </label>
+                <p v-if="files.length === 0" class="py-2 text-center text-sm text-muted-foreground">
+                    Ordner ist leer
+                </p>
+            </div>
+        </ModalContent>
+        <ModalFooter>
+            <Button variant="outline" @click="compressOpen = false">Abbrechen</Button>
+            <Button
+                :disabled="actionLoading || selectedFilesForZip.length === 0"
+                @click="submitCompress"
+            >
+                ZIP packen
             </Button>
         </ModalFooter>
     </Modal>

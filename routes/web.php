@@ -203,6 +203,8 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
     Route::post('gaming-accounts/{game_server_account}/api/files/delete', [GamingAccountController::class, 'filesDelete'])->name('gaming-accounts.api.files.delete');
     Route::put('gaming-accounts/{game_server_account}/api/files/rename', [GamingAccountController::class, 'filesRename'])->name('gaming-accounts.api.files.rename');
     Route::post('gaming-accounts/{game_server_account}/api/files/upload', [GamingAccountController::class, 'filesUpload'])->name('gaming-accounts.api.files.upload');
+    Route::post('gaming-accounts/{game_server_account}/api/files/compress', [GamingAccountController::class, 'filesCompress'])->name('gaming-accounts.api.files.compress');
+    Route::post('gaming-accounts/{game_server_account}/api/files/decompress', [GamingAccountController::class, 'filesDecompress'])->name('gaming-accounts.api.files.decompress');
     Route::get('gaming-accounts/{game_server_account}/api/backups', [GamingAccountController::class, 'backupsList'])->name('gaming-accounts.api.backups.list');
     Route::post('gaming-accounts/{game_server_account}/api/backups', [GamingAccountController::class, 'backupsCreate'])->name('gaming-accounts.api.backups.create');
     Route::get('gaming-accounts/{game_server_account}/api/backups/{backupUuid}/download', [GamingAccountController::class, 'backupsDownload'])->name('gaming-accounts.api.backups.download');
