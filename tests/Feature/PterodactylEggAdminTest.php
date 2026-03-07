@@ -80,6 +80,7 @@ test('admin can update egg config', function () {
             'required_env_variables' => ['FIVEM_LICENSE'],
             'subdomain_srv_protocol' => '_minecraft',
             'subdomain_protocol_type' => 'tcp',
+            'gameq_type' => 'minecraft',
         ],
     ]);
 
@@ -92,4 +93,39 @@ test('admin can update egg config', function () {
     expect($config)->not->toBeNull();
     expect($config->config['subdomain_srv_protocol'])->toBe('_minecraft');
     expect($config->config['required_env_variables'])->toContain('FIVEM_LICENSE');
+    expect($config->config['gameq_type'])->toBe('minecraft');
+});
+
+test('gameq_type can be set and cleared in egg config', function () {
+    $this->actingAs($this->admin);
+
+    $this->put(route('admin.hosting-servers.pterodactyl-nests.eggs.config.update', [
+        'hostingServer' => $this->pterodactylServer,
+        'nest' => 1,
+        'egg' => 1,
+    ]), [
+        'config' => [
+            'gameq_type' => 'csgo',
+        ],
+    ]);
+
+    $config = PterodactylEggConfig::query()
+        ->where('hosting_server_id', $this->pterodactylServer->id)
+        ->where('nest_id', 1)
+        ->where('egg_id', 1)
+        ->first();
+    expect($config->config['gameq_type'] ?? '')->toBe('csgo');
+
+    $this->put(route('admin.hosting-servers.pterodactyl-nests.eggs.config.update', [
+        'hostingServer' => $this->pterodactylServer,
+        'nest' => 1,
+        'egg' => 1,
+    ]), [
+        'config' => [
+            'gameq_type' => '',
+        ],
+    ]);
+
+    $config->refresh();
+    expect($config->config['gameq_type'] ?? '')->toBe('');
 });

@@ -14,6 +14,7 @@ use App\Models\ResellerDomain;
 use App\Services\BalancePaymentService;
 use App\Services\CloudflareDnsService;
 use App\Services\ControlPanels\PterodactylClient;
+use App\Services\GameServerQueryService;
 use App\Services\MollieCustomerService;
 use App\Services\SkrimeApiService;
 use App\Services\SyncHostingPlanStripePriceService;
@@ -121,6 +122,10 @@ class GamingAccountController extends Controller
             } catch (\Throwable) {
                 // keep null
             }
+        }
+
+        if ($serverOverview !== null) {
+            $this->attachServerQueryToOverview($serverOverview, $gameServerAccount);
         }
 
         $currentBrand = $request->attributes->get('current_brand') ?? Brand::getDefault();
@@ -601,6 +606,10 @@ class GamingAccountController extends Controller
             } catch (\Throwable) {
                 // keep null
             }
+        }
+
+        if ($serverOverview !== null) {
+            $this->attachServerQueryToOverview($serverOverview, $gameServerAccount);
         }
 
         return response()->json(['serverOverview' => $serverOverview]);
@@ -1567,5 +1576,34 @@ class GamingAccountController extends Controller
         $features = $brand?->getFeaturesArray() ?? [];
 
         return max(1, min(24, (int) ($features['balance_period_months'] ?? config('billing.balance_period_months', 1))));
+    }
+
+    /**
+     * Attach server_query (player count) to server overview when egg has gameq_type set.
+     * Always uses the server (allocation) port – no separate query port.
+     *
+     * @param  array<string, mixed>  $serverOverview  Modified in place
+     */
+    private function attachServerQueryToOverview(array &$serverOverview, GameServerAccount $gameServerAccount): void
+    {
+        $host = $serverOverview['allocation_host'] ?? null;
+        $port = (int) ($serverOverview['allocation_port'] ?? 0);
+        $nestId = $serverOverview['nest_id'] ?? 0;
+        $eggId = $serverOverview['egg_id'] ?? 0;
+        $hostingServer = $gameServerAccount->hostingServer;
+        if ($host === null || $port <= 0 || $nestId <= 0 || $eggId <= 0 || ! $hostingServer) {
+            return;
+        }
+        $eggConfig = PterodactylEggConfig::query()
+            ->where('hosting_server_id', $hostingServer->id)
+            ->where('nest_id', $nestId)
+            ->where('egg_id', $eggId)
+            ->first();
+        $gameqType = (string) (($eggConfig->config ?? [])['gameq_type'] ?? '');
+        if ($gameqType === '') {
+            return;
+        }
+        $serverQuery = app(GameServerQueryService::class)->query($host, $port, $gameqType);
+        $serverOverview['server_query'] = $serverQuery;
     }
 }

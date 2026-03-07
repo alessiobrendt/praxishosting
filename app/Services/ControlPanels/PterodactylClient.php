@@ -763,7 +763,7 @@ class PterodactylClient implements ControlPanelContract
      * Get server overview (status, allocation, limits, usage) for a game server account.
      * Uses Application API for server/details and optional Client API for live resources/power.
      *
-     * @return array{name: string, status: string, allocation: string, limits: array{memory: int, disk: int, cpu: float}, usage: array{memory_bytes: int, disk_bytes: int, cpu_absolute: float, network_rx_bytes: int, network_tx_bytes: int}, can_power: bool}|null
+     * @return array{name: string, status: string, allocation: string, allocation_host?: string|null, allocation_port?: int|null, limits: array, usage: array, can_power: bool, nest_id?: int|null, egg_id?: int|null}|null
      */
     public function getServerOverview(GameServerAccount $account): ?array
     {
@@ -779,6 +779,8 @@ class PterodactylClient implements ControlPanelContract
             $allocationId = $attrs['allocation'] ?? null;
             $nodeId = $attrs['node'] ?? null;
             $allocation = '—';
+            $allocationHost = null;
+            $allocationPort = null;
             if ($allocationId && $nodeId) {
                 $allocData = $this->apiRequest('/api/application/nodes/'.$nodeId.'/allocations', ['per_page' => 100]);
                 foreach ($allocData['data'] ?? [] as $alloc) {
@@ -789,6 +791,8 @@ class PterodactylClient implements ControlPanelContract
                         $alias = $a['alias'] ?? null;
                         if ($ip && $port !== '') {
                             $allocation = $alias ? $alias.':'.$port : $ip.':'.$port;
+                            $allocationHost = $alias ?: $ip;
+                            $allocationPort = (int) $port;
                         }
                         break;
                     }
@@ -836,6 +840,8 @@ class PterodactylClient implements ControlPanelContract
                 'name' => (string) ($attrs['name'] ?? $account->name),
                 'status' => $status,
                 'allocation' => $allocation,
+                'allocation_host' => $allocationHost,
+                'allocation_port' => $allocationPort,
                 'limits' => $limits,
                 'usage' => $usage,
                 'can_power' => $canPower,

@@ -15,6 +15,7 @@ import type { ServerOverview } from '@/composables/useGamingAccountFormatters';
 import GamingAccountPowerCard from '@/components/gaming-accounts/GamingAccountPowerCard.vue';
 import GamingAccountResourcesCard from '@/components/gaming-accounts/GamingAccountResourcesCard.vue';
 import GamingAccountNetworkCard from '@/components/gaming-accounts/GamingAccountNetworkCard.vue';
+import GamingAccountPlayersCard from '@/components/gaming-accounts/GamingAccountPlayersCard.vue';
 
 type GameServerAccount = {
     id: number;
@@ -108,5 +109,8 @@ function copyToClipboard(text: string) {
     </div>
 
     <GamingAccountResourcesCard class="mt-4" :display-overview="displayOverview" />
-    <GamingAccountNetworkCard class="mt-4" :display-overview="displayOverview" />
+    <div class="mt-4 grid gap-4 md:grid-cols-2">
+        <GamingAccountNetworkCard :display-overview="displayOverview" />
+        <GamingAccountPlayersCard :display-overview="displayOverview" />
+    </div>
 </template>

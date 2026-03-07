@@ -1,3 +1,9 @@
+export type ServerQuery = {
+    num_players: number;
+    max_players: number;
+    hostname?: string | null;
+} | null;
+
 export type ServerOverview = {
     name: string;
     status: string;
@@ -13,6 +19,7 @@ export type ServerOverview = {
     can_power: boolean;
     is_installing?: boolean;
     suspended?: boolean;
+    server_query?: ServerQuery;
 };
 
 export function formatBytes(bytes: number): string {
@@ -23,6 +30,17 @@ export function formatBytes(bytes: number): string {
     if (mb >= 1) return `${mb.toFixed(2)} MB`;
     const kb = bytes / 1024;
     return `${kb.toFixed(1)} KB`;
+}
+
+/** Wie formatBytes, aber MB/GB als ganze Zahl (z. B. 1008.92 MB → 1008 MB). */
+export function formatBytesRounded(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const gb = bytes / (1024 * 1024 * 1024);
+    if (gb >= 1) return `${Math.floor(gb)} GB`;
+    const mb = bytes / (1024 * 1024);
+    if (mb >= 1) return `${Math.floor(mb)} MB`;
+    const kb = bytes / 1024;
+    return `${Math.floor(kb)} KB`;
 }
 
 export function formatCpu(cpu: number): string {

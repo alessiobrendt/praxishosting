@@ -24,6 +24,7 @@ class UpdatePterodactylEggConfigRequest extends FormRequest
             'config.required_env_variables.*' => ['string', 'max:255'],
             'config.subdomain_srv_protocol' => ['nullable', 'string', 'max:64'],
             'config.subdomain_protocol_type' => ['nullable', 'string', 'in:none,tcp,udp,tls'],
+            'config.gameq_type' => ['nullable', 'string', 'max:64'],
         ];
     }
 }

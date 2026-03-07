@@ -18,6 +18,7 @@ import {
     HardDrive,
     MemoryStick,
     Network,
+    Users,
 } from 'lucide-vue-next';
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
 import AutoRenewModal from '@/components/AutoRenewModal.vue';
@@ -43,6 +44,7 @@ import { notify } from '@/composables/useNotify';
 import {
     copyToClipboard as copyToClipboardUtil,
     formatBytes,
+    formatBytesRounded,
     formatCpu,
     displayStatus,
     statusVariant,
@@ -555,95 +557,105 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
                     </CardContent>
                 </Card>
 
-                <!-- Stats Grid -->
+                <!-- Stats Grid: genau 2 Zeilen (Titel, Value), Value einzeilig, nichts kürzen -->
                 <div
                     v-if="displayOverview"
-                    class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                    class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-[repeat(5,minmax(12rem,1fr))]"
                 >
-                    <Card>
-                        <CardContent class="pt-4">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-xs text-muted-foreground">CPU</p>
-                                    <p class="text-lg font-semibold">
-                                        {{ formatCpu(displayOverview.usage?.cpu_absolute ?? 0) }}
-                                    </p>
-                                </div>
-                                <div
-                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15"
+                    <div
+                        class="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-card px-4 py-3 shadow-sm"
+                    >
+                        <div
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15"
+                        >
+                            <Cpu class="h-5 w-5 text-primary" />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-medium text-muted-foreground">CPU</p>
+                            <p class="whitespace-nowrap text-base font-semibold tabular-nums">
+                                {{ formatCpu(displayOverview.usage?.cpu_absolute ?? 0) }}
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-card px-4 py-3 shadow-sm"
+                    >
+                        <div
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15"
+                        >
+                            <MemoryStick class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-medium text-muted-foreground">Memory</p>
+                            <p class="whitespace-nowrap text-base font-semibold tabular-nums">
+                                {{ formatBytesRounded(displayOverview.usage?.memory_bytes ?? 0) }}
+                                <span
+                                    v-if="displayOverview.limits?.memory"
+                                    class="font-normal text-muted-foreground"
                                 >
-                                    <Cpu class="h-4 w-4 text-primary" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent class="pt-4">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-xs text-muted-foreground">Memory</p>
-                                    <p class="text-lg font-semibold">
-                                        {{ formatBytes(displayOverview.usage?.memory_bytes ?? 0) }}
-                                        <span
-                                            v-if="displayOverview.limits?.memory"
-                                            class="text-muted-foreground"
-                                        >
-                                            / {{ displayOverview.limits.memory }} MB
-                                        </span>
-                                    </p>
-                                </div>
-                                <div
-                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15"
+                                    / {{ displayOverview.limits.memory }} MB
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-card px-4 py-3 shadow-sm"
+                    >
+                        <div
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/15"
+                        >
+                            <HardDrive class="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-medium text-muted-foreground">Disk</p>
+                            <p class="whitespace-nowrap text-base font-semibold tabular-nums">
+                                {{ formatBytesRounded(displayOverview.usage?.disk_bytes ?? 0) }}
+                                <span
+                                    v-if="displayOverview.limits?.disk"
+                                    class="font-normal text-muted-foreground"
                                 >
-                                    <MemoryStick class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent class="pt-4">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-xs text-muted-foreground">Disk</p>
-                                    <p class="text-lg font-semibold">
-                                        {{ formatBytes(displayOverview.usage?.disk_bytes ?? 0) }}
-                                        <span
-                                            v-if="displayOverview.limits?.disk"
-                                            class="text-muted-foreground"
-                                        >
-                                            / {{ (displayOverview.limits.disk / 1024).toFixed(1) }} GB
-                                        </span>
-                                    </p>
-                                </div>
-                                <div
-                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/15"
-                                >
-                                    <HardDrive class="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent class="pt-4">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-xs text-muted-foreground">Network</p>
-                                    <p class="text-sm font-semibold">
-                                        <span class="text-emerald-600 dark:text-emerald-400">↓</span>
-                                        {{ formatBytes(displayOverview.usage?.network_rx_bytes ?? 0) }}
-                                        <span class="text-muted-foreground">/</span>
-                                        <span class="text-sky-600 dark:text-sky-400">↑</span>
-                                        {{ formatBytes(displayOverview.usage?.network_tx_bytes ?? 0) }}
-                                    </p>
-                                </div>
-                                <div
-                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/15"
-                                >
-                                    <Network class="h-4 w-4 text-sky-600 dark:text-sky-400" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                    / {{ (displayOverview.limits.disk / 1024).toFixed(1) }} GB
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-card px-4 py-3 shadow-sm"
+                    >
+                        <div
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-500/15"
+                        >
+                            <Network class="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-medium text-muted-foreground">Network</p>
+                            <p class="whitespace-nowrap text-sm font-semibold tabular-nums">
+                                <span class="text-emerald-600 dark:text-emerald-400">↓</span>
+                                {{ formatBytesRounded(displayOverview.usage?.network_rx_bytes ?? 0) }}
+                                <span class="text-muted-foreground">/</span>
+                                <span class="text-sky-600 dark:text-sky-400">↑</span>
+                                {{ formatBytesRounded(displayOverview.usage?.network_tx_bytes ?? 0) }}
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-card px-4 py-3 shadow-sm"
+                    >
+                        <div
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/15"
+                        >
+                            <Users class="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-medium text-muted-foreground">Spieler</p>
+                            <p class="whitespace-nowrap text-base font-semibold tabular-nums">
+                                <template v-if="displayOverview.server_query != null && displayOverview.server_query.max_players > 0">
+                                    {{ displayOverview.server_query.num_players }} / {{ displayOverview.server_query.max_players }}
+                                </template>
+                                <span v-else class="font-normal text-muted-foreground">—</span>
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <Tabs default-tab="console" class="w-full">

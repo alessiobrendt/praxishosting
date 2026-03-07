@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "austinb/gameq": "~3.1",
         "dompdf/dompdf": "3.0",
         "hcgcloud/pterodactyl-sdk": "v2.0.0-alpha.2",
         "inertiajs/inertia-laravel": "^2.0",

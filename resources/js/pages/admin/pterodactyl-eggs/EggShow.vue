@@ -37,7 +37,9 @@ type Config = {
     required_env_variables: string[];
     subdomain_srv_protocol: string;
     subdomain_protocol_type: string;
+    gameq_type: string;
 };
+type GameQTypes = Record<string, string>;
 
 type Props = {
     hostingServer: HostingServer;
@@ -45,9 +47,12 @@ type Props = {
     egg: Egg;
     variables: Variable[];
     config: Config;
+    gameqTypes?: GameQTypes;
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    gameqTypes: () => ({}),
+});
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -79,6 +84,7 @@ const variableDefaults = ref<Record<string, string>>(initialDefaults);
 const requiredEnvVariables = ref<Set<string>>(new Set(props.config.required_env_variables));
 const subdomainSrvProtocol = ref(props.config.subdomain_srv_protocol);
 const subdomainProtocolType = ref(props.config.subdomain_protocol_type);
+const gameqType = ref(props.config.gameq_type);
 
 const toggleRequired = (envVar: string) => {
     const set = new Set(requiredEnvVariables.value);
@@ -202,6 +208,35 @@ const isRequired = (envVar: string) => requiredEnvVariables.value.has(envVar);
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card class="mt-6">
+                    <CardHeader>
+                        <CardTitle>GameQ / Spieler-Anzeige</CardTitle>
+                        <CardDescription>
+                            Wenn gesetzt, wird auf der Gaming-Account-Seite die aktuelle Spieleranzahl (GameQ bzw. FiveM) neben der Netzwerk-Card angezeigt.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="space-y-2">
+                            <Label for="gameq_type">Spiel / Protokoll</Label>
+                            <select
+                                id="gameq_type"
+                                name="config[gameq_type]"
+                                v-model="gameqType"
+                                class="flex h-9 w-full max-w-xs rounded-md border border-input bg-background px-3 py-1 text-sm"
+                            >
+                                <option
+                                    v-for="(label, value) in gameqTypes"
+                                    :key="value"
+                                    :value="value"
+                                >
+                                    {{ label }}
+                                </option>
+                            </select>
+                            <InputError :message="errors['config.gameq_type']" />
                         </div>
                     </CardContent>
                 </Card>

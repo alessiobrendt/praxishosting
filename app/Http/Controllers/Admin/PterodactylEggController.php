@@ -160,6 +160,7 @@ class PterodactylEggController extends Controller
         $config = $eggConfig?->config ?? [];
         $variableDefaults = $config['variable_defaults'] ?? [];
         $requiredEnvVariables = $config['required_env_variables'] ?? [];
+        $gameqType = (string) ($config['gameq_type'] ?? '');
 
         $nestName = 'Nest '.$nest;
         foreach ($client->getNests() as $n) {
@@ -190,7 +191,9 @@ class PterodactylEggController extends Controller
                 'required_env_variables' => $requiredEnvVariables,
                 'subdomain_srv_protocol' => (string) ($config['subdomain_srv_protocol'] ?? ''),
                 'subdomain_protocol_type' => (string) ($config['subdomain_protocol_type'] ?? 'none'),
+                'gameq_type' => $gameqType,
             ],
+            'gameqTypes' => \App\Services\GameServerQueryService::getSupportedTypes(),
         ]);
     }
 
@@ -207,6 +210,7 @@ class PterodactylEggController extends Controller
         $config['required_env_variables'] = $config['required_env_variables'] ?? [];
         $config['subdomain_srv_protocol'] = $config['subdomain_srv_protocol'] ?? '';
         $config['subdomain_protocol_type'] = $config['subdomain_protocol_type'] ?? 'none';
+        $config['gameq_type'] = $config['gameq_type'] ?? '';
 
         PterodactylEggConfig::query()->updateOrCreate(
             [
