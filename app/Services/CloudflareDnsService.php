@@ -154,12 +154,18 @@ class CloudflareDnsService
 
     /**
      * Build the SRV record name for the given subdomain, service and protocol (relative to zone).
-     * E.g. subdomain=myserver, service=_minecraft, protocol=tcp -> _minecraft._tcp.myserver
+     * Format: _service._protocol.name (e.g. _minecraft._tcp.server-ataliq-vd4tsm.neroserv.cloud).
+     * Service should already have leading underscore (e.g. _minecraft); protocol is normalized to _tcp/_udp/_tls.
      */
     public function buildSrvRecordName(string $subdomain, string $service, string $protocol): string
     {
         if ($service === '' || $protocol === 'none' || $protocol === '') {
             return '';
+        }
+
+        $protocol = strtolower(trim($protocol));
+        if ($protocol !== '' && $protocol[0] !== '_') {
+            $protocol = '_'.$protocol;
         }
 
         return strtolower($service.'.'.$protocol.'.'.$subdomain);
