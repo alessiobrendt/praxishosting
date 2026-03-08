@@ -253,14 +253,14 @@ const endpoints: EndpointSpec[] = [
         path: '/hosting-plans',
         summary: 'Hosting-Pläne (Konfigurator)',
         description:
-            'Alle aktiven Hosting-Pläne inkl. Konfiguration für Webspace (Plesk) und Gaming (Pterodactyl).',
+            'Alle aktiven Hosting-Pläne inkl. Konfiguration für Webspace (Plesk), Gaming (Pterodactyl) und TeamSpeak-Server. Bei type=webspace/gaming/teamspeak werden nur Pläne des jeweiligen panel_type zurückgegeben.',
         parameters: [
             {
                 name: 'type',
                 in: 'query',
                 type: 'string',
                 required: false,
-                description: 'Filter: "webspace" | "gaming" | "all" (Standard: "all")',
+                description: 'Filter: "webspace" | "gaming" | "teamspeak" | "all" (Standard: "all")',
             },
             {
                 name: 'brand_id',
@@ -283,6 +283,39 @@ const endpoints: EndpointSpec[] = [
       "subdomains": 5,
       "mailboxes": 1,
       "databases": 1,
+      "config": { "plan_options": [] }
+    },
+    {
+      "id": 2,
+      "name": "TeamSpeak Small",
+      "price": "9.99",
+      "panel_type": "teamspeak",
+      "config": { "plan_options": [] }
+    }
+  ]
+}`,
+    },
+    {
+        method: 'GET',
+        path: '/gameserver-cloud-plans',
+        summary: 'Gameserver-Cloud-Pläne',
+        description:
+            'Alle aktiven Gameserver-Cloud-Pläne für die Landing-Page bzw. den Konfigurator. Enthält id, name, price und config (inkl. plan_options).',
+        parameters: [
+            {
+                name: 'brand_id',
+                in: 'query',
+                type: 'integer',
+                required: false,
+                description: 'Brand-ID (optional, sonst X-Brand-Id oder Default-Brand)',
+            },
+        ],
+        responseExample: `{
+  "data": [
+    {
+      "id": 1,
+      "name": "Cloud Gaming S",
+      "price": "14.99",
       "config": { "plan_options": [] }
     }
   ]

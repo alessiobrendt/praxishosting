@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Brand;
+use App\Models\GameserverCloudPlan;
 use App\Models\HostingPlan;
+use App\Models\HostingServer;
 use App\Models\TldPricelist;
 use App\Models\User;
 use App\Services\SkrimeApiService;
@@ -10,6 +12,7 @@ test('api v1 requires authentication', function () {
     $this->getJson('/api/v1/stats')->assertUnauthorized();
     $this->getJson('/api/v1/domains/tlds')->assertUnauthorized();
     $this->getJson('/api/v1/hosting-plans')->assertUnauthorized();
+    $this->getJson('/api/v1/gameserver-cloud-plans')->assertUnauthorized();
     $this->getJson('/api/v1/brand')->assertUnauthorized();
 });
 
@@ -235,6 +238,94 @@ test('api v1 hosting-plans returns plans with valid token', function () {
     $response->assertJsonCount(1, 'data');
     $response->assertJsonPath('data.0.name', 'Webspace Start');
     $response->assertJsonPath('data.0.panel_type', 'plesk');
+});
+
+test('api v1 hosting-plans type teamspeak returns only teamspeak plans', function () {
+    $brand = Brand::create([
+        'key' => 'test',
+        'name' => 'Test',
+        'is_default' => true,
+    ]);
+    HostingPlan::create([
+        'brand_id' => $brand->id,
+        'hosting_server_id' => null,
+        'panel_type' => 'teamspeak',
+        'config' => ['plan_options' => []],
+        'name' => 'TeamSpeak Small',
+        'plesk_package_name' => null,
+        'disk_gb' => 0,
+        'traffic_gb' => 0,
+        'domains' => 0,
+        'subdomains' => 0,
+        'mailboxes' => 0,
+        'databases' => 0,
+        'price' => 9.99,
+        'is_active' => true,
+        'sort_order' => 0,
+    ]);
+    HostingPlan::create([
+        'brand_id' => $brand->id,
+        'hosting_server_id' => null,
+        'panel_type' => 'plesk',
+        'config' => [],
+        'name' => 'Webspace',
+        'plesk_package_name' => null,
+        'disk_gb' => 10,
+        'traffic_gb' => 100,
+        'domains' => 1,
+        'subdomains' => 5,
+        'mailboxes' => 1,
+        'databases' => 1,
+        'price' => 4.99,
+        'is_active' => true,
+        'sort_order' => 0,
+    ]);
+    $user = User::factory()->create();
+    $token = $user->createToken('test')->plainTextToken;
+
+    $response = $this->withHeader('Authorization', 'Bearer '.$token)
+        ->getJson('/api/v1/hosting-plans?type=teamspeak');
+
+    $response->assertOk();
+    $response->assertJsonCount(1, 'data');
+    $response->assertJsonPath('data.0.name', 'TeamSpeak Small');
+    $response->assertJsonPath('data.0.panel_type', 'teamspeak');
+    $response->assertJsonPath('data.0.price', '9.99');
+});
+
+test('api v1 gameserver-cloud-plans returns plans with valid token', function () {
+    $brand = Brand::create([
+        'key' => 'test',
+        'name' => 'Test',
+        'is_default' => true,
+    ]);
+    $server = HostingServer::create([
+        'brand_id' => $brand->id,
+        'panel_type' => 'pterodactyl',
+        'name' => 'Ptero',
+        'hostname' => 'panel.test',
+        'config' => [],
+    ]);
+    $plan = GameserverCloudPlan::create([
+        'brand_id' => $brand->id,
+        'hosting_server_id' => $server->id,
+        'name' => 'Cloud Gaming S',
+        'price' => 14.99,
+        'config' => ['plan_options' => []],
+        'is_active' => true,
+        'sort_order' => 0,
+    ]);
+    $user = User::factory()->create();
+    $token = $user->createToken('test')->plainTextToken;
+
+    $response = $this->withHeader('Authorization', 'Bearer '.$token)
+        ->getJson('/api/v1/gameserver-cloud-plans');
+
+    $response->assertOk();
+    $response->assertJsonCount(1, 'data');
+    $response->assertJsonPath('data.0.id', $plan->id);
+    $response->assertJsonPath('data.0.name', 'Cloud Gaming S');
+    $response->assertJsonPath('data.0.price', '14.99');
 });
 
 test('api v1 brand returns brand with valid token', function () {

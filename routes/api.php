@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\V1\BrandController;
 use App\Http\Controllers\Api\V1\DomainController;
+use App\Http\Controllers\Api\V1\GameserverCloudPlanController;
 use App\Http\Controllers\Api\V1\HostingPlanController;
 use App\Http\Controllers\Api\V1\HostingServerController;
 use App\Http\Controllers\Api\V1\PterodactylController;
@@ -18,6 +19,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     Route::get('domains/tlds', [DomainController::class, 'tlds'])->name('api.v1.domains.tlds');
     Route::post('domains/check-availability', [DomainController::class, 'checkAvailability'])->name('api.v1.domains.check-availability');
     Route::get('hosting-plans', [HostingPlanController::class, 'index'])->name('api.v1.hosting-plans.index');
+    Route::get('gameserver-cloud-plans', [GameserverCloudPlanController::class, 'index'])->name('api.v1.gameserver-cloud-plans.index');
     Route::get('hosting-servers', [HostingServerController::class, 'index'])->name('api.v1.hosting-servers.index');
     Route::get('hosting-servers/{hostingServer}', [HostingServerController::class, 'show'])->name('api.v1.hosting-servers.show');
     Route::get('pterodactyl/nests', [PterodactylController::class, 'nests'])->name('api.v1.pterodactyl.nests');

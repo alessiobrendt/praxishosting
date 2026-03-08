@@ -9,7 +9,8 @@ use Illuminate\Http\Request;
 class HostingPlanController extends ApiV1Controller
 {
     /**
-     * List active hosting plans for configurator (webspace and/or gaming).
+     * List active hosting plans for configurator (webspace, gaming, teamspeak).
+     * Query: type = all|webspace|gaming|teamspeak
      */
     public function index(Request $request): JsonResponse
     {
@@ -25,6 +26,7 @@ class HostingPlanController extends ApiV1Controller
             $q->where('panel_type', 'plesk')->orWhereNull('panel_type');
         }));
         $query->when($type === 'gaming', fn ($q) => $q->where('panel_type', 'pterodactyl'));
+        $query->when($type === 'teamspeak', fn ($q) => $q->where('panel_type', 'teamspeak'));
 
         $plans = $query->orderBy('sort_order')->orderBy('name')->get();
 
@@ -54,7 +56,7 @@ class HostingPlanController extends ApiV1Controller
             'config' => $config,
         ];
 
-        if ($plan->panel_type === 'pterodactyl') {
+        if (in_array($plan->panel_type, ['pterodactyl', 'teamspeak'], true)) {
             return $base;
         }
 
