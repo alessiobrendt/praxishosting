@@ -203,7 +203,7 @@ function closeConsole() {
 
         <div class="space-y-6">
             <div>
-                <Heading level="h1">Panel-Update</Heading>
+                <Heading level="h1">Panel-Update Neroserv Dashboard</Heading>
                 <Text class="mt-2" muted>
                     Prüfen Sie den Git-Status und führen Sie Updates aus dem main-Branch aus.
                 </Text>
