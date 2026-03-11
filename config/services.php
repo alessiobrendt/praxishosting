@@ -56,4 +56,12 @@ return [
         'invite_url' => env('DISCORD_INVITE_URL'),
     ],
 
+    'phpmyadmin' => [
+        'url' => env('PHPMYADMIN_URL', ''),
+    ],
+
+    'pterodactyl' => [
+        'encryption_key' => env('PTERODACTYL_ENCRYPTION_KEY', ''),
+    ],
+
 ];

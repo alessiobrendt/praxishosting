@@ -219,6 +219,9 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
     Route::get('gaming-accounts/{game_server_account}/api/backups/{backupUuid}/download', [GamingAccountController::class, 'backupsDownload'])->name('gaming-accounts.api.backups.download');
     Route::post('gaming-accounts/{game_server_account}/api/backups/{backupUuid}/restore', [GamingAccountController::class, 'backupsRestore'])->name('gaming-accounts.api.backups.restore');
     Route::delete('gaming-accounts/{game_server_account}/api/backups/{backupUuid}', [GamingAccountController::class, 'backupsDelete'])->name('gaming-accounts.api.backups.delete');
+    Route::get('gaming-accounts/{game_server_account}/api/databases', [GamingAccountController::class, 'databasesList'])->name('gaming-accounts.api.databases.list');
+    Route::get('gaming-accounts/{game_server_account}/api/databases/{databaseId}/phpmyadmin', [GamingAccountController::class, 'databasePhpMyAdmin'])->name('gaming-accounts.api.databases.phpmyadmin');
+    Route::get('gaming-accounts/{game_server_account}/api/databases/{databaseId}/export', [GamingAccountController::class, 'databaseExport'])->name('gaming-accounts.api.databases.export');
     Route::get('gaming-accounts/{game_server_account}/api/schedules', [GamingAccountController::class, 'schedulesList'])->name('gaming-accounts.api.schedules.list');
     Route::post('gaming-accounts/{game_server_account}/api/schedules', [GamingAccountController::class, 'schedulesCreate'])->name('gaming-accounts.api.schedules.create');
     Route::get('gaming-accounts/{game_server_account}/api/schedules/{schedule}', [GamingAccountController::class, 'schedulesShow'])->name('gaming-accounts.api.schedules.show');

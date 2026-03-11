@@ -20,10 +20,11 @@ use App\Services\SkrimeApiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\StreamedResponse;
+use Inertia\Inertia;
 use Inertia\Response;
 use Mollie\Api\Exceptions\ApiException as MollieApiException;
 use Mollie\Api\MollieApiClient;
-use Inertia\Inertia;
 
 class GamingAccountController extends Controller
 {
@@ -203,6 +204,7 @@ class GamingAccountController extends Controller
             'subdomainUpdateUrl' => $subdomainUpdateUrl,
             'subdomainSuffix' => $subdomainSuffix,
             'currentSubdomainPart' => $currentSubdomainPart,
+            'phpmyadminAvailable' => (bool) config('services.phpmyadmin.url'),
         ]);
     }
 
@@ -1079,6 +1081,115 @@ class GamingAccountController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 502);
         }
+    }
+
+    /**
+     * List databases. Only owner. Returns list without passwords.
+     */
+    public function databasesList(Request $request, GameServerAccount $gameServerAccount): JsonResponse
+    {
+        $err = $this->ensureAccountOwnerApi($request, $gameServerAccount);
+        if ($err !== null) {
+            return $err;
+        }
+        try {
+            $client = app(PterodactylClient::class);
+            $databases = $client->listDatabases($gameServerAccount);
+
+            return response()->json(['success' => true, 'databases' => $databases]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 502);
+        }
+    }
+
+    /**
+     * Redirect to phpMyAdmin with auto-submit form (existing DB password). Only owner.
+     */
+    public function databasePhpMyAdmin(Request $request, GameServerAccount $gameServerAccount, string $databaseId): RedirectResponse|\Illuminate\Http\Response
+    {
+        $redirect = $this->ensureGamingFeature($request);
+        if ($redirect !== null) {
+            return $redirect;
+        }
+        if ($gameServerAccount->user_id !== $request->user()->id) {
+            abort(404);
+        }
+        $phpmyadminUrl = rtrim((string) config('services.phpmyadmin.url'), '/');
+        if ($phpmyadminUrl === '') {
+            return redirect()
+                ->route('gaming-accounts.show', $gameServerAccount)
+                ->with('error', 'phpMyAdmin ist nicht konfiguriert.');
+        }
+        $client = app(PterodactylClient::class);
+        $credentials = $client->getDatabaseCredentials($gameServerAccount, $databaseId);
+        if ($credentials === null) {
+            return redirect()
+                ->route('gaming-accounts.show', $gameServerAccount)
+                ->with('error', 'Datenbank-Zugangsdaten konnten nicht geladen werden.');
+        }
+
+        return response()->view('gaming-accounts.phpmyadmin-signon', [
+            'phpmyadmin_url' => $phpmyadminUrl,
+            'host' => $credentials['host']['address'].':'.$credentials['host']['port'],
+            'username' => $credentials['username'],
+            'password' => $credentials['password'],
+        ]);
+    }
+
+    /**
+     * Stream SQL export (backup) for a database. Only owner.
+     */
+    public function databaseExport(Request $request, GameServerAccount $gameServerAccount, string $databaseId): StreamedResponse|RedirectResponse|JsonResponse
+    {
+        $err = $this->ensureAccountOwnerApi($request, $gameServerAccount);
+        if ($err !== null) {
+            return $err;
+        }
+        $client = app(PterodactylClient::class);
+        $credentials = $client->getDatabaseCredentials($gameServerAccount, $databaseId);
+        if ($credentials === null) {
+            return response()->json(['success' => false, 'message' => 'Datenbank-Zugangsdaten konnten nicht geladen werden.'], 502);
+        }
+        $host = $credentials['host']['address'];
+        $port = $credentials['host']['port'];
+        $dbname = $credentials['name'];
+        $username = $credentials['username'];
+        $password = $credentials['password'];
+        $filename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $dbname).'_'.date('Y-m-d_His').'.sql';
+
+        try {
+            $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset=utf8mb4";
+            $pdo = new \PDO($dsn, $username, $password, [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Verbindung zur Datenbank fehlgeschlagen: '.$e->getMessage()], 502);
+        }
+
+        return new StreamedResponse(function () use ($pdo, $dbname): void {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "-- SQL Export {$dbname}\n");
+            fwrite($out, '-- '.date('c')."\n\n");
+            fwrite($out, "SET NAMES utf8mb4;\n\n");
+            $tables = $pdo->query('SHOW TABLES')->fetchAll(\PDO::FETCH_COLUMN);
+            foreach ($tables as $table) {
+                $create = $pdo->query('SHOW CREATE TABLE `'.str_replace('`', '``', $table).'`')->fetch(\PDO::FETCH_COLUMN, 1);
+                fwrite($out, 'DROP TABLE IF EXISTS `'.str_replace('`', '``', $table)."`;\n");
+                fwrite($out, $create.";\n\n");
+                $rows = $pdo->query('SELECT * FROM `'.str_replace('`', '``', $table).'`')->fetchAll(\PDO::FETCH_ASSOC);
+                if (count($rows) > 0) {
+                    foreach ($rows as $row) {
+                        $values = array_map(fn ($v) => $v === null ? 'NULL' : $pdo->quote($v), $row);
+                        fwrite($out, 'INSERT INTO `'.str_replace('`', '``', $table).'` VALUES ('.implode(', ', $values).");\n");
+                    }
+                    fwrite($out, "\n");
+                }
+            }
+            fclose($out);
+        }, 200, [
+            'Content-Type' => 'application/sql',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
     }
 
     /**

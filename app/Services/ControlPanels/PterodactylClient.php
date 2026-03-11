@@ -7,6 +7,8 @@ use App\Models\GameServerAccount;
 use App\Models\HostingServer;
 use Exception;
 use HCGCloud\Pterodactyl\Pterodactyl as PterodactylSdk;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -622,6 +624,95 @@ class PterodactylClient implements ControlPanelContract
             'POST',
             ['truncate' => $truncate]
         );
+    }
+
+    /**
+     * List databases for a server. Returns array of database attributes without password (safe for frontend).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listDatabases(GameServerAccount $account): array
+    {
+        $server = $account->hostingServer;
+        if (! $server || ! $account->identifier) {
+            throw new Exception('Pterodactyl: server or identifier missing');
+        }
+        $this->setServer($server);
+        $data = $this->clientApiRequest('/api/client/servers/'.$account->identifier.'/databases');
+        $list = [];
+        foreach ($data['data'] ?? [] as $item) {
+            $attrs = $item['attributes'] ?? $item;
+            $entry = [
+                'id' => $attrs['id'] ?? null,
+                'host' => $attrs['host'] ?? ['address' => '', 'port' => 3306],
+                'name' => $attrs['name'] ?? '',
+                'username' => $attrs['username'] ?? '',
+                'connections_from' => $attrs['connections_from'] ?? null,
+                'max_connections' => $attrs['max_connections'] ?? null,
+            ];
+
+            $list[] = $entry;
+        }
+
+        return $list;
+    }
+
+    /**
+     * Get decrypted credentials for a single database (for phpMyAdmin login or SQL export).
+     * Uses Pterodactyl encryption key from config or hosting server config.
+     *
+     * @return array{id: string, host: array{address: string, port: int}, name: string, username: string, password: string}|null
+     */
+    public function getDatabaseCredentials(GameServerAccount $account, string $databaseId): ?array
+    {
+        $server = $account->hostingServer;
+        if (! $server || ! $account->identifier) {
+            return null;
+        }
+        $this->setServer($server);
+        $data = $this->clientApiRequest('/api/client/servers/'.$account->identifier.'/databases');
+        $rawList = $data['data'] ?? [];
+        foreach ($rawList as $item) {
+            $attrs = $item['attributes'] ?? $item;
+            $id = $attrs['id'] ?? null;
+            if ($id === null || (string) $id !== (string) $databaseId) {
+                continue;
+            }
+            $encryptedPassword = $attrs['password'] ?? null;
+            if ($encryptedPassword === null || $encryptedPassword === '') {
+                return null;
+            }
+            $key = config('services.pterodactyl.encryption_key') ?? $server->config['encryption_key'] ?? '';
+            if ($key === '') {
+                return null;
+            }
+            $keyBytes = Str::startsWith($key, 'base64:')
+                ? base64_decode(Str::after($key, 'base64:'), true)
+                : (strlen($key) === 44 ? base64_decode($key, true) : $key);
+            if ($keyBytes === false || strlen($keyBytes) !== 32) {
+                return null;
+            }
+            try {
+                $encrypter = new Encrypter($keyBytes, 'AES-256-CBC');
+                $password = $encrypter->decrypt($encryptedPassword);
+            } catch (DecryptException) {
+                return null;
+            }
+            $host = $attrs['host'] ?? ['address' => '127.0.0.1', 'port' => 3306];
+
+            return [
+                'id' => (string) $id,
+                'host' => [
+                    'address' => (string) ($host['address'] ?? '127.0.0.1'),
+                    'port' => (int) ($host['port'] ?? 3306),
+                ],
+                'name' => (string) ($attrs['name'] ?? ''),
+                'username' => (string) ($attrs['username'] ?? ''),
+                'password' => $password,
+            ];
+        }
+
+        return null;
     }
 
     /**

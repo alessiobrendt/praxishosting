@@ -10,6 +10,7 @@ import {
     FolderOpen,
     Archive,
     Calendar,
+    Database,
     Power,
     PowerOff,
     RotateCcw,
@@ -31,6 +32,7 @@ import GamingAccountRenameTab from '@/components/gaming-accounts/GamingAccountRe
 import GamingAccountConsoleTab from '@/components/gaming-accounts/GamingAccountConsoleTab.vue';
 import GamingAccountFilesTab from '@/components/gaming-accounts/GamingAccountFilesTab.vue';
 import GamingAccountBackupsTab from '@/components/gaming-accounts/GamingAccountBackupsTab.vue';
+import GamingAccountDatabasesTab from '@/components/gaming-accounts/GamingAccountDatabasesTab.vue';
 import GamingAccountSchedulesTab from '@/components/gaming-accounts/GamingAccountSchedulesTab.vue';
 import Alert from '@/components/ui/alert/Alert.vue';
 import { Badge } from '@/components/ui/badge';
@@ -98,6 +100,7 @@ type Props = {
     subdomainUpdateUrl?: string | null;
     subdomainSuffix?: string | null;
     currentSubdomainPart?: string | null;
+    phpmyadminAvailable?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -118,6 +121,7 @@ const props = withDefaults(defineProps<Props>(), {
     subdomainUpdateUrl: null,
     subdomainSuffix: null,
     currentSubdomainPart: null,
+    phpmyadminAvailable: false,
 });
 
 const subdomainPart = ref('');
@@ -672,6 +676,10 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
                             <Archive class="h-4 w-4" />
                             Backups
                         </TabsTrigger>
+                        <TabsTrigger value="databases" class="gap-2 px-3 py-2">
+                            <Database class="h-4 w-4" />
+                            Datenbank
+                        </TabsTrigger>
                         <TabsTrigger value="schedules" class="gap-2 px-3 py-2">
                             <Calendar class="h-4 w-4" />
                             Schedules
@@ -716,6 +724,13 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
 
                     <TabsContent value="backups" class="mt-0">
                         <GamingAccountBackupsTab :game-server-account-id="gameServerAccount.id" />
+                    </TabsContent>
+
+                    <TabsContent value="databases" class="mt-0">
+                        <GamingAccountDatabasesTab
+                            :game-server-account-id="gameServerAccount.id"
+                            :phpmyadmin-available="phpmyadminAvailable"
+                        />
                     </TabsContent>
 
                     <TabsContent value="schedules" class="mt-0">
