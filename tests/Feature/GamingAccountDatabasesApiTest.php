@@ -145,6 +145,37 @@ test('owner receives phpMyAdmin signon view when configured and credentials avai
     $response->assertSee('u1_abc', false);
 });
 
+test('owner gets redirect to signon URL with credentials_url using credentials_base_url when set', function () {
+    config([
+        'services.phpmyadmin.url' => 'https://pma.example.com',
+        'services.phpmyadmin.signon_url' => 'https://pma.example.com/signon.php',
+        'services.phpmyadmin.credentials_base_url' => 'https://app.example.com',
+    ]);
+
+    $this->mock(PterodactylClient::class, function ($mock) {
+        $mock->shouldReceive('getDatabaseCredentials')->once()->andReturn([
+            'id' => 's1_1',
+            'host' => ['address' => '127.0.0.1', 'port' => 3306],
+            'name' => 's1_test',
+            'username' => 'u1_abc',
+            'password' => 'secret',
+        ]);
+    });
+
+    actingAs($this->user);
+
+    $response = $this->get(route('gaming-accounts.api.databases.phpmyadmin', [$this->account, 's1_1']));
+
+    $response->assertRedirect();
+    $target = $response->headers->get('Location');
+    expect($target)->toContain('https://pma.example.com/signon.php');
+    expect($target)->toContain('token=');
+    expect($target)->toContain('credentials_url=');
+    $credentialsUrl = urldecode((string) preg_replace('/.*credentials_url=([^&]+).*/', '$1', $target));
+    expect($credentialsUrl)->toStartWith('https://app.example.com/');
+    expect($credentialsUrl)->toContain('phpmyadmin-signon-credentials');
+});
+
 test('non-owner cannot open phpMyAdmin and gets 404', function () {
     $otherUser = User::factory()->create(['brand_id' => $this->brand->id]);
     actingAs($otherUser);
