@@ -206,3 +206,48 @@ test('non-owner cannot export database and gets 404', function () {
 
     $response->assertNotFound();
 });
+
+test('owner can fetch database credentials and receives password', function () {
+    $this->mock(PterodactylClient::class, function ($mock) {
+        $mock->shouldReceive('getDatabaseCredentials')->once()->andReturn([
+            'id' => 's1_1',
+            'host' => ['address' => '127.0.0.1', 'port' => 3306],
+            'name' => 's1_test',
+            'username' => 'u1_abc',
+            'password' => 'secret123',
+        ]);
+    });
+
+    actingAs($this->user);
+
+    $response = $this->getJson(route('gaming-accounts.api.databases.credentials', [$this->account, 's1_1']));
+
+    $response->assertOk();
+    $response->assertJsonPath('success', true);
+    $response->assertJsonPath('credentials.id', 's1_1');
+    $response->assertJsonPath('credentials.username', 'u1_abc');
+    $response->assertJsonPath('credentials.password', 'secret123');
+    $response->assertJsonPath('credentials.host.address', '127.0.0.1');
+});
+
+test('owner gets 502 when database credentials cannot be loaded for credentials API', function () {
+    $this->mock(PterodactylClient::class, function ($mock) {
+        $mock->shouldReceive('getDatabaseCredentials')->once()->andReturn(null);
+    });
+
+    actingAs($this->user);
+
+    $response = $this->getJson(route('gaming-accounts.api.databases.credentials', [$this->account, 's1_1']));
+
+    $response->assertStatus(502);
+    $response->assertJsonPath('success', false);
+});
+
+test('non-owner cannot fetch database credentials and gets 404', function () {
+    $otherUser = User::factory()->create(['brand_id' => $this->brand->id]);
+    actingAs($otherUser);
+
+    $response = $this->getJson(route('gaming-accounts.api.databases.credentials', [$this->account, 's1_1']));
+
+    $response->assertNotFound();
+});

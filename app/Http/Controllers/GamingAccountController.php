@@ -1105,6 +1105,24 @@ class GamingAccountController extends Controller
     }
 
     /**
+     * Return database credentials (including password) for connection details modal. Only owner.
+     */
+    public function databaseCredentials(Request $request, GameServerAccount $gameServerAccount, string $databaseId): JsonResponse
+    {
+        $err = $this->ensureAccountOwnerApi($request, $gameServerAccount);
+        if ($err !== null) {
+            return $err;
+        }
+        $client = app(PterodactylClient::class);
+        $credentials = $client->getDatabaseCredentials($gameServerAccount, $databaseId);
+        if ($credentials === null) {
+            return response()->json(['success' => false, 'message' => 'Datenbank-Zugangsdaten konnten nicht geladen werden.'], 502);
+        }
+
+        return response()->json(['success' => true, 'credentials' => $credentials]);
+    }
+
+    /**
      * Redirect to phpMyAdmin with auto-submit form (existing DB password). Only owner.
      */
     public function databasePhpMyAdmin(Request $request, GameServerAccount $gameServerAccount, string $databaseId): RedirectResponse|\Illuminate\Http\Response

@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { Database, ExternalLink, Download, Loader2, Copy } from 'lucide-vue-next';
+import { Database, ExternalLink, Download, Loader2, Copy, KeyRound } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { notify } from '@/composables/useNotify';
 import gamingAccounts from '@/routes/gaming-accounts';
 
@@ -22,7 +29,13 @@ type DatabaseItem = {
     username?: string;
     connections_from?: string;
     max_connections?: number;
-    password?: string;
+};
+type Credentials = {
+    id: string;
+    host: { address: string; port: number };
+    name: string;
+    username: string;
+    password: string;
 };
 
 const databases = ref<DatabaseItem[]>([]);
@@ -76,6 +89,55 @@ function copyToClipboard(text: string) {
         () => notify.error('Kopieren fehlgeschlagen.'),
     );
 }
+
+const connectionModalOpen = ref(false);
+const connectionModalDb = ref<DatabaseItem | null>(null);
+const connectionModalCredentials = ref<Credentials | null>(null);
+const connectionModalCredentialsLoading = ref(false);
+const connectionModalCredentialsError = ref<string | null>(null);
+
+function hostPortFromCredentials(c: Credentials): string {
+    return `${c.host?.address ?? '127.0.0.1'}:${c.host?.port ?? 3306}`;
+}
+
+function openConnectionModal(db: DatabaseItem) {
+    connectionModalDb.value = db;
+    connectionModalOpen.value = true;
+    connectionModalCredentials.value = null;
+    connectionModalCredentialsError.value = null;
+    const credentialsUrl = api.value?.credentials?.url?.({
+        game_server_account: props.gameServerAccountId,
+        databaseId: db.id,
+    });
+    if (!credentialsUrl) {
+        connectionModalCredentialsError.value = 'Route nicht verfügbar.';
+        return;
+    }
+    connectionModalCredentialsLoading.value = true;
+    fetch(credentialsUrl, { credentials: 'same-origin' })
+        .then((r) => r.json())
+        .then((data) => {
+            if (data.success && data.credentials) {
+                connectionModalCredentials.value = data.credentials;
+                connectionModalCredentialsError.value = null;
+            } else {
+                connectionModalCredentialsError.value = data.message ?? 'Zugangsdaten konnten nicht geladen werden.';
+            }
+        })
+        .catch((e) => {
+            connectionModalCredentialsError.value = e.message ?? 'Verbindungsfehler';
+        })
+        .finally(() => {
+            connectionModalCredentialsLoading.value = false;
+        });
+}
+
+function closeConnectionModal() {
+    connectionModalOpen.value = false;
+    connectionModalDb.value = null;
+    connectionModalCredentials.value = null;
+    connectionModalCredentialsError.value = null;
+}
 </script>
 
 <template>
@@ -127,16 +189,15 @@ function copyToClipboard(text: string) {
                             </Button>
                         </p>
 
-                        <p class="text-sm text-muted-foreground">
-                            Verbindungen von: <code class="rounded bg-muted px-1">{{ db.connections_from ?? '—' }}</code>
-                        </p>
-                        <p class="text-sm text-muted-foreground">
-                            Maximale Verbindungen: <code class="rounded bg-muted px-1">{{ db.max_connections ?? '—' }}</code>
-                        </p>
-
-                        <p class="text-sm text-muted-foreground">
-                            Passwort: <code class="rounded bg-muted px-1">{{ db.password ?? '—' }}</code>
-                        </p>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            class="mt-2"
+                            @click="openConnectionModal(db)"
+                        >
+                            <KeyRound class="mr-1 h-4 w-4" />
+                            Verbindungsinformationen
+                        </Button>
                     </div>
                     <div class="flex shrink-0 gap-2">
                         <Button
@@ -165,4 +226,60 @@ function copyToClipboard(text: string) {
             </div>
         </CardContent>
     </Card>
+
+    <Dialog :open="connectionModalOpen" @update:open="(v) => !v && closeConnectionModal()">
+        <DialogContent class="sm:max-w-md" :show-close-button="true">
+            <DialogHeader>
+                <DialogTitle>Verbindungsinformationen</DialogTitle>
+                <DialogDescription>
+                    Zugangsdaten für die Datenbank {{ connectionModalDb?.name ?? connectionModalDb?.id ?? '—' }}. Mit dem Button kopieren Sie den jeweiligen Wert.
+                </DialogDescription>
+            </DialogHeader>
+            <div v-if="connectionModalDb" class="space-y-3 py-2">
+                <div v-if="connectionModalCredentialsLoading" class="flex justify-center py-6">
+                    <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+                <div v-else-if="connectionModalCredentialsError" class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                    {{ connectionModalCredentialsError }}
+                </div>
+                <template v-else-if="connectionModalCredentials">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-sm text-muted-foreground">Host</span>
+                        <div class="flex items-center gap-1">
+                            <code class="rounded bg-muted px-2 py-1 text-sm">{{ hostPortFromCredentials(connectionModalCredentials) }}</code>
+                            <Button variant="ghost" size="icon" class="h-8 w-8" @click="copyToClipboard(hostPortFromCredentials(connectionModalCredentials))">
+                                <Copy class="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-sm text-muted-foreground">Benutzer</span>
+                        <div class="flex items-center gap-1">
+                            <code class="rounded bg-muted px-2 py-1 text-sm">{{ connectionModalCredentials.username }}</code>
+                            <Button variant="ghost" size="icon" class="h-8 w-8" @click="copyToClipboard(connectionModalCredentials.username)">
+                                <Copy class="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-sm text-muted-foreground">Passwort</span>
+                        <div class="flex items-center gap-1">
+                            <code class="rounded bg-muted px-2 py-1 text-sm">{{ connectionModalCredentials.password }}</code>
+                            <Button variant="ghost" size="icon" class="h-8 w-8" @click="copyToClipboard(connectionModalCredentials.password)">
+                                <Copy class="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-sm text-muted-foreground">Verbindungen von</span>
+                        <code class="rounded bg-muted px-2 py-1 text-sm">{{ connectionModalDb.connections_from ?? '—' }}</code>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-sm text-muted-foreground">Max. Verbindungen</span>
+                        <code class="rounded bg-muted px-2 py-1 text-sm">{{ connectionModalDb.max_connections ?? '—' }}</code>
+                    </div>
+                </template>
+            </div>
+        </DialogContent>
+    </Dialog>
 </template>
