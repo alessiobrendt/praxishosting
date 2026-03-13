@@ -511,6 +511,35 @@ const endpoints: EndpointSpec[] = [
   }
 }`,
     },
+    {
+        method: 'GET',
+        path: '/partners',
+        summary: 'Partner auflisten',
+        description: 'Alle aktiven Partner der Brand (Name, Beschreibung, Bild-URL). Nur aktive Partner mit Ablaufdatum in der Zukunft oder ohne Ablaufdatum.',
+        parameters: [
+            {
+                name: 'brand_id',
+                in: 'query',
+                type: 'integer',
+                required: false,
+                description: 'Brand-ID (optional, sonst aus X-Brand-Id oder Default-Brand)',
+            },
+        ],
+        responseExample: `{
+  "data": [
+    {
+      "name": "Partner A",
+      "description": "Beschreibung des Partners.",
+      "image_url": "https://example.com/storage/partners/abc123.jpg"
+    },
+    {
+      "name": "Partner B",
+      "description": null,
+      "image_url": null
+    }
+  ]
+}`,
+    },
 ];
 
 function methodClass(method: string): string {

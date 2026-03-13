@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 
 class SiteDeletedAfterGraceNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public string $siteName
@@ -53,6 +53,14 @@ class SiteDeletedAfterGraceNotification extends Notification implements ShouldQu
             'content' => $content,
             'actionUrl' => $content['action_text'] ? $createUrl : null,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 
     /**

@@ -10,7 +10,7 @@ import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
 type Subscription = {
-    id: number;
+    uuid: string;
     status: string;
     current_period_ends_at: string | null;
     is_shared_with_me?: boolean;
@@ -63,7 +63,7 @@ function formatDate(d: string | null): string {
             <div v-else class="grid gap-4 md:grid-cols-2">
                 <Card
                     v-for="sub in props.subscriptions"
-                    :key="sub.id"
+                    :key="sub.uuid"
                     class="flex flex-col"
                 >
                     <CardHeader>
@@ -86,7 +86,7 @@ function formatDate(d: string | null): string {
                         <p>Verfügbar: {{ sub.remaining_cpu }} % CPU · {{ Math.round(sub.remaining_memory_mb / 1024) }} GB RAM · {{ Math.round(sub.remaining_disk_mb / 1024) }} GB Disk</p>
                     </CardContent>
                     <CardContent class="pt-0">
-                        <Link :href="`/gaming/cloud/subscriptions/${sub.id}`">
+                        <Link :href="`/gaming/cloud/subscriptions/${sub.uuid}`">
                             <Button variant="outline" class="w-full justify-between">
                                 Abo verwalten
                                 <ChevronRight class="h-4 w-4" />

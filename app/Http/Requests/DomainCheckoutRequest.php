@@ -25,6 +25,7 @@ class DomainCheckoutRequest extends FormRequest
             'auth_code' => ['required_if:transfer,true', 'string', 'min:1', 'max:255'],
             'use_profile_contact' => ['required', 'boolean'],
             'payment_method' => ['nullable', 'string', 'in:mollie,balance'],
+            'discount_code' => ['nullable', 'string', 'max:255'],
             'accept_tos' => ['required', 'accepted'],
             'accept_early_execution' => ['required', 'accepted'],
         ];

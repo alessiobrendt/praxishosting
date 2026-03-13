@@ -12,7 +12,7 @@ import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
 type Domain = {
-    id: number;
+    uuid: string;
     domain: string;
     status: string;
     expires_at: string | null;
@@ -101,8 +101,8 @@ function displayStatus(status: string): string {
             <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Link
                     v-for="d in props.domains"
-                    :key="d.id"
-                    :href="`/domains/${d.id}`"
+                    :key="d.uuid"
+                    :href="`/domains/${d.uuid}`"
                     class="group block"
                 >
                     <Card class="h-full transition-colors hover:border-primary/40 hover:bg-muted/30">

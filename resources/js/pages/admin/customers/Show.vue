@@ -12,6 +12,7 @@ import {
     Server,
     CreditCard,
     Headphones,
+    KeyRound,
 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
@@ -143,6 +144,8 @@ type Customer = {
     game_server_accounts?: GameServerAccount[];
     team_speak_server_accounts?: TeamSpeakServerAccount[];
     mollie_customer_id?: string | null;
+    support_pin?: string;
+    support_pin_valid_until?: string;
 };
 
 type ActivityLogEntry = {
@@ -379,6 +382,16 @@ onMounted(() => {
                     </div>
                     <Text variant="small" muted>AI-Tokens</Text>
                 </button>
+                <div
+                    class="rounded-lg border bg-card p-3 text-card-foreground"
+                    title="Support-PIN (täglich wechselnd)"
+                >
+                    <div class="flex items-center gap-2">
+                        <KeyRound class="h-4 w-4 text-muted-foreground" />
+                        <span class="font-mono text-xl font-semibold tracking-wider">{{ customer.support_pin ?? '–' }}</span>
+                    </div>
+                    <Text variant="small" muted>Support-PIN (gültig bis 00:00)</Text>
+                </div>
             </div>
 
             <Dialog v-model:open="balanceModalOpen">
@@ -648,7 +661,7 @@ onMounted(() => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <TableRow v-for="inv in customer.invoices.slice(0, 5)" :key="inv.id">
+                                    <TableRow v-for="inv in customer.invoices.slice(0, 5)" :key="inv.uuid">
                                         <TableCell class="font-medium">{{ inv.number }}</TableCell>
                                         <TableCell>{{ inv.invoice_date ?? '–' }}</TableCell>
                                         <TableCell>{{ inv.amount }} €</TableCell>
@@ -658,7 +671,7 @@ onMounted(() => {
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <Link :href="`/admin/invoices/${inv.id}`">
+                                            <Link :href="`/admin/invoices/${inv.uuid}`">
                                                 <Button variant="ghost" size="sm" aria-label="Anzeigen"><ExternalLink class="h-3 w-3" /></Button>
                                             </Link>
                                         </TableCell>
@@ -693,7 +706,7 @@ onMounted(() => {
                                         <TableCell class="font-medium">{{ t.subject }}</TableCell>
                                         <TableCell>{{ t.status }}</TableCell>
                                         <TableCell>
-                                            <Link :href="`/admin/tickets/${t.id}`">
+                                            <Link :href="`/admin/tickets/${t.uuid}`">
                                                 <Button variant="ghost" size="sm" aria-label="Anzeigen"><ExternalLink class="h-3 w-3" /></Button>
                                             </Link>
                                         </TableCell>
@@ -933,7 +946,7 @@ onMounted(() => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow v-for="d in customer.reseller_domains" :key="d.id">
+                                        <TableRow v-for="d in customer.reseller_domains" :key="d.uuid">
                                             <TableCell class="font-medium">{{ d.domain }}</TableCell>
                                             <TableCell>
                                                 <span class="inline-flex items-center rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
@@ -942,7 +955,7 @@ onMounted(() => {
                                             </TableCell>
                                             <TableCell class="text-muted-foreground text-sm">{{ d.expires_at ?? '–' }}</TableCell>
                                             <TableCell class="text-right">
-                                                <Link :href="`/admin/domains/${d.id}`">
+                                                <Link :href="`/admin/domains/${d.uuid}`">
                                                     <Button variant="ghost" size="sm" aria-label="Anzeigen">
                                                         <ExternalLink class="h-3.5 w-3.5" />
                                                     </Button>

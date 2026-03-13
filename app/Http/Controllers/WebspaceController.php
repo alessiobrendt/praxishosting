@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Exceptions\InsufficientBalanceException;
 use App\Models\Brand;
 use App\Models\CustomerBalance;
+use App\Models\DiscountCode;
 use App\Models\HostingPlan;
 use App\Services\BalancePaymentService;
+use App\Services\DiscountCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -84,6 +86,7 @@ class WebspaceController extends Controller
             'hosting_plan_id' => ['required', 'exists:hosting_plans,id'],
             'domain' => ['required', 'string', 'max:253', 'regex:/^([a-z0-9]([a-z0-9\-]*[a-z0-9])?\.)+[a-z]{2,}$/i'],
             'payment_method' => ['nullable', 'string', 'in:mollie,balance'],
+            'discount_code' => ['nullable', 'string', 'max:255'],
             'period_months' => ['required', 'integer', 'in:1,3,6'],
             'accept_tos' => ['required', 'accepted'],
             'accept_early_execution' => ['required', 'accepted'],
@@ -101,6 +104,17 @@ class WebspaceController extends Controller
         $periodMonths = (int) $validated['period_months'];
         $basePrice = (float) $plan->price;
         $totalAmount = round($basePrice * $periodMonths, 2);
+
+        $discountCodeService = app(DiscountCodeService::class);
+        $discountCodeId = null;
+        if (! empty($validated['discount_code'])) {
+            $discountCode = $discountCodeService->resolve(trim($validated['discount_code']));
+            if ($discountCode !== null) {
+                $result = $discountCodeService->computeDiscount($discountCode, $totalAmount, $periodMonths);
+                $totalAmount = $result['final_amount'];
+                $discountCodeId = $discountCode->id;
+            }
+        }
 
         $currentBrand = $request->attributes->get('current_brand') ?? Brand::getDefault();
         $brandFeatures = $currentBrand?->getFeaturesArray() ?? [];
@@ -124,6 +138,12 @@ class WebspaceController extends Controller
                 'period_months' => $periodMonths,
             ];
             $request->session()->forget('checkout_webspace');
+            if ($discountCodeId !== null) {
+                $dc = DiscountCode::find($discountCodeId);
+                if ($dc) {
+                    $discountCodeService->incrementRedemption($dc);
+                }
+            }
 
             return app(CheckoutController::class)->processWebspaceBalanceCheckout($request, $user, $payload);
         }
@@ -134,6 +154,7 @@ class WebspaceController extends Controller
             'user_id' => $request->user()->id,
             'period_months' => $periodMonths,
             'total_amount' => $totalAmount,
+            'discount_code_id' => $discountCodeId,
         ];
         $request->session()->put('checkout_webspace', $payload);
 

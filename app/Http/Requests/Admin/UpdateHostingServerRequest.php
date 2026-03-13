@@ -29,6 +29,7 @@ class UpdateHostingServerRequest extends FormRequest
         $rules = [
             'panel_type' => ['required', 'string', 'in:plesk,pterodactyl,teamspeak'],
             'config' => ['nullable', 'array'],
+            'bind_zone_content' => ['nullable', 'string', 'max:65535'],
             'name' => ['nullable', 'string', 'max:255'],
             'hostname' => ['required_unless:panel_type,teamspeak', 'nullable', 'string', 'max:255'],
             'port' => ['nullable', 'integer', 'min:1', 'max:65535'],

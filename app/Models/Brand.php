@@ -53,6 +53,11 @@ class Brand extends Model
         return $this->hasMany(Product::class);
     }
 
+    public function partners(): HasMany
+    {
+        return $this->hasMany(Partner::class);
+    }
+
     /**
      * Normalize a domain entry (URL or hostname) to hostname only for comparison.
      */

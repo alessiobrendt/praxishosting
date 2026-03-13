@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 
 class GameserverCloudSubscriptionDeletedAfterGraceNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public GameserverCloudSubscription $subscription
@@ -49,5 +49,13 @@ class GameserverCloudSubscriptionDeletedAfterGraceNotification extends Notificat
             ],
             'actionUrl' => $indexUrl,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 }

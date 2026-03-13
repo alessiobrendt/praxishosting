@@ -7,10 +7,12 @@ use App\Http\Requests\CheckDomainAvailabilityRequest;
 use App\Http\Requests\DomainCheckoutRequest;
 use App\Models\Brand;
 use App\Models\CustomerBalance;
+use App\Models\DiscountCode;
 use App\Models\Invoice;
 use App\Models\InvoiceLineItem;
 use App\Models\ResellerDomain;
 use App\Services\BalancePaymentService;
+use App\Services\DiscountCodeService;
 use App\Services\DomainPricingService;
 use App\Services\InvoicePdfService;
 use App\Services\MollieCustomerService;
@@ -36,7 +38,7 @@ class DomainShopController extends Controller
             ->viewableBy($user)
             ->latest('created_at')
             ->get()
-            ->map(fn (ResellerDomain $d) => array_merge($d->only(['id', 'domain', 'status', 'expires_at', 'auto_renew']), [
+            ->map(fn (ResellerDomain $d) => array_merge($d->only(['uuid', 'domain', 'status', 'expires_at', 'auto_renew']), [
                 'expires_at' => $d->expires_at?->format('d.m.Y'),
                 'is_shared_with_me' => ! $d->isOwnedBy($user),
             ]));
@@ -143,6 +145,17 @@ class DomainShopController extends Controller
             : $this->normalizeContact($data['contact'] ?? []);
 
         $salePrice = (float) $data['sale_price'];
+        $discountCodeService = app(DiscountCodeService::class);
+        $discountCodeId = null;
+        if (! empty($data['discount_code'] ?? '')) {
+            $discountCode = $discountCodeService->resolve(trim((string) $data['discount_code']));
+            if ($discountCode !== null) {
+                $result = $discountCodeService->computeDiscount($discountCode, $salePrice, 1);
+                $salePrice = $result['final_amount'];
+                $discountCodeId = $discountCode->id;
+            }
+        }
+
         $currentBrand = $request->attributes->get('current_brand') ?? Brand::getDefault();
         $brandFeatures = $currentBrand?->getFeaturesArray() ?? [];
         $paymentMethod = $data['payment_method'] ?? 'mollie';
@@ -199,6 +212,13 @@ class DomainShopController extends Controller
                 ? 'Domain-Transfer für '.$data['domain'].' wurde eingeleitet. Bitte bestätigen Sie die E-Mail (FOA) von der Registry.'
                 : 'Domain '.$data['domain'].' wurde registriert.';
 
+            if ($discountCodeId !== null) {
+                $dc = DiscountCode::find($discountCodeId);
+                if ($dc) {
+                    $discountCodeService->incrementRedemption($dc);
+                }
+            }
+
             return redirect()->route('domains.index')->with('success', $successMessage);
         }
 
@@ -212,6 +232,7 @@ class DomainShopController extends Controller
             'user_id' => $user->id,
             'transfer' => ! empty($data['transfer']),
             'auth_code' => ! empty($data['transfer']) ? trim((string) ($data['auth_code'] ?? '')) : null,
+            'discount_code_id' => $discountCodeId,
         ]);
 
         $currency = strtoupper(config('cashier.currency', 'eur'));
@@ -233,11 +254,12 @@ class DomainShopController extends Controller
                 ],
                 'description' => 'Domain-Registrierung: '.$data['domain'],
                 'redirectUrl' => route('checkout.success'),
-                'metadata' => [
+                'metadata' => array_filter([
                     'type' => 'domain',
                     'domain_checkout_token' => $token,
                     'user_id' => (string) $user->id,
-                ],
+                    'discount_code_id' => $discountCodeId !== null ? (string) $discountCodeId : null,
+                ]),
                 'customerId' => $customerId,
             ];
             $webhookUrl = MollieWebhookUrl::get();

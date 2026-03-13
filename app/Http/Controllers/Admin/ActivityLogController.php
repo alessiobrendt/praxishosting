@@ -7,6 +7,7 @@ use App\Models\AdminActivityLog;
 use App\Models\DiscountCode;
 use App\Models\EmailTemplate;
 use App\Models\Invoice;
+use App\Models\Partner;
 use App\Models\Site;
 use App\Models\Template;
 use App\Models\TemplatePage;
@@ -45,8 +46,17 @@ class ActivityLogController extends Controller
             $query->whereDate('created_at', '<=', Carbon::parse($request->to)->endOfDay());
         }
 
-        $activityLog = $query->paginate(20)->withQueryString()->through(fn (AdminActivityLog $log) => array_merge($log->toArray(), [
+        $activityLog = $query->paginate(20)->withQueryString();
+        $ticketIds = $activityLog->getCollection()->filter(fn ($log) => $log->model_type === Ticket::class && $log->model_id)->pluck('model_id')->unique()->values()->all();
+        $invoiceIds = $activityLog->getCollection()->filter(fn ($log) => $log->model_type === Invoice::class && $log->model_id)->pluck('model_id')->unique()->values()->all();
+        $siteIds = $activityLog->getCollection()->filter(fn ($log) => $log->model_type === Site::class && $log->model_id)->pluck('model_id')->unique()->values()->all();
+        $ticketUuids = $ticketIds !== [] ? Ticket::whereIn('id', $ticketIds)->pluck('uuid', 'id')->all() : [];
+        $invoiceUuids = $invoiceIds !== [] ? Invoice::whereIn('id', $invoiceIds)->pluck('uuid', 'id')->all() : [];
+        $siteUuids = $siteIds !== [] ? Site::whereIn('id', $siteIds)->pluck('uuid', 'id')->all() : [];
+
+        $activityLog = $activityLog->through(fn (AdminActivityLog $log) => array_merge($log->toArray(), [
             'created_at' => $log->created_at->format('d.m.Y H:i'),
+            'model_uuid' => $log->model_type === Ticket::class ? ($ticketUuids[$log->model_id] ?? null) : ($log->model_type === Invoice::class ? ($invoiceUuids[$log->model_id] ?? null) : ($log->model_type === Site::class ? ($siteUuids[$log->model_id] ?? null) : null)),
         ]));
 
         $actionOptions = [
@@ -79,6 +89,9 @@ class ActivityLogController extends Controller
             'discount_code_created' => 'Rabattcode erstellt',
             'discount_code_updated' => 'Rabattcode aktualisiert',
             'discount_code_deleted' => 'Rabattcode gelöscht',
+            'partner_created' => 'Partner erstellt',
+            'partner_updated' => 'Partner aktualisiert',
+            'partner_deleted' => 'Partner gelöscht',
             'voucher_created' => 'Gutschein erstellt',
             'voucher_updated' => 'Gutschein aktualisiert',
             'template_created' => 'Template erstellt',
@@ -101,6 +114,7 @@ class ActivityLogController extends Controller
             Invoice::class => 'Rechnung',
             EmailTemplate::class => 'E-Mail-Vorlage',
             DiscountCode::class => 'Rabattcode',
+            Partner::class => 'Partner',
             Voucher::class => 'Gutschein',
             Template::class => 'Template',
             TemplatePage::class => 'Template-Seite',

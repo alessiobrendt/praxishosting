@@ -22,6 +22,7 @@ class StoreDiscountCodeRequest extends FormRequest
             'type' => ['required', Rule::in(['percent', 'fixed'])],
             'value' => ['required', 'numeric', 'min:0'],
             'recurrence' => ['required', Rule::in(['once', 'recurring'])],
+            'applies_to' => ['required', Rule::in(['first_period', 'entire_duration'])],
             'valid_from' => ['nullable', 'date'],
             'valid_until' => ['nullable', 'date', 'after_or_equal:valid_from'],
             'max_redemptions' => ['nullable', 'integer', 'min:1'],

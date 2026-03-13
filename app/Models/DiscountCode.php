@@ -14,6 +14,7 @@ class DiscountCode extends Model
         'type',
         'value',
         'recurrence',
+        'applies_to',
         'valid_from',
         'valid_until',
         'max_redemptions',

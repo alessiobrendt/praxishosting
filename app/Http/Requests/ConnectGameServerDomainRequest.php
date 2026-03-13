@@ -28,12 +28,12 @@ class ConnectGameServerDomainRequest extends FormRequest
             return false;
         }
 
-        $resellerDomainId = (int) $this->input('reseller_domain_id');
-        if ($resellerDomainId < 1) {
+        $resellerDomainUuid = $this->input('reseller_domain_uuid');
+        if (empty($resellerDomainUuid)) {
             return true;
         }
 
-        $domain = $this->user()?->resellerDomains()->where('id', $resellerDomainId)->first();
+        $domain = $this->user()?->resellerDomains()->where('uuid', $resellerDomainUuid)->first();
 
         return $domain !== null;
     }
@@ -44,7 +44,7 @@ class ConnectGameServerDomainRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reseller_domain_id' => ['required', 'integer', 'exists:reseller_domains,id'],
+            'reseller_domain_uuid' => ['required', 'string', 'exists:reseller_domains,uuid'],
             'subdomain' => ['required', 'string', 'max:63', 'regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/'],
         ];
     }

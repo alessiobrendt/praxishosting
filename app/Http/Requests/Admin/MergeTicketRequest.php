@@ -17,23 +17,15 @@ class MergeTicketRequest extends FormRequest
      */
     public function rules(): array
     {
-        $currentTicketId = $this->route('ticket')?->id;
+        $currentTicket = $this->route('ticket');
 
         return [
-            'target_ticket_id' => [
+            'target_ticket_uuid' => [
                 'required',
-                'integer',
-                'exists:tickets,id',
-                Rule::not($currentTicketId),
+                'string',
+                'exists:tickets,uuid',
+                Rule::not($currentTicket?->uuid),
             ],
         ];
-    }
-
-    protected function prepareForValidation(): void
-    {
-        $tid = $this->input('target_ticket_id');
-        if ($tid !== null && $tid !== '') {
-            $this->merge(['target_ticket_id' => (int) $tid]);
-        }
     }
 }

@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
 
 class TicketCreatedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public Ticket $ticket
@@ -51,6 +51,14 @@ class TicketCreatedNotification extends Notification implements ShouldQueue
             'content' => $content,
             'actionUrl' => $content['action_text'] ? $ticketUrl : null,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 
     /**

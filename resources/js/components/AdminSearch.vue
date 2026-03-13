@@ -58,7 +58,7 @@ watch(query, () => {
             <Input
                 v-model="query"
                 type="search"
-                placeholder="Sites, Kunden, Rechnungen, Abos suchen… (min. 2 Zeichen)"
+                placeholder="Sites, Kunden, Rechnungen, Abos oder 6-stellige Support-PIN suchen… (min. 2 Zeichen)"
                 class="pl-9"
                 autocomplete="off"
             />

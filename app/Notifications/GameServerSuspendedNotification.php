@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 
 class GameServerSuspendedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public GameServerAccount $gameServerAccount
@@ -48,5 +48,13 @@ class GameServerSuspendedNotification extends Notification implements ShouldQueu
             ],
             'actionUrl' => $showUrl,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 }

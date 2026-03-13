@@ -18,6 +18,7 @@ type ActivityLogEntry = {
     action: string;
     model_type: string;
     model_id: number;
+    model_uuid?: string | null;
     created_at: string;
     user?: { id: number; name: string };
 };
@@ -79,19 +80,22 @@ const handlePagination = (url: string) => {
 
 function detailUrl(entry: ActivityLogEntry): string {
     if (entry.model_type.includes('Site')) {
-        return `/admin/sites/${entry.model_id}`;
+        return entry.model_uuid ? `/admin/sites/${entry.model_uuid}` : `/admin/sites/${entry.model_id}`;
     }
     if (entry.model_type.includes('User')) {
         return `/admin/customers/${entry.model_id}`;
     }
     if (entry.model_type.includes('Ticket') && !entry.model_type.includes('Todo') && !entry.model_type.includes('Category') && !entry.model_type.includes('Priority')) {
-        return `/admin/tickets/${entry.model_id}`;
+        return entry.model_uuid ? `/admin/tickets/${entry.model_uuid}` : `/admin/tickets/${entry.model_id}`;
     }
     if (entry.model_type.includes('Invoice')) {
-        return `/admin/invoices/${entry.model_id}`;
+        return entry.model_uuid ? `/admin/invoices/${entry.model_uuid}` : `/admin/invoices/${entry.model_id}`;
     }
     if (entry.model_type.includes('DiscountCode')) {
         return `/admin/discount-codes/${entry.model_id}/edit`;
+    }
+    if (entry.model_type.includes('Partner')) {
+        return `/admin/partners/${entry.model_id}/edit`;
     }
     if (entry.model_type.includes('Voucher')) {
         return `/admin/vouchers/${entry.model_id}/edit`;

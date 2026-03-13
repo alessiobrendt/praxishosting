@@ -12,7 +12,7 @@ import type { BreadcrumbItem } from '@/types';
 type HostingPlan = { id: number; name: string };
 
 type WebspaceAccount = {
-    id: number;
+    uuid: string;
     domain: string;
     status: string;
     current_period_ends_at: string | null;
@@ -88,8 +88,8 @@ function displayStatus(status: string): string {
             <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Link
                     v-for="acc in props.webspaceAccounts"
-                    :key="acc.id"
-                    :href="`/webspace-accounts/${acc.id}`"
+                    :key="acc.uuid"
+                    :href="`/webspace-accounts/${acc.uuid}`"
                     class="group block"
                 >
                     <Card class="h-full transition-colors hover:border-primary/40 hover:bg-muted/30">

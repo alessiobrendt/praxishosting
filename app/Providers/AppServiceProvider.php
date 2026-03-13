@@ -9,8 +9,10 @@ use App\Models\Site;
 use App\Modules\Handlers\ContactModuleHandler;
 use App\Modules\Handlers\NewsletterModuleHandler;
 use App\Modules\ModuleRegistry;
+use App\Notifications\Channels\DiscordChannel;
 use App\Notifications\Channels\TransactionalMailChannel;
 use App\Observers\SiteObserver;
+use App\Services\DiscordApiService;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -87,6 +89,10 @@ class AppServiceProvider extends ServiceProvider
 
         Notification::extend('transactional_mail', function () {
             return new TransactionalMailChannel;
+        });
+
+        Notification::extend('discord', function () {
+            return new DiscordChannel(app(DiscordApiService::class));
         });
 
         Event::listen(MessageSending::class, function (MessageSending $event): void {

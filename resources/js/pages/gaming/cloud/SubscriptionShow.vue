@@ -37,7 +37,7 @@ import PaymentMethodModal from '@/components/PaymentMethodModal.vue';
 import { notify } from '@/composables/useNotify';
 
 type GameServerAccount = {
-    id: number;
+    uuid: string;
     name: string;
     status: string;
     identifier: string | null;
@@ -52,7 +52,7 @@ type Egg = { id: number; name: string };
 type Nest = { id: number; name: string; eggs: Egg[] };
 
 type Subscription = {
-    id: number;
+    uuid: string;
     status: string;
     current_period_ends_at: string | null;
     created_at: string | null;
@@ -183,7 +183,7 @@ function setBooleanEnv(envVar: string, checked: boolean): void {
 const eggVariablesLoading = ref(false);
 
 function eggVariablesUrl() {
-    return `/gaming/cloud/subscriptions/${props.subscription.id}/egg-variables?nest_id=${createServer.value.nest_id}&egg_id=${createServer.value.egg_id}`;
+    return `/gaming/cloud/subscriptions/${props.subscription.uuid}/egg-variables?nest_id=${createServer.value.nest_id}&egg_id=${createServer.value.egg_id}`;
 }
 
 async function fetchEggVariables() {
@@ -331,7 +331,7 @@ function submitCreateServer() {
                 'Die Erstellung dauert ungewöhnlich lange. Prüfen Sie unter „Meine Gameserver“, ob der Server angelegt wurde, oder die Logs (z. B. Pterodactyl / Laravel).';
         }
     }, timeoutMs);
-    router.post(storeServer.url({ subscription: props.subscription.id }), payload, {
+    router.post(storeServer.url({ subscription: props.subscription.uuid }), payload, {
         preserveScroll: true,
         onFinish: () => {
             window.clearTimeout(timeoutId);
@@ -390,7 +390,7 @@ function isServerOnline(acc: GameServerAccount): boolean {
 function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart') {
     if (!acc.identifier) return;
     router.post(
-        `/gaming/cloud/subscriptions/${props.subscription.id}/servers/${acc.id}/power`,
+        `/gaming/cloud/subscriptions/${props.subscription.uuid}/servers/${acc.uuid}/power`,
         { action },
         { preserveScroll: true },
     );
@@ -981,7 +981,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                             <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                                 <Card
                                     v-for="acc in subscription.game_server_accounts"
-                                    :key="acc.id"
+                                    :key="acc.uuid"
                                     class="overflow-hidden border-l-4 border-l-primary"
                                 >
                                     <CardContent class="p-4">
@@ -1055,7 +1055,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                                 </Button>
                                                 <Form
                                                     method="delete"
-                                                    :action="`/gaming/cloud/subscriptions/${subscription.id}/servers/${acc.id}`"
+                                                    :action="`/gaming/cloud/subscriptions/${subscription.uuid}/servers/${acc.uuid}`"
                                                     class="inline"
                                                     :data="{}"
                                                 >
@@ -1064,7 +1064,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                                     </Button>
                                                 </Form>
                                             </div>
-                                            <Link :href="`/gaming-accounts/${acc.id}`">
+                                            <Link :href="`/gaming-accounts/${acc.uuid}`">
                                                 <Button size="sm" class="gap-1">
                                                     <ExternalLink class="h-3.5 w-3.5" />
                                                     Verwalten
@@ -1136,7 +1136,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                             >
                                 <Form
                                     method="post"
-                                    :action="`/gaming/cloud/subscriptions/${subscription.id}/servers/power-all`"
+                                    :action="`/gaming/cloud/subscriptions/${subscription.uuid}/servers/power-all`"
                                     :data="{ action: 'start_all' }"
                                     class="flex-1"
                                 >
@@ -1147,7 +1147,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                 </Form>
                                 <Form
                                     method="post"
-                                    :action="`/gaming/cloud/subscriptions/${subscription.id}/servers/power-all`"
+                                    :action="`/gaming/cloud/subscriptions/${subscription.uuid}/servers/power-all`"
                                     :data="{ action: 'stop_all' }"
                                     class="flex-1"
                                 >
@@ -1197,7 +1197,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                         <CardContent class="space-y-1 px-5 py-3">
                             <div
                                 v-for="acc in subscription.game_server_accounts"
-                                :key="acc.id"
+                                :key="acc.uuid"
                                 class="flex items-center gap-2.5 border-b border-border py-2 last:border-0"
                             >
                                 <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -1210,7 +1210,7 @@ function sendPower(acc: GameServerAccount, action: 'start' | 'stop' | 'restart')
                                         {{ isServerOnline(acc) ? 'Online' : 'Offline' }}
                                     </span>
                                 </div>
-                                <Link :href="`/gaming-accounts/${acc.id}`">
+                                <Link :href="`/gaming-accounts/${acc.uuid}`">
                                     <Button variant="ghost" size="sm" class="h-8 w-8 shrink-0 p-0">
                                         <ExternalLink class="h-4 w-4" />
                                     </Button>

@@ -72,12 +72,12 @@ test('guest is redirected to login', function () {
     $response->assertRedirect(route('login'));
 });
 
-test('non-owner gets 404', function () {
+test('non-owner gets 403', function () {
     $otherUser = User::factory()->create(['brand_id' => $this->brand->id]);
     actingAs($otherUser);
 
     $path = parse_url(route('gaming-accounts.show', $this->account), PHP_URL_PATH);
     $response = $this->get('http://gaming.praxishosting.test'.$path);
 
-    $response->assertNotFound();
+    $response->assertForbidden();
 });

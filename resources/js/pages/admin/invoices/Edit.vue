@@ -96,7 +96,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function submit() {
-    form.put(update.url({ invoice: props.invoice.id }));
+    form.put(update.url({ invoice: props.invoice.uuid }));
 }
 </script>
 

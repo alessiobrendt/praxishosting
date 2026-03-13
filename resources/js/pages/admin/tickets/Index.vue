@@ -157,7 +157,7 @@ const handlePagination = (url: string) => {
                                 <TableCell>{{ t.assigned_to?.name ?? '–' }}</TableCell>
                                 <TableCell>{{ new Date(t.created_at).toLocaleDateString('de-DE') }}</TableCell>
                                 <TableCell class="text-right">
-                                    <Link :href="adminTickets.show(t.id).url">
+                                    <Link :href="adminTickets.show(t.uuid).url">
                                         <Button variant="ghost" size="sm"><MessageCircle class="h-4 w-4" /></Button>
                                     </Link>
                                 </TableCell>

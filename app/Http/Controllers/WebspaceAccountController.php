@@ -6,10 +6,13 @@ use App\Exceptions\InsufficientBalanceException;
 use App\Http\Requests\RenewWebspaceAccountRequest;
 use App\Models\Brand;
 use App\Models\CustomerBalance;
+use App\Models\ResellerDomain;
 use App\Models\WebspaceAccount;
 use App\Services\BalancePaymentService;
+use App\Services\BindZoneParser;
 use App\Services\ControlPanels\PleskClient;
 use App\Services\MollieCustomerService;
+use App\Services\SkrimeApiService;
 use App\Support\MollieWebhookUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,6 +39,7 @@ class WebspaceAccountController extends Controller
             ->get()
             ->map(function (WebspaceAccount $account) use ($user) {
                 $account->setAttribute('is_shared_with_me', ! $account->isOwnedBy($user));
+                $account->makeHidden('id');
 
                 return $account;
             });
@@ -133,6 +137,8 @@ class WebspaceAccountController extends Controller
             $storeInvitationUrl = route('webspace-accounts.shares.invitations.store', $webspaceAccount);
         }
 
+        $webspaceAccount->makeHidden('id');
+
         return Inertia::render('webspace-accounts/Show', [
             'webspaceAccount' => $webspaceAccount,
             'pleskPassword' => $pleskPassword,
@@ -151,7 +157,113 @@ class WebspaceAccountController extends Controller
             'productInvitations' => $productInvitations,
             'allowedSharePermissions' => $allowedSharePermissions,
             'storeInvitationUrl' => $storeInvitationUrl,
+            'connectDomainShowUrl' => route('webspace-accounts.connect-domain.show', $webspaceAccount),
         ]);
+    }
+
+    /**
+     * Show connect-domain page: display bind zone from hosting server for user to copy and configure at their DNS/registrar.
+     */
+    public function showConnectDomain(Request $request, WebspaceAccount $webspaceAccount): Response|RedirectResponse
+    {
+        $this->authorize('view', $webspaceAccount);
+
+        $webspaceAccount->load('hostingServer');
+
+        if (! $webspaceAccount->hostingServer) {
+            return redirect()->route('webspace-accounts.show', $webspaceAccount)
+                ->with('error', 'Server-Daten fehlen. Bitte später erneut versuchen.');
+        }
+
+        $bindZoneTemplate = trim((string) ($webspaceAccount->hostingServer->bind_zone_content ?? ''));
+        if ($bindZoneTemplate === '') {
+            return redirect()->route('webspace-accounts.show', $webspaceAccount)
+                ->with('error', 'Für diesen Hosting-Server ist keine Bind-Vorlage hinterlegt. Bitte Support kontaktieren.');
+        }
+
+        $resellerDomains = $request->user()
+            ->resellerDomains()
+            ->orderBy('domain')
+            ->get()
+            ->map(fn (ResellerDomain $d) => ['uuid' => $d->uuid, 'domain' => $d->domain]);
+
+        return Inertia::render('webspace-accounts/ConnectDomain', [
+            'webspaceAccount' => [
+                'uuid' => $webspaceAccount->uuid,
+                'name' => $webspaceAccount->name,
+                'domain' => $webspaceAccount->domain,
+            ],
+            'bindZoneTemplate' => $bindZoneTemplate,
+            'resellerDomains' => $resellerDomains,
+            'connectDomainConfirmUrl' => route('webspace-accounts.connect-domain.store', $webspaceAccount),
+            'webspaceShowUrl' => route('webspace-accounts.show', $webspaceAccount),
+        ]);
+    }
+
+    /**
+     * Store: create DNS records from bind template for the selected domain (Skrime).
+     */
+    public function storeConnectDomain(Request $request, WebspaceAccount $webspaceAccount): RedirectResponse
+    {
+        $this->authorize('view', $webspaceAccount);
+
+        $request->validate([
+            'reseller_domain_uuid' => ['required', 'string', 'exists:reseller_domains,uuid'],
+        ]);
+
+        $resellerDomain = ResellerDomain::query()
+            ->where('uuid', $request->validated('reseller_domain_uuid'))
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $webspaceAccount->load('hostingServer');
+        if (! $webspaceAccount->hostingServer) {
+            return redirect()->route('webspace-accounts.connect-domain.show', $webspaceAccount)
+                ->with('error', 'Server-Daten fehlen.');
+        }
+
+        $bindZoneTemplate = trim((string) ($webspaceAccount->hostingServer->bind_zone_content ?? ''));
+        if ($bindZoneTemplate === '') {
+            return redirect()->route('webspace-accounts.connect-domain.show', $webspaceAccount)
+                ->with('error', 'Keine Bind-Vorlage für diesen Server hinterlegt.');
+        }
+
+        $domain = $resellerDomain->domain;
+        $templateDomain = 'meinedomain.de';
+        $zoneContent = preg_replace('/'.preg_quote($templateDomain, '/').'/ui', $domain, $bindZoneTemplate);
+
+        $parser = app(BindZoneParser::class);
+        $zoneRecords = $parser->parse($zoneContent);
+        if ($zoneRecords === []) {
+            return redirect()->route('webspace-accounts.connect-domain.show', $webspaceAccount)
+                ->with('error', 'In der Vorlage wurden keine DNS-Einträge erkannt.');
+        }
+
+        $skrime = app(SkrimeApiService::class);
+        try {
+            $existing = $skrime->getDns($domain);
+            $existingByKey = [];
+            foreach ($existing as $r) {
+                $key = ($r['name'] ?? '')."\0".($r['type'] ?? '');
+                $existingByKey[$key] = $r;
+            }
+            foreach ($zoneRecords as $r) {
+                $key = ($r['name'] ?? '')."\0".($r['type'] ?? '');
+                $existingByKey[$key] = [
+                    'name' => $r['name'],
+                    'type' => $r['type'],
+                    'data' => $r['data'],
+                ];
+            }
+            $merged = array_values($existingByKey);
+            $skrime->setDns($domain, $merged);
+        } catch (\Throwable $e) {
+            return redirect()->route('webspace-accounts.connect-domain.show', $webspaceAccount)
+                ->with('error', 'DNS konnte nicht gesetzt werden: '.$e->getMessage());
+        }
+
+        return redirect()->route('webspace-accounts.show', $webspaceAccount)
+            ->with('success', 'DNS-Einträge für '.$domain.' wurden erstellt bzw. aktualisiert. Stellen Sie ggf. die Nameserver der Domain auf uns ein.');
     }
 
     /**

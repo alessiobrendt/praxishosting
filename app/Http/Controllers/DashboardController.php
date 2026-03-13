@@ -32,6 +32,8 @@ class DashboardController extends Controller
         $recentEmails = $this->recentEmails($user);
         $recentInvoices = $this->recentInvoices($user);
 
+        $supportPinValidUntil = $user->getSupportPinValidUntil();
+
         return Inertia::render('Dashboard', [
             'stats' => $stats,
             'status' => $status,
@@ -40,6 +42,8 @@ class DashboardController extends Controller
             'recentEmails' => $recentEmails,
             'recentInvoices' => $recentInvoices,
             'brandFeatures' => $brandFeatures,
+            'supportPin' => $user->getSupportPin(),
+            'supportPinValidUntil' => $supportPinValidUntil->toIso8601String(),
         ]);
     }
 
@@ -108,7 +112,7 @@ class DashboardController extends Controller
             ->where('user_id', $user->id)
             ->where('status', 'open')
             ->with(['messages' => fn ($q) => $q->orderByDesc('id')->with('user:id,is_admin')])
-            ->get(['id', 'subject', 'user_id']);
+            ->get(['id', 'uuid', 'subject', 'user_id']);
 
         $openTicketsWithAdminReply = $openTickets->filter(function (Ticket $ticket) {
             $lastMessage = $ticket->messages->first();
@@ -242,7 +246,7 @@ class DashboardController extends Controller
             $domains = ResellerDomain::query()
                 ->viewableBy($user)
                 ->where('status', 'active')
-                ->get(['id', 'domain', 'user_id']);
+                ->get(['id', 'uuid', 'domain', 'user_id']);
             foreach ($domains as $domain) {
                 $list[] = [
                     'name' => $domain->domain,
@@ -258,7 +262,7 @@ class DashboardController extends Controller
                 ->viewableBy($user)
                 ->where('status', 'active')
                 ->with('hostingPlan:id,name')
-                ->get(['id', 'domain', 'hosting_plan_id', 'user_id']);
+                ->get(['id', 'uuid', 'domain', 'hosting_plan_id', 'user_id']);
             foreach ($webspaces as $acc) {
                 $name = $acc->hostingPlan?->name ?: $acc->domain ?: 'Webspace';
                 $list[] = [
@@ -275,7 +279,7 @@ class DashboardController extends Controller
                 ->viewableBy($user)
                 ->where('status', 'active')
                 ->with('hostingPlan:id,name')
-                ->get(['id', 'name', 'identifier', 'hosting_plan_id', 'user_id']);
+                ->get(['id', 'uuid', 'name', 'identifier', 'hosting_plan_id', 'user_id']);
             foreach ($gameServers as $acc) {
                 $name = $acc->name ?: $acc->identifier ?: $acc->hostingPlan?->name ?: 'Game Server';
                 $list[] = [
@@ -292,7 +296,7 @@ class DashboardController extends Controller
                 ->viewableBy($user)
                 ->where('status', 'active')
                 ->with('hostingPlan:id,name')
-                ->get(['id', 'name', 'hosting_plan_id', 'user_id']);
+                ->get(['id', 'uuid', 'name', 'hosting_plan_id', 'user_id']);
             foreach ($teamSpeakServers as $acc) {
                 $name = $acc->name ?: $acc->hostingPlan?->name ?: 'TeamSpeak-Server';
                 $list[] = [
@@ -335,7 +339,7 @@ class DashboardController extends Controller
         return $user->invoices()
             ->latest('invoice_date')
             ->limit(5)
-            ->get(['id', 'number', 'amount', 'status', 'invoice_date', 'pdf_path'])
+            ->get(['id', 'uuid', 'number', 'amount', 'status', 'invoice_date', 'pdf_path'])
             ->map(fn (Invoice $inv) => [
                 'id' => $inv->id,
                 'number' => $inv->number,

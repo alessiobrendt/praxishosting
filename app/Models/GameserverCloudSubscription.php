@@ -6,6 +6,7 @@ use App\Models\Concerns\HasProductShares;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class GameserverCloudSubscription extends Model
 {
@@ -15,6 +16,7 @@ class GameserverCloudSubscription extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'uuid',
         'user_id',
         'gameserver_cloud_plan_id',
         'plan_display_user_defined',
@@ -168,5 +170,19 @@ class GameserverCloudSubscription extends Model
     public function isOwnedBy(User $user): bool
     {
         return $this->user_id === $user->id;
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (GameserverCloudSubscription $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

@@ -130,7 +130,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Domains', href: '#' },
 ];
 
-const domainUrl = (id: number) => `/admin/domains/${id}`;
+const domainUrl = (uuid: string) => `/admin/domains/${uuid}`;
 
 const handlePagination = (url: string) => {
     if (url) window.location.href = url;
@@ -278,7 +278,7 @@ function dismissHint() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow v-for="d in domains.data" :key="d.id">
+                            <TableRow v-for="d in domains.data" :key="d.uuid">
                                 <TableCell class="font-medium">{{ d.domain }}</TableCell>
                                 <TableCell>
                                     <template v-if="d.user">
@@ -307,7 +307,7 @@ function dismissHint() {
                                 <TableCell>{{ d.sale_price != null ? `${d.sale_price} €` : '–' }}</TableCell>
                                 <TableCell>{{ d.profit_margin != null ? `${d.profit_margin} €` : '–' }}</TableCell>
                                 <TableCell class="text-right">
-                                    <Link :href="domainUrl(d.id)">
+                                    <Link :href="domainUrl(d.uuid)">
                                         <Button variant="ghost" size="sm">
                                             <Eye class="mr-2 h-4 w-4" />
                                             Details

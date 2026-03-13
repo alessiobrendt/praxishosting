@@ -81,6 +81,11 @@ const paymentMethod = ref<'mollie' | 'balance'>('mollie');
 const selectedPlanId = ref<string>(String(props.selectedPlan?.id ?? ''));
 const optionChoices = ref<Record<string, string | number>>({});
 
+const discountCodeInput = ref('');
+const appliedDiscount = ref<{ discount_amount: number; final_amount: number; code: string } | null>(null);
+const discountCodeError = ref('');
+const discountCodeValidating = ref(false);
+
 const currentPlan = computed((): HostingPlan | null => {
     const id = Number(selectedPlanId.value);
     if (!id) return null;
@@ -135,9 +140,68 @@ const basePrice = computed(() => Number(currentPlan.value?.price ?? 0));
 const monthlyTotal = computed(() => basePrice.value + totalOptionSurcharge.value);
 const totalAmount = computed(() => Math.round(monthlyTotal.value * periodMonths.value * 100) / 100);
 
-const canSubmitWithBalance = computed(() =>
-    Boolean(props.canPayWithBalance && (props.customerBalance ?? 0) >= totalAmount.value),
+const effectiveTotal = computed(() =>
+    appliedDiscount.value ? appliedDiscount.value.final_amount : totalAmount.value,
 );
+
+const canSubmitWithBalance = computed(() =>
+    Boolean(props.canPayWithBalance && (props.customerBalance ?? 0) >= effectiveTotal.value),
+);
+
+function getCsrfToken(): string {
+    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    if (match) return decodeURIComponent(match[1]);
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return (meta && (meta as HTMLMetaElement).content) || '';
+}
+
+async function applyDiscountCode(): Promise<void> {
+    const code = discountCodeInput.value.trim();
+    if (!code) {
+        discountCodeError.value = 'Bitte Code eingeben.';
+        return;
+    }
+    discountCodeError.value = '';
+    discountCodeValidating.value = true;
+    try {
+        const res = await fetch('/discount-code/validate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+                code,
+                amount: totalAmount.value,
+                period_months: periodMonths.value,
+            }),
+        });
+        const data = await res.json();
+        if (data.valid && data.final_amount !== undefined) {
+            appliedDiscount.value = {
+                discount_amount: data.discount_amount,
+                final_amount: data.final_amount,
+                code: data.code ?? code,
+            };
+        } else {
+            appliedDiscount.value = null;
+            discountCodeError.value = data.message ?? 'Rabattcode ungültig.';
+        }
+    } catch {
+        discountCodeError.value = 'Prüfung fehlgeschlagen. Bitte erneut versuchen.';
+        appliedDiscount.value = null;
+    } finally {
+        discountCodeValidating.value = false;
+    }
+}
+
+function clearDiscountCode(): void {
+    discountCodeInput.value = '';
+    appliedDiscount.value = null;
+    discountCodeError.value = '';
+}
 
 const canSubmit = computed(
     () => Boolean(acceptTos.value && acceptEarlyExecution.value && currentPlan.value),
@@ -512,10 +576,32 @@ const breadcrumbs: BreadcrumbItem[] = [
                                             <span class="text-muted-foreground">Laufzeit</span>
                                             <span>{{ periodMonths }} Monat(e)</span>
                                         </div>
+                                        <div class="space-y-2 border-t pt-3">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <Input
+                                                    v-model="discountCodeInput"
+                                                    type="text"
+                                                    placeholder="Rabattcode"
+                                                    class="h-9 flex-1 min-w-[8rem]"
+                                                    :disabled="discountCodeValidating"
+                                                    @keydown.enter.prevent="applyDiscountCode()"
+                                                />
+                                                <Button type="button" variant="outline" size="sm" :disabled="discountCodeValidating || !discountCodeInput.trim()" @click="applyDiscountCode()">
+                                                    {{ discountCodeValidating ? '…' : 'Einlösen' }}
+                                                </Button>
+                                                <Button v-if="appliedDiscount" type="button" variant="ghost" size="sm" @click="clearDiscountCode()">Entfernen</Button>
+                                            </div>
+                                            <p v-if="discountCodeError" class="text-sm text-destructive">{{ discountCodeError }}</p>
+                                            <div v-if="appliedDiscount" class="flex justify-between text-sm text-green-600 dark:text-green-400">
+                                                <span>Rabatt ({{ appliedDiscount.code }})</span>
+                                                <span class="tabular-nums">− {{ appliedDiscount.discount_amount.toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} €</span>
+                                            </div>
+                                            <input type="hidden" name="discount_code" :value="(appliedDiscount?.code ?? discountCodeInput).trim()" />
+                                        </div>
                                         <div class="border-t pt-3 text-base font-semibold">
                                             <div class="flex justify-between">
                                                 <span>Heute fällig</span>
-                                                <span class="tabular-nums">{{ totalAmount.toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} €</span>
+                                                <span class="tabular-nums">{{ effectiveTotal.toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} €</span>
                                             </div>
                                         </div>
                                     </div>

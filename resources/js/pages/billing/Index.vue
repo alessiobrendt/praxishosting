@@ -205,7 +205,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow v-for="inv in invoices" :key="inv.id">
+                            <TableRow v-for="inv in invoices" :key="inv.uuid">
                                 <TableCell>
                                     <code class="text-sm">{{ inv.number }}</code>
                                 </TableCell>
@@ -213,7 +213,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <TableCell>{{ inv.invoice_date }}</TableCell>
                                 <TableCell class="text-right">
                                     <a
-                                        :href="`/invoices/${inv.id}`"
+                                        :href="`/invoices/${inv.uuid}`"
                                         class="text-primary hover:underline font-medium"
                                     >
                                         Rechnung anzeigen
@@ -222,7 +222,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                         <span class="text-muted-foreground mx-1">·</span>
                                         <a
                                             v-if="inv.pdf_path"
-                                            :href="`/invoices/${inv.id}/pdf`"
+                                            :href="`/invoices/${inv.uuid}/pdf`"
                                             target="_blank"
                                             rel="noopener"
                                             class="text-muted-foreground hover:underline text-sm"
@@ -231,7 +231,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                         </a>
                                         <a
                                             v-if="inv.invoice_xml_path"
-                                            :href="`/invoices/${inv.id}/xml`"
+                                            :href="`/invoices/${inv.uuid}/xml`"
                                             target="_blank"
                                             rel="noopener"
                                             class="text-muted-foreground hover:underline text-sm ml-1"

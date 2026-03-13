@@ -45,7 +45,7 @@ test('authenticated user can view single email in postfach', function () {
     ]);
     $this->actingAs($user);
 
-    $response = $this->get(route('postfach.show', $log->id));
+    $response = $this->get(route('postfach.show', $log));
 
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
@@ -77,9 +77,9 @@ test('user cannot view another users postfach email', function () {
     ]);
     $this->actingAs($other);
 
-    $response = $this->get(route('postfach.show', $log->id));
+    $response = $this->get(route('postfach.show', $log));
 
-    $response->assertNotFound();
+    $response->assertForbidden();
 });
 
 test('guest cannot access postfach', function () {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { watch, ref, computed } from 'vue';
+import DiscountCodeBlock from '@/components/checkout/DiscountCodeBlock.vue';
 import InputError from '@/components/InputError.vue';
 import PaymentMethodLogo from '@/components/PaymentMethodLogo.vue';
 import { Button } from '@/components/ui/button';
@@ -48,14 +49,17 @@ const canSubmit = computed(() => {
 });
 
 const paymentMethod = ref<'mollie' | 'balance'>('mollie');
+const effectiveTotal = ref(props.sale_price);
+const discountBlockRef = ref<InstanceType<typeof DiscountCodeBlock> | null>(null);
 const canSubmitWithBalance = computed(() =>
     props.canPayWithBalance &&
-    (props.customerBalance ?? 0) >= (props.amountRequired ?? 0)
+    (props.customerBalance ?? 0) >= effectiveTotal.value
 );
 
 const form = useForm({
     domain: props.domain,
     sale_price: props.sale_price,
+    discount_code: '',
     purchase_price: 0,
     tld: props.tld,
     transfer: Boolean(props.transfer),
@@ -112,6 +116,8 @@ const breadcrumbs = [
 ];
 
 function submit() {
+    const block = discountBlockRef.value;
+    form.discount_code = block?.appliedDiscount?.code ?? '';
     form.post('/domains/checkout');
 }
 </script>
@@ -124,7 +130,7 @@ function submit() {
             <div>
                 <Heading level="h1">Domain bestellen</Heading>
                 <Text class="mt-2" muted>
-                    {{ domain }} – {{ sale_price.toFixed(2) }} € (inkl. Registrierung)
+                    {{ domain }} – {{ effectiveTotal.toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} € (inkl. Registrierung)
                 </Text>
             </div>
 
@@ -278,6 +284,15 @@ function submit() {
                             <InputError :message="form.errors.accept_early_execution" />
                         </div>
 
+                        <div class="space-y-2 rounded-md border p-4">
+                            <Label class="text-base">Rabattcode</Label>
+                            <DiscountCodeBlock
+                                ref="discountBlockRef"
+                                :total-amount="props.sale_price"
+                                :period-months="1"
+                                @update:effective-total="effectiveTotal = $event"
+                            />
+                        </div>
                         <div v-if="props.canPayWithBalance" class="space-y-2 rounded-md border p-4">
                             <Label class="text-base">Zahlungsart</Label>
                             <div class="flex flex-col gap-3">

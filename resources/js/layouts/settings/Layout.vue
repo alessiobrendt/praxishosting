@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Bell, Key, Lock, Palette, Shield, ShieldCheck, User } from 'lucide-vue-next';
+import { Bell, Key, Link2, Lock, Palette, Shield, ShieldCheck, User } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
@@ -19,6 +19,11 @@ const sidebarNavItems: NavItem[] = [
         title: 'Benachrichtigungen',
         href: '/settings/notifications',
         icon: Bell,
+    },
+    {
+        title: 'Integration',
+        href: '/settings/integration',
+        icon: Link2,
     },
     {
         title: 'Passwort',

@@ -281,7 +281,7 @@ let overviewPollInterval: ReturnType<typeof setInterval> | null = null;
 
 function fetchOverview() {
     if (!props.gameServerAccount.identifier) return;
-    fetch(`/gaming-accounts/${props.gameServerAccount.id}/overview`, {
+    fetch(`/gaming-accounts/${props.gameServerAccount.uuid}/overview`, {
         method: 'GET',
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'same-origin',
@@ -356,7 +356,7 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
     } else if (previousOverview && action === 'start') {
         liveOverview.value = { ...previousOverview, status: 'starting' };
     }
-    router.post(gamingAccounts.power.url(props.gameServerAccount.id), { action }, {
+    router.post(gamingAccounts.power.url(props.gameServerAccount.uuid), { action }, {
         preserveScroll: true,
         onSuccess: () => {
             notify.success('Befehl gesendet.');
@@ -445,9 +445,8 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
                 >
                     <CardContent class="pt-6">
                         <Text>
-                            Ihr Game-Server wird eingerichtet, oder für das zugehörige Hosting-Paket ist im Admin kein
-                            Pterodactyl-Panel-Server hinterlegt. Bitte im Admin unter Hosting-Pakete beim betreffenden
-                            Paket einen Panel-Server angeben bzw. uns kontaktieren.
+                            Ihr Game-Server wird eingerichtet. Dies kann einen Moment dauern. Wenn die Einrichtung
+                            länger als erwartet dauert oder Sie Fragen haben, kontaktieren Sie uns bitte.
                         </Text>
                     </CardContent>
                 </Card>
@@ -731,26 +730,26 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
                     </TabsList>
 
                     <TabsContent value="console" class="mt-0">
-                        <GamingAccountConsoleTab :game-server-account-id="gameServerAccount.id" />
+                        <GamingAccountConsoleTab :game-server-account-id="gameServerAccount.uuid" />
                     </TabsContent>
 
                     <TabsContent value="files" class="mt-0">
-                        <GamingAccountFilesTab :game-server-account-id="gameServerAccount.id" />
+                        <GamingAccountFilesTab :game-server-account-id="gameServerAccount.uuid" />
                     </TabsContent>
 
                     <TabsContent value="backups" class="mt-0">
-                        <GamingAccountBackupsTab :game-server-account-id="gameServerAccount.id" />
+                        <GamingAccountBackupsTab :game-server-account-id="gameServerAccount.uuid" />
                     </TabsContent>
 
                     <TabsContent value="databases" class="mt-0">
                         <GamingAccountDatabasesTab
-                            :game-server-account-id="gameServerAccount.id"
+                            :game-server-account-id="gameServerAccount.uuid"
                             :phpmyadmin-available="phpmyadminAvailable"
                         />
                     </TabsContent>
 
                     <TabsContent value="schedules" class="mt-0">
-                        <GamingAccountSchedulesTab :game-server-account-id="gameServerAccount.id" />
+                        <GamingAccountSchedulesTab :game-server-account-id="gameServerAccount.uuid" />
                     </TabsContent>
 
                     <TabsContent value="overview" class="mt-0">
@@ -972,9 +971,9 @@ function sendPower(action: 'start' | 'stop' | 'restart' | 'kill') {
         <AutoRenewModal
             v-if="showAutoRenewButton"
             :open="autoRenewModalOpen"
-            :balance-url="autoRenewBalance.url(props.gameServerAccount.id)"
-            :mollie-url="autoRenewMollieSubscription.url(props.gameServerAccount.id)"
-            :mollie-cancel-url="gamingAccounts.subscription.cancel.url(props.gameServerAccount.id)"
+            :balance-url="autoRenewBalance.url(props.gameServerAccount.uuid)"
+            :mollie-url="autoRenewMollieSubscription.url(props.gameServerAccount.uuid)"
+            :mollie-cancel-url="gamingAccounts.subscription.cancel.url(props.gameServerAccount.uuid)"
             :auto-renew-with-balance="props.auto_renew_with_balance"
             :has-mollie-subscription="props.has_mollie_subscription"
             @update:open="autoRenewModalOpen = $event"

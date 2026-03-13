@@ -89,7 +89,7 @@ class TicketController extends Controller
             ->where('id', '!=', $ticket->id)
             ->latest()
             ->limit(5)
-            ->get(['id', 'subject', 'status', 'created_at']);
+            ->get(['id', 'uuid', 'subject', 'status', 'created_at']);
         $allTags = \App\Models\Tag::query()->orderBy('name')->get(['id', 'name', 'slug', 'color']);
 
         $ticketArray = $ticket->toArray();
@@ -100,7 +100,7 @@ class TicketController extends Controller
             $ticketArray['messages'][$i]['attachments'] = $message->attachments->map(fn ($a) => [
                 'id' => $a->id,
                 'name' => $a->name,
-                'download_url' => route('admin.tickets.attachments.download', ['ticket' => $ticket->id, 'attachment' => $a->id]),
+                'download_url' => route('admin.tickets.attachments.download', ['ticket' => $ticket, 'attachment' => $a->id]),
             ])->values()->all();
         }
 
@@ -231,10 +231,26 @@ class TicketController extends Controller
 
                     return $site ? route('admin.sites.show', $site) : null;
                 })(),
-                'reseller_domain' => route('admin.domains.show', ['reseller_domain' => $serviceId]),
-                'webspace_account' => route('admin.webspace-accounts.show', ['webspace_account' => $serviceId]),
-                'game_server_account' => route('admin.gaming-accounts.show', ['game_server_account' => $serviceId]),
-                'teamspeak_server_account' => route('admin.teamspeak-accounts.show', ['team_speak_server_account' => $serviceId]),
+                'reseller_domain' => (function () use ($serviceId) {
+                    $model = \App\Models\ResellerDomain::find($serviceId);
+
+                    return $model ? route('admin.domains.show', $model) : null;
+                })(),
+                'webspace_account' => (function () use ($serviceId) {
+                    $model = \App\Models\WebspaceAccount::find($serviceId);
+
+                    return $model ? route('admin.webspace-accounts.show', $model) : null;
+                })(),
+                'game_server_account' => (function () use ($serviceId) {
+                    $model = \App\Models\GameServerAccount::find($serviceId);
+
+                    return $model ? route('admin.gaming-accounts.show', $model) : null;
+                })(),
+                'teamspeak_server_account' => (function () use ($serviceId) {
+                    $model = \App\Models\TeamSpeakServerAccount::find($serviceId);
+
+                    return $model ? route('admin.teamspeak-accounts.show', $model) : null;
+                })(),
                 default => null,
             };
         } catch (\Throwable) {
@@ -368,17 +384,17 @@ class TicketController extends Controller
 
     public function merge(MergeTicketRequest $request, Ticket $ticket): RedirectResponse
     {
-        $targetId = (int) $request->validated('target_ticket_id');
-        $target = Ticket::findOrFail($targetId);
+        $targetUuid = $request->validated('target_ticket_uuid');
+        $target = Ticket::where('uuid', $targetUuid)->firstOrFail();
 
         if ($target->user_id !== $ticket->user_id) {
             return redirect()->route('admin.tickets.show', $ticket)->with('error', 'Ziel-Ticket muss dem gleichen Kunden gehören.');
         }
 
-        $ticket->messages()->update(['ticket_id' => $targetId]);
+        $ticket->messages()->update(['ticket_id' => $target->id]);
         $ticket->update([
             'status' => 'closed',
-            'subject' => $ticket->subject.' [Zusammengeführt in #'.$targetId.']',
+            'subject' => $ticket->subject.' [Zusammengeführt in #'.$target->id.']',
         ]);
 
         AdminActivityLog::log($request->user()->id, 'ticket_merged', Ticket::class, $target->id, ['source_ticket_id' => $ticket->id], null);

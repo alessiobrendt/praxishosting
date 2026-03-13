@@ -170,11 +170,11 @@ const openExport = () => {
                         <TableBody>
                             <TableRow
                                 v-for="invoice in invoices.data"
-                                :key="invoice.id"
+                                :key="invoice.uuid"
                             >
                                 <TableCell>
                                     <Link
-                                        :href="invoicesShow({ invoice: invoice.id }).url"
+                                        :href="invoicesShow({ invoice: invoice.uuid }).url"
                                         class="text-primary hover:underline font-medium"
                                     >
                                         {{ invoice.number }}
@@ -193,7 +193,7 @@ const openExport = () => {
                                 <TableCell>{{ invoice.invoice_date }}</TableCell>
                                 <TableCell class="text-right">
                                     <a
-                                        :href="`/invoices/${invoice.id}`"
+                                        :href="`/invoices/${invoice.uuid}`"
                                         target="_blank"
                                         rel="noopener"
                                         class="text-primary hover:underline font-medium"
@@ -202,7 +202,7 @@ const openExport = () => {
                                     </a>
                                     <a
                                         v-if="invoice.pdf_path"
-                                        :href="`/invoices/${invoice.id}/pdf`"
+                                        :href="`/invoices/${invoice.uuid}/pdf`"
                                         target="_blank"
                                         rel="noopener"
                                         class="text-muted-foreground hover:underline text-sm ml-2"
@@ -211,7 +211,7 @@ const openExport = () => {
                                     </a>
                                     <a
                                         v-if="invoice.invoice_xml_path"
-                                        :href="`/invoices/${invoice.id}/xml`"
+                                        :href="`/invoices/${invoice.uuid}/xml`"
                                         target="_blank"
                                         rel="noopener"
                                         class="text-muted-foreground hover:underline text-sm ml-1"

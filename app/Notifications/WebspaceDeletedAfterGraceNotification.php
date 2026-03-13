@@ -8,7 +8,7 @@ use Illuminate\Notifications\Notification;
 
 class WebspaceDeletedAfterGraceNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public string $domain
@@ -47,5 +47,13 @@ class WebspaceDeletedAfterGraceNotification extends Notification implements Shou
             ],
             'actionUrl' => $indexUrl,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 }

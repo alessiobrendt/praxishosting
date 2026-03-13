@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -16,7 +17,8 @@ const form = useForm({
     code: '',
     type: 'percent',
     value: '',
-    recurrence: 'once',
+    recurrence: 'recurring',
+    applies_to: 'entire_duration',
     valid_from: '',
     valid_until: '',
     max_redemptions: '' as string | number,
@@ -29,6 +31,14 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Rabattcodes', href: '/admin/discount-codes' },
     { title: 'Neu', href: '#' },
 ];
+
+watch(
+    () => form.applies_to,
+    (appliesTo) => {
+        form.recurrence = appliesTo === 'first_period' ? 'once' : 'recurring';
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
@@ -64,10 +74,10 @@ const breadcrumbs: BreadcrumbItem[] = [
                         </div>
                     </div>
                     <div class="space-y-2">
-                        <Label for="recurrence">Wiederholung</Label>
-                        <Select id="recurrence" v-model="form.recurrence">
-                            <option value="once">Einmalig</option>
-                            <option value="recurring">Jede Abrechnung</option>
+                        <Label for="applies_to">Rabatt gilt für</Label>
+                        <Select id="applies_to" v-model="form.applies_to">
+                            <option value="first_period">Nur erster Abrechnungszeitraum (erster Monat günstiger)</option>
+                            <option value="entire_duration">Gesamte Laufzeit (dauerhaft rabattiert)</option>
                         </Select>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
@@ -85,7 +95,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <Input id="max_redemptions" v-model="form.max_redemptions" type="number" min="1" />
                     </div>
                     <div class="flex items-center gap-2">
-                        <Switch id="is_active" :checked="form.is_active" @update:checked="(v: boolean) => (form.is_active = v)" />
+                        <Switch id="is_active" v-model="form.is_active" />
                         <Label for="is_active">Aktiv</Label>
                     </div>
                 </CardContent>

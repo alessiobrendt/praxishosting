@@ -88,9 +88,10 @@ const sidebarItems = computed<NavItem[]>(() => {
         if (hasPermissionOrView('admin.templates')) inhalte.push({ title: 'Templates', href: adminTemplatesIndex().url, icon: LayoutGrid });
         if (inhalte.length > 0) items.push({ title: 'Inhalte', icon: Globe, children: inhalte });
     }
-    if (hasPermissionOrView('admin.discount-codes') || hasPermissionOrView('admin.vouchers') || hasPermissionOrView('admin.emails')) {
+    if (hasPermissionOrView('admin.discount-codes') || hasPermissionOrView('admin.vouchers') || hasPermissionOrView('admin.partners') || hasPermissionOrView('admin.emails')) {
         const marketing: NavItem[] = [];
         if (hasPermissionOrView('admin.discount-codes')) marketing.push({ title: 'Rabattcodes', href: '/admin/discount-codes', icon: Package });
+        if (hasPermissionOrView('admin.partners')) marketing.push({ title: 'Partner', href: '/admin/partners', icon: Users });
         if (hasPermissionOrView('admin.vouchers')) marketing.push({ title: 'Gutscheine', href: '/admin/vouchers', icon: Package });
         if (hasPermissionOrView('admin.emails')) marketing.push({ title: 'E-Mails', href: '/admin/emails', icon: Mail });
         if (marketing.length > 0) items.push({ title: 'Marketing', icon: Mail, children: marketing });

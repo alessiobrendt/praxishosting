@@ -162,6 +162,9 @@ class CustomerController extends Controller
             }
         }
 
+        $customerArray['support_pin'] = $customer->getSupportPin();
+        $customerArray['support_pin_valid_until'] = $customer->getSupportPinValidUntil()->toIso8601String();
+
         $aiTokenBalance = AiTokenBalance::where('user_id', $customer->id)->first();
         $aiTokenTransactions = AiTokenTransaction::where('user_id', $customer->id)
             ->latest()

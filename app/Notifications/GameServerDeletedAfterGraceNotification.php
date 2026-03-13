@@ -8,7 +8,7 @@ use Illuminate\Notifications\Notification;
 
 class GameServerDeletedAfterGraceNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public string $serverName
@@ -47,5 +47,13 @@ class GameServerDeletedAfterGraceNotification extends Notification implements Sh
             ],
             'actionUrl' => $indexUrl,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 }

@@ -48,7 +48,7 @@ const MONACO_OPTIONS = {
 };
 
 const props = defineProps<{
-    gameServerAccountId: number;
+    gameServerAccountId: string;
 }>();
 
 type FileItem = {

@@ -26,6 +26,7 @@ class HostingServer extends Model
         'api_checked_at',
         'api_check_status',
         'api_check_message',
+        'bind_zone_content',
     ];
 
     /**

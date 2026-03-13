@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
 
 class OrderCompletedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public Site $site
@@ -50,6 +50,14 @@ class OrderCompletedNotification extends Notification implements ShouldQueue
             'content' => $content,
             'actionUrl' => $content['action_text'] ? $url : null,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 
     /**

@@ -8,14 +8,14 @@ import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
 type EmailListItem = {
-    id: number;
+    uuid: string;
     subject: string;
     snippet: string | null;
     sent_at: string | null;
 };
 
 type SelectedEmail = {
-    id: number;
+    uuid: string;
     subject: string;
     body_html: string;
     sent_at: string | null;
@@ -53,15 +53,15 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <div class="overflow-y-auto flex-1 p-2">
                             <Link
                                 v-for="email in props.emails"
-                                :key="email.id"
-                                :href="`/account/postfach/${email.id}`"
+                                :key="email.uuid"
+                                :href="`/account/postfach/${email.uuid}`"
                                 class="block rounded-lg border border-transparent p-3 transition-modern hover:bg-gray-50 hover:border-gray-200 dark:hover:bg-gray-800/50 dark:hover:border-gray-700"
                                 :class="[
-                                    props.selectedEmail?.id === email.id
+                                    props.selectedEmail?.uuid === email.uuid
                                         ? 'bg-primary/5 border-primary/20 dark:bg-primary/10 dark:border-primary/30'
                                         : '',
                                 ]"
-                                :aria-current="props.selectedEmail?.id === email.id ? 'true' : undefined"
+                                :aria-current="props.selectedEmail?.uuid === email.uuid ? 'true' : undefined"
                             >
                                 <div class="flex flex-wrap items-start justify-between gap-2">
                                     <div class="min-w-0 flex-1">

@@ -9,6 +9,7 @@ use App\Models\SiteSubscription;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class SearchController extends Controller
 {
@@ -56,7 +57,41 @@ class SearchController extends Controller
                 'id' => $u->id,
                 'label' => $u->name.' ('.$u->email.')',
                 'url' => route('admin.customers.show', $u),
-            ]);
+            ])
+            ->values()
+            ->all();
+
+        if (strlen($q) === 6 && ctype_digit($q)) {
+            $pinMap = Cache::remember(
+                'support_pin_users_'.today()->format('Y-m-d'),
+                3600,
+                function () {
+                    $map = [];
+                    User::query()->select('id', 'name', 'email')->each(function (User $u) use (&$map) {
+                        $pin = $u->getSupportPin();
+                        if (! isset($map[$pin])) {
+                            $map[$pin] = $u->id;
+                        }
+                    });
+
+                    return $map;
+                }
+            );
+            $customerIds = array_column($customers, 'id');
+            if (isset($pinMap[$q])) {
+                $userId = $pinMap[$q];
+                if (! in_array($userId, $customerIds, true)) {
+                    $userByPin = User::query()->find($userId, ['id', 'name', 'email']);
+                    if ($userByPin) {
+                        array_unshift($customers, [
+                            'id' => $userByPin->id,
+                            'label' => $userByPin->name.' ('.$userByPin->email.') – Support-PIN',
+                            'url' => route('admin.customers.show', $userByPin),
+                        ]);
+                    }
+                }
+            }
+        }
 
         $invoices = Invoice::query()
             ->where('number', 'like', $term)

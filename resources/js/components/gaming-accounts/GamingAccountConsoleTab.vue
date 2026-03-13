@@ -11,7 +11,7 @@ import gamingAccounts from '@/routes/gaming-accounts';
 const MAX_LOG_LINES = 2000;
 
 const props = defineProps<{
-    gameServerAccountId: number;
+    gameServerAccountId: string;
 }>();
 
 const command = ref('');

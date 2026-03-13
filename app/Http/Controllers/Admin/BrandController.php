@@ -44,6 +44,7 @@ class BrandController extends Controller
             'features.gaming' => ['boolean'],
             'features.gameserver_cloud' => ['boolean'],
             'features.teamspeak' => ['boolean'],
+            'features.discord_notifications' => ['boolean'],
             'features.prepaid_balance' => ['boolean'],
             'features.balance_topup' => ['boolean'],
             'features.balance_period_months' => ['nullable', 'integer', 'min:1', 'max:24'],

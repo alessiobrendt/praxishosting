@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Ticket extends Model
 {
@@ -17,6 +18,7 @@ class Ticket extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'uuid',
         'user_id',
         'site_id',
         'ticket_category_id',
@@ -107,5 +109,19 @@ class Ticket extends Model
     public function ticketServices(): HasMany
     {
         return $this->hasMany(TicketService::class);
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Ticket $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

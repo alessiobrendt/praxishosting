@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { Eye, EyeOff, Copy, ExternalLink, Mail, Server, LayoutDashboard, KeyRound, CalendarPlus, Calendar, RefreshCcw, Share2 } from 'lucide-vue-next';
+import { Eye, EyeOff, Copy, ExternalLink, Globe, Mail, Server, LayoutDashboard, KeyRound, CalendarPlus, Calendar, RefreshCcw, Share2 } from 'lucide-vue-next';
 import ProductSharingCard from '@/components/product-sharing/ProductSharingCard.vue';
 import { ref, computed } from 'vue';
 import AutoRenewModal from '@/components/AutoRenewModal.vue';
@@ -64,6 +64,7 @@ type Props = {
     productInvitations?: Array<{ id: number; email: string; permissions: string[]; expires_at: string | null; destroy_url: string }>;
     allowedSharePermissions?: string[];
     storeInvitationUrl?: string | null;
+    connectDomainShowUrl?: string;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -81,6 +82,7 @@ const props = withDefaults(defineProps<Props>(), {
     productInvitations: () => [],
     allowedSharePermissions: () => [],
     storeInvitationUrl: null,
+    connectDomainShowUrl: '',
 });
 
 const showPassword = ref(false);
@@ -198,7 +200,7 @@ function resourcePercent(used: number, limit: number): number {
                         </template>
                         <a
                             v-else
-                            :href="`/webspace-accounts/${webspaceAccount.id}/plesk-login`"
+                            :href="`/webspace-accounts/${webspaceAccount.uuid}/plesk-login`"
                             target="_blank"
                             rel="noopener noreferrer"
                             class="inline-block w-full"
@@ -232,6 +234,12 @@ function resourcePercent(used: number, limit: number): number {
                         <Link v-if="showAboVerwalten" href="/billing/subscriptions">
                             <Button variant="outline" class="w-full justify-start gap-2">
                                 Abo verwalten
+                            </Button>
+                        </Link>
+                        <Link v-if="connectDomainShowUrl && !isSuspendedOrExpired" :href="connectDomainShowUrl">
+                            <Button variant="outline" class="w-full justify-start gap-2">
+                                <Globe class="h-4 w-4" />
+                                Domain verbinden
                             </Button>
                         </Link>
                     </div>
@@ -552,7 +560,7 @@ function resourcePercent(used: number, limit: number): number {
                                     </template>
                                     <a
                                         v-else
-                                        :href="`/webspace-accounts/${webspaceAccount.id}/plesk-login`"
+                                        :href="`/webspace-accounts/${webspaceAccount.uuid}/plesk-login`"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
@@ -598,9 +606,9 @@ function resourcePercent(used: number, limit: number): number {
         <AutoRenewModal
             v-if="showAutoRenewButton"
             :open="autoRenewModalOpen"
-            :balance-url="autoRenewBalance.url(props.webspaceAccount.id)"
-            :mollie-url="autoRenewMollieSubscription.url(props.webspaceAccount.id)"
-            :mollie-cancel-url="webspaceAccounts.subscription.cancel.url(props.webspaceAccount.id)"
+            :balance-url="autoRenewBalance.url(props.webspaceAccount.uuid)"
+            :mollie-url="autoRenewMollieSubscription.url(props.webspaceAccount.uuid)"
+            :mollie-cancel-url="webspaceAccounts.subscription.cancel.url(props.webspaceAccount.uuid)"
             :auto-renew-with-balance="props.auto_renew_with_balance"
             :has-mollie-subscription="props.has_mollie_subscription"
             @update:open="autoRenewModalOpen = $event"

@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 
 class PasswordChangedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public string $changedAt
@@ -50,6 +50,14 @@ class PasswordChangedNotification extends Notification implements ShouldQueue
             'content' => $content,
             'actionUrl' => null,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 
     /**

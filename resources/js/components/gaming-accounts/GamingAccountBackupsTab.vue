@@ -8,7 +8,7 @@ import { formatBytes } from '@/composables/useGamingAccountFormatters';
 import gamingAccounts from '@/routes/gaming-accounts';
 
 const props = defineProps<{
-    gameServerAccountId: number;
+    gameServerAccountId: string;
 }>();
 
 type Backup = {

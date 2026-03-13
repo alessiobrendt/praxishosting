@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\DiscordApiService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Fortify\Fortify;
@@ -26,6 +27,16 @@ class SocialAuthController extends Controller
     }
 
     /**
+     * Redirect the authenticated user to Discord to connect their account (link only, no login).
+     */
+    public function connectDiscord(): RedirectResponse
+    {
+        session(['discord_connect' => true]);
+
+        return Socialite::driver('discord')->redirect();
+    }
+
+    /**
      * Handle the callback from the OAuth provider.
      */
     public function callback(string $provider): RedirectResponse
@@ -37,6 +48,20 @@ class SocialAuthController extends Controller
         } catch (\Throwable $e) {
             return redirect()->route('login')
                 ->with('error', __('Die Anmeldung mit :provider ist fehlgeschlagen. Bitte versuchen Sie es erneut.', ['provider' => $this->providerLabel($provider)]));
+        }
+
+        if ($provider === 'discord' && session('discord_connect') && Auth::check()) {
+            session()->forget('discord_connect');
+            $user = Auth::user();
+            $this->linkProviderAndUpdate(
+                $user,
+                'discord',
+                $socialUser->getId(),
+                trim((string) ($socialUser->getName() ?? ''))
+            );
+            $this->assignDiscordCustomerRoleIfConfigured($user->fresh());
+
+            return redirect()->route('integration.show')->with('success', 'Discord wurde verbunden.');
         }
 
         $user = $this->findOrCreateUser($provider, $socialUser);
@@ -112,6 +137,18 @@ class SocialAuthController extends Controller
             $updates['name'] = $name;
         }
         $user->update($updates);
+    }
+
+    private function assignDiscordCustomerRoleIfConfigured(User $user): void
+    {
+        if (empty($user->discord_id)) {
+            return;
+        }
+        $roleId = config('services.discord.customer_role_id');
+        if (empty($roleId)) {
+            return;
+        }
+        app(DiscordApiService::class)->addRoleToMember($user->discord_id, $roleId);
     }
 
     private function createUserFromSocial(string $provider, string $providerId, string $email, string $name): User

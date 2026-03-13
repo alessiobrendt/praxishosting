@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
 
 class PaymentReceivedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public Invoice $invoice
@@ -54,6 +54,14 @@ class PaymentReceivedNotification extends Notification implements ShouldQueue
             'content' => $content,
             'actionUrl' => $content['action_text'] ? $invoiceViewUrl : null,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 
     /**

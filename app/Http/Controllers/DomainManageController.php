@@ -32,7 +32,7 @@ class DomainManageController extends Controller
         }
 
         $domain = [
-            'id' => $reseller_domain->id,
+            'uuid' => $reseller_domain->uuid,
             'domain' => $reseller_domain->domain,
             'status' => $reseller_domain->status,
             'expires_at' => $reseller_domain->expires_at?->format('d.m.Y'),

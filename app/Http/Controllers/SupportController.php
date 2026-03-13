@@ -176,7 +176,7 @@ class SupportController extends Controller
             $arr['attachments'] = $msg->attachments->map(fn ($a) => [
                 'id' => $a->id,
                 'name' => $a->name,
-                'download_url' => route('support.attachments.download', ['ticket' => $msg->ticket_id, 'attachment' => $a->id]),
+                'download_url' => route('support.attachments.download', ['ticket' => $ticket, 'attachment' => $a->id]),
             ])->values()->all();
 
             return $arr;
@@ -225,7 +225,7 @@ class SupportController extends Controller
             : ($ticket->site?->name ?? 'Allgemein / Kein Dienst');
 
         return Inertia::render('support/Show', [
-            'ticket' => $ticket->only(['id', 'subject', 'status', 'created_at', 'updated_at', 'ticket_category_id', 'ticket_priority_id', 'site_id']),
+            'ticket' => $ticket->only(['id', 'uuid', 'subject', 'status', 'created_at', 'updated_at', 'ticket_category_id', 'ticket_priority_id', 'site_id']),
             'ticketCategory' => $ticket->ticketCategory?->only(['id', 'name', 'slug']),
             'ticketPriority' => $ticket->ticketPriority?->only(['id', 'name', 'slug', 'color']),
             'site' => $ticket->site?->only(['uuid', 'name', 'slug']),

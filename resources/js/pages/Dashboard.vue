@@ -16,6 +16,7 @@ import {
     Layout,
     Globe,
     Gamepad2,
+    KeyRound,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import {
@@ -69,6 +70,8 @@ type Props = {
     recentEmails: RecentEmailItem[];
     recentInvoices: RecentInvoiceItem[];
     brandFeatures: Record<string, unknown>;
+    supportPin: string;
+    supportPinValidUntil: string;
 };
 
 const props = defineProps<Props>();
@@ -121,18 +124,18 @@ function getServiceIcon(type: string) {
                 </Text>
             </div>
 
-            <!-- Stats: 4 cards -->
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Stats: Karten füllen eine Zeile, Breite passt sich an -->
+            <div class="grid w-full gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))]">
                 <Card hover>
                     <CardContent class="flex flex-row items-center gap-4 pt-6">
                         <div class="rounded-lg bg-primary/10 p-3">
                             <Activity class="h-6 w-6 text-primary" />
                         </div>
-                        <div class="flex-1">
+                        <div class="min-w-0 flex-1">
                             <Text class="text-sm font-medium text-gray-500 dark:text-gray-400">
                                 Aktive Dienste
                             </Text>
-                            <p class="text-xl font-semibold">
+                            <p class="text-xl font-semibold truncate">
                                 {{ stats.activeServicesCount }} Dienst{{ stats.activeServicesCount !== 1 ? 'e' : '' }}
                             </p>
                         </div>
@@ -144,11 +147,11 @@ function getServiceIcon(type: string) {
                         <div class="rounded-lg bg-green-100 p-3 dark:bg-green-900/30">
                             <Wallet class="h-6 w-6 text-green-600 dark:text-green-400" />
                         </div>
-                        <div class="flex-1">
+                        <div class="min-w-0 flex-1">
                             <Text class="text-sm font-medium text-gray-500 dark:text-gray-400">
                                 Aktuelles Guthaben
                             </Text>
-                            <p class="text-xl font-semibold">
+                            <p class="text-xl font-semibold truncate">
                                 {{ formatCurrency(stats.customerBalance ?? 0) }}
                                 <Link
                                     v-if="stats.balanceTopUpUrl"
@@ -167,11 +170,11 @@ function getServiceIcon(type: string) {
                         <div class="rounded-lg bg-blue-100 p-3 dark:bg-blue-900/30">
                             <Coins class="h-6 w-6 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <div class="flex-1">
+                        <div class="min-w-0 flex-1">
                             <Text class="text-sm font-medium text-gray-500 dark:text-gray-400">
                                 Fällig in nächste 30 Tage
                             </Text>
-                            <p class="text-xl font-semibold">
+                            <p class="text-xl font-semibold truncate">
                                 {{ formatCurrency(stats.dueIn30Days) }}
                             </p>
                         </div>
@@ -183,12 +186,28 @@ function getServiceIcon(type: string) {
                         <div class="rounded-lg bg-amber-100 p-3 dark:bg-amber-900/30">
                             <CalendarCheck class="h-6 w-6 text-amber-600 dark:text-amber-400" />
                         </div>
-                        <div class="flex-1">
+                        <div class="min-w-0 flex-1">
                             <Text class="text-sm font-medium text-gray-500 dark:text-gray-400">
                                 Registrierung
                             </Text>
-                            <p class="text-xl font-semibold">
+                            <p class="text-xl font-semibold truncate">
                                 {{ stats.registeredAt || '–' }}
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card hover>
+                    <CardContent class="flex flex-row items-center gap-4 pt-6">
+                        <div class="rounded-lg bg-slate-100 p-3 dark:bg-slate-800/50">
+                            <KeyRound class="h-6 w-6 text-slate-600 dark:text-slate-400" />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <Text class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                Support-PIN
+                            </Text>
+                            <p class="font-mono text-xl font-semibold tracking-wider truncate">
+                                {{ supportPin }}
                             </p>
                         </div>
                     </CardContent>

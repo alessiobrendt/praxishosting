@@ -39,7 +39,7 @@ class BillingController extends Controller
         $invoices = $user->invoices()
             ->latest('invoice_date')
             ->limit(50)
-            ->get(['id', 'number', 'amount', 'status', 'invoice_date', 'pdf_path', 'invoice_xml_path'])
+            ->get(['uuid', 'number', 'amount', 'status', 'invoice_date', 'pdf_path', 'invoice_xml_path'])
             ->map(fn ($inv) => array_merge($inv->toArray(), [
                 'invoice_date' => $inv->invoice_date ? Carbon::parse($inv->invoice_date)->format('d.m.Y') : null,
             ]));

@@ -68,7 +68,7 @@ const dunningForm = useForm({});
 const canCreateDunning = nextDunningLevel(props.invoice.dunning_letters ?? []);
 
 const statusForm = useForm({ status: props.invoice.status });
-const statusUpdateUrl = `/admin/invoices/${props.invoice.id}/status`;
+const statusUpdateUrl = `/admin/invoices/${props.invoice.uuid}/status`;
 function submitStatusChange(): void {
     statusForm.patch(statusUpdateUrl, { preserveScroll: true });
 }
@@ -131,15 +131,15 @@ const breadcrumbs: BreadcrumbItem[] = [
                     </Text>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <a :href="`/invoices/${invoice.id}`" target="_blank" rel="noopener">
+                    <a :href="`/invoices/${invoice.uuid}`" target="_blank" rel="noopener">
                         <Button>Rechnung anzeigen</Button>
                     </a>
-                    <Link v-if="invoice.type === 'manual'" :href="invoicesEdit({ invoice: invoice.id }).url">
+                    <Link v-if="invoice.type === 'manual'" :href="invoicesEdit({ invoice: invoice.uuid }).url">
                         <Button variant="outline">Bearbeiten</Button>
                     </Link>
                     <a
                         v-if="invoice.pdf_path"
-                        :href="`/invoices/${invoice.id}/pdf`"
+                        :href="`/invoices/${invoice.uuid}/pdf`"
                         target="_blank"
                         rel="noopener"
                     >
@@ -147,7 +147,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                     </a>
                     <a
                         v-if="invoice.invoice_xml_path"
-                        :href="`/invoices/${invoice.id}/xml`"
+                        :href="`/invoices/${invoice.uuid}/xml`"
                         target="_blank"
                         rel="noopener"
                     >
@@ -244,10 +244,10 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <CardContent class="space-y-4">
                     <form
                         v-if="canCreateDunning"
-                        :action="`/admin/invoices/${invoice.id}/dunning-letters`"
+                        :action="`/admin/invoices/${invoice.uuid}/dunning-letters`"
                         method="post"
                         class="inline"
-                        @submit="(e) => { e.preventDefault(); dunningForm.post(`/admin/invoices/${invoice.id}/dunning-letters`); }"
+                        @submit="(e) => { e.preventDefault(); dunningForm.post(`/admin/invoices/${invoice.uuid}/dunning-letters`); }"
                     >
                         <Button type="submit" variant="outline" :disabled="dunningForm.processing">
                             {{ canCreateDunning }}. Mahnung erstellen
@@ -262,7 +262,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                             <Text>{{ d.level }}. Mahnung · Gebühr {{ d.fee_amount }} €</Text>
                             <a
                                 v-if="d.pdf_path"
-                                :href="`/admin/invoices/${invoice.id}/dunning/${d.id}/pdf`"
+                                :href="`/admin/invoices/${invoice.uuid}/dunning/${d.id}/pdf`"
                                 target="_blank"
                                 rel="noopener"
                                 class="text-primary hover:underline text-sm"

@@ -6,6 +6,7 @@ use App\Models\Concerns\HasProductShares;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class ResellerDomain extends Model
 {
@@ -15,6 +16,7 @@ class ResellerDomain extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'uuid',
         'domain',
         'user_id',
         'skrime_id',
@@ -62,5 +64,19 @@ class ResellerDomain extends Model
     public function isOwnedBy(User $user): bool
     {
         return $this->user_id === $user->id;
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (ResellerDomain $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

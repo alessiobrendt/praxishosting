@@ -87,7 +87,7 @@ const handlePagination = (url: string) => {
                             >
                                 <TableCell>
                                     <Link
-                                        :href="`/admin/invoices/${d.invoice.id}`"
+                                        :href="`/admin/invoices/${d.invoice.uuid}`"
                                         class="text-primary hover:underline font-medium"
                                     >
                                         {{ d.invoice?.number ?? '–' }}
@@ -103,7 +103,7 @@ const handlePagination = (url: string) => {
                                 <TableCell class="text-right">
                                     <a
                                         v-if="d.pdf_path"
-                                        :href="`/admin/invoices/${d.invoice_id}/dunning/${d.id}/pdf`"
+                                        :href="`/admin/invoices/${d.invoice.uuid}/dunning/${d.id}/pdf`"
                                         target="_blank"
                                         rel="noopener"
                                         class="text-primary hover:underline"

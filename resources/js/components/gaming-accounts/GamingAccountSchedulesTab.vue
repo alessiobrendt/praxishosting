@@ -19,7 +19,7 @@ import { notify } from '@/composables/useNotify';
 import gamingAccounts from '@/routes/gaming-accounts';
 
 const props = defineProps<{
-    gameServerAccountId: number;
+    gameServerAccountId: string;
 }>();
 
 type Schedule = {

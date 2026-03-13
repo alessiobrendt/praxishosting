@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\DomainController;
 use App\Http\Controllers\Api\V1\GameserverCloudPlanController;
 use App\Http\Controllers\Api\V1\HostingPlanController;
 use App\Http\Controllers\Api\V1\HostingServerController;
+use App\Http\Controllers\Api\V1\PartnerController;
 use App\Http\Controllers\Api\V1\PterodactylController;
 use App\Http\Controllers\Api\V1\StatsController;
 use App\Http\Controllers\ModuleSubmissionController;
@@ -27,6 +28,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     Route::get('brand', [BrandController::class, 'show'])->name('api.v1.brand.show');
     Route::get('brand/features', [BrandController::class, 'features'])->name('api.v1.brand.features');
     Route::get('brand/contact', [BrandController::class, 'contact'])->name('api.v1.brand.contact');
+    Route::get('partners', [PartnerController::class, 'index'])->name('api.v1.partners.index');
 });
 
 Route::middleware(['web', 'auth', 'throttle:10,1'])->prefix('ai')->group(function () {

@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 
 class SubscriptionCancelledNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public string $siteName,
@@ -54,6 +54,14 @@ class SubscriptionCancelledNotification extends Notification implements ShouldQu
             'content' => $content,
             'actionUrl' => $content['action_text'] ? $billingUrl : null,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 
     /**

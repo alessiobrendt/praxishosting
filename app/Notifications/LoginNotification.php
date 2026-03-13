@@ -8,7 +8,7 @@ use Illuminate\Notifications\Notification;
 
 class LoginNotification extends Notification
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public string $loginAt
@@ -46,6 +46,14 @@ class LoginNotification extends Notification
             'content' => $content,
             'actionUrl' => $content['action_text'] ? route('dashboard') : null,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 
     /**

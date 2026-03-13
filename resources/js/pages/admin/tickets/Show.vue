@@ -69,6 +69,7 @@ type ActivityLog = {
 };
 type Ticket = {
     id: number;
+    uuid: string;
     subject: string;
     status: string;
     user_id: number;
@@ -85,7 +86,7 @@ type Ticket = {
     tags?: TagType[];
     messages?: Message[];
 };
-type RecentTicket = { id: number; subject: string; status: string; created_at: string };
+type RecentTicket = { id: number; uuid: string; subject: string; status: string; created_at: string };
 type TicketMessageTemplateItem = { id: number; name: string; body: string | null };
 
 type AffectedService = { type: string; id: number; label: string; url?: string | null };
@@ -250,7 +251,7 @@ function submitTicketUpdate() {
         tag_ids: Array.isArray(updateForm.tag_ids) ? updateForm.tag_ids : [],
     };
     updateSubmitting.value = true;
-    router.post(adminTickets.update(props.ticket.id).url, payload, {
+    router.post(adminTickets.update(props.ticket.uuid).url, payload, {
         preserveScroll: true,
         onError: (errors) => {
             Object.assign(updateForm.errors, errors);
@@ -267,7 +268,7 @@ const replyFormRef = ref<HTMLFormElement | null>(null);
 const replyCardFullscreen = ref(false);
 const noteForm = useForm({ body: '', is_internal: true });
 const noteDialogOpen = ref(false);
-const mergeForm = useForm({ target_ticket_id: '' as string | number });
+const mergeForm = useForm({ target_ticket_uuid: '' as string });
 const mergeDialogOpen = ref(false);
 
 function focusReply(asInternal: boolean) {
@@ -276,7 +277,7 @@ function focusReply(asInternal: boolean) {
 }
 
 function submitNote() {
-    noteForm.post(adminTickets.messages.store(props.ticket.id).url, {
+    noteForm.post(adminTickets.messages.store(props.ticket.uuid).url, {
         onSuccess: () => {
             noteDialogOpen.value = false;
             noteForm.reset();
@@ -286,7 +287,7 @@ function submitNote() {
 
 const closeForm = useForm({ status: 'closed' });
 function submitClose() {
-    closeForm.put(adminTickets.update(props.ticket.id).url);
+    closeForm.put(adminTickets.update(props.ticket.uuid).url);
 }
 
 const ticketMessagesRef = ref<HTMLElement | null>(null);
@@ -662,7 +663,7 @@ onMounted(() => {
                                     <form
                                         ref="replyFormRef"
                                         class="flex min-h-0 flex-1 flex-col"
-                                        @submit.prevent="messageForm.post(adminTickets.messages.store(ticket.id).url)"
+                                        @submit.prevent="messageForm.post(adminTickets.messages.store(ticket.uuid).url)"
                                     >
                                         <CardContent class="flex min-h-0 flex-1 flex-col space-y-4 overflow-auto pt-4">
                                             <div
@@ -749,20 +750,26 @@ onMounted(() => {
                     </DialogHeader>
                     <form
                         class="space-y-4"
-                        @submit.prevent="mergeForm.post(adminTickets.merge(ticket.id).url)"
+                        @submit.prevent="mergeForm.post(adminTickets.merge(ticket.uuid).url)"
                     >
                         <div class="space-y-2">
-                            <Label for="target_ticket_id">Ziel-Ticket-ID</Label>
-                            <Input
-                                id="target_ticket_id"
-                                v-model="mergeForm.target_ticket_id"
-                                type="text"
-                                inputmode="numeric"
-                                placeholder="z. B. 42"
+                            <Label for="target_ticket_uuid">Ziel-Ticket</Label>
+                            <Select
+                                id="target_ticket_uuid"
+                                v-model="mergeForm.target_ticket_uuid"
                                 required
-                                :aria-invalid="!!mergeForm.errors.target_ticket_id"
-                            />
-                            <InputError :message="mergeForm.errors.target_ticket_id" />
+                                :aria-invalid="!!mergeForm.errors.target_ticket_uuid"
+                            >
+                                <option value="">Bitte wählen …</option>
+                                <option
+                                    v-for="rt in recentTickets"
+                                    :key="rt.uuid"
+                                    :value="rt.uuid"
+                                >
+                                    #{{ rt.id }} – {{ rt.subject }}
+                                </option>
+                            </Select>
+                            <InputError :message="mergeForm.errors.target_ticket_uuid" />
                         </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" @click="mergeDialogOpen = false">Abbrechen</Button>

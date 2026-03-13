@@ -58,7 +58,7 @@ class GameserverCloudSubscriptionController extends Controller
                 $config = $plan->config ?? [];
 
                 return [
-                    'id' => $sub->id,
+                    'uuid' => $sub->uuid,
                     'status' => $sub->status,
                     'current_period_ends_at' => $sub->current_period_ends_at?->toIso8601String(),
                     'is_shared_with_me' => ! $sub->isOwnedBy($user),
@@ -92,6 +92,8 @@ class GameserverCloudSubscriptionController extends Controller
         $this->authorize('view', $subscription);
 
         $subscription->load('gameserverCloudPlan.hostingServer', 'gameServerAccounts');
+        $subscription->makeHidden('id');
+        $subscription->gameServerAccounts->each->makeHidden('id');
 
         $plan = $subscription->gameserverCloudPlan;
         $config = $plan->config ?? [];

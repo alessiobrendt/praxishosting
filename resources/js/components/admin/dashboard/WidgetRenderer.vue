@@ -113,19 +113,19 @@ const componentProps = computed(() => {
     }
     if (key === 'last-purchase') {
         const d = data as { number?: string; amount?: number; user_name?: string; paid_at?: string; id?: number } | undefined;
-        return { ...base, primary: d?.number, secondary: d?.user_name ? `${d.user_name} – ${d?.amount ?? 0} €` : `${d?.amount ?? 0} €`, tertiary: d?.paid_at, linkHref: d?.id ? `/admin/invoices/${d.id}` : undefined };
+        return { ...base, primary: d?.number, secondary: d?.user_name ? `${d.user_name} – ${d?.amount ?? 0} €` : `${d?.amount ?? 0} €`, tertiary: d?.paid_at, linkHref: d?.uuid ? `/admin/invoices/${d.uuid}` : undefined };
     }
     if (key === 'overdue-failed-invoices') {
-        return { ...base, title: 'Überfällige Rechnungen', itemLink: (item: Record<string, unknown>) => `/admin/invoices/${item.id}`, itemLabel: (item: Record<string, unknown>) => `Rechnung ${(item as { number?: string }).number}` };
+        return { ...base, title: 'Überfällige Rechnungen', itemLink: (item: Record<string, unknown>) => `/admin/invoices/${item.uuid}`, itemLabel: (item: Record<string, unknown>) => `Rechnung ${(item as { number?: string }).number}` };
     }
     if (key === 'open-dunning-invoices') {
-        return { ...base, title: 'Offene Mahnungen', itemLink: (item: Record<string, unknown>) => `/admin/invoices/${item.id}`, itemLabel: (item: Record<string, unknown>) => `Rechnung ${(item as { number?: string }).number} (Stufe ${(item as { max_level?: number }).max_level})` };
+        return { ...base, title: 'Offene Mahnungen', itemLink: (item: Record<string, unknown>) => `/admin/invoices/${item.uuid}`, itemLabel: (item: Record<string, unknown>) => `Rechnung ${(item as { number?: string }).number} (Stufe ${(item as { max_level?: number }).max_level})` };
     }
     if (key === 'expiring-subscriptions') {
         return { ...base, title: 'Auslaufende Abos', itemLink: (item: Record<string, unknown>) => (item.site_uuid ? `/admin/sites/${item.site_uuid}` : '#'), itemLabel: (item: Record<string, unknown>) => `${(item as { site_name?: string }).site_name} – ${(item as { current_period_ends_at?: string }).current_period_ends_at}` };
     }
     if (key === 'recent-invoices') {
-        return { ...base, itemLink: (item: Record<string, unknown>) => `/admin/invoices/${item.id}`, itemLabel: (item: Record<string, unknown>) => `#${(item as { number?: string }).number} ${(item as { amount?: number }).amount} €` };
+        return { ...base, itemLink: (item: Record<string, unknown>) => `/admin/invoices/${item.uuid}`, itemLabel: (item: Record<string, unknown>) => `#${(item as { number?: string }).number} ${(item as { amount?: number }).amount} €` };
     }
     if (key === 'pterodactyl-nodes-load') {
         return { ...base, itemsKey: 'nodes', itemLabel: (item: Record<string, unknown>) => `${(item as { name?: string }).name} – ${(item as { memory_allocated_mb?: number }).memory_allocated_mb ?? 0}/${(item as { memory_total_mb?: number }).memory_total_mb ?? 0} MB` };

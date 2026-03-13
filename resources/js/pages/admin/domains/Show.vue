@@ -80,17 +80,17 @@ const authcodeLoading = ref(false);
 const authcodeError = ref('');
 
 const submitCustomer = () => {
-    customerForm.put(`/admin/domains/${props.domain.id}/customer`, {
+    customerForm.put(`/admin/domains/${props.domain.uuid}/customer`, {
         preserveScroll: true,
     });
 };
 
 const renew = () => {
-    router.post(`/admin/domains/${props.domain.id}/renew`);
+    router.post(`/admin/domains/${props.domain.uuid}/renew`);
 };
 
 const setAutoRenew = (enabled: boolean) => {
-    router.post(`/admin/domains/${props.domain.id}/autorenew`, { auto_renew: enabled });
+    router.post(`/admin/domains/${props.domain.uuid}/autorenew`, { auto_renew: enabled });
 };
 
 const fetchAuthcode = async () => {
@@ -99,7 +99,7 @@ const fetchAuthcode = async () => {
     authcodeValue.value = '';
     authcodeDialogOpen.value = true;
     try {
-        const res = await fetch(`/admin/domains/${props.domain.id}/authcode`);
+        const res = await fetch(`/admin/domains/${props.domain.uuid}/authcode`);
         const data = await res.json();
         if (!res.ok) {
             authcodeError.value = data.error ?? 'Unbekannter Fehler';
@@ -126,7 +126,7 @@ const submitNameserver = () => {
         return;
     }
     nameserverForm.nameservers = ns;
-    nameserverForm.put(`/admin/domains/${props.domain.id}/nameserver`, {
+    nameserverForm.put(`/admin/domains/${props.domain.uuid}/nameserver`, {
         preserveScroll: true,
     });
 };
@@ -146,9 +146,9 @@ const removeNameserverSlot = (index: number) => {
 onMounted(() => {
     pushAdminRecent({
         type: 'domain',
-        id: props.domain.id,
+        id: props.domain.uuid,
         label: props.domain.domain,
-        url: `/admin/domains/${props.domain.id}`,
+        url: `/admin/domains/${props.domain.uuid}`,
     });
 });
 </script>
@@ -300,7 +300,7 @@ onMounted(() => {
                     <CardDescription>A-, AAAA-, MX-, TXT-, CNAME-Records etc.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Link :href="`/admin/domains/${domain.id}/dns`">
+                    <Link :href="`/admin/domains/${domain.uuid}/dns`">
                         <Button variant="outline">DNS-Zone bearbeiten</Button>
                     </Link>
                 </CardContent>

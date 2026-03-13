@@ -98,7 +98,7 @@ const props = withDefaults(defineProps<Props>(), {
     storeInvitationUrl: null,
 });
 
-const baseUrl = () => `/domains/${props.domain.id}`;
+const baseUrl = () => `/domains/${props.domain.uuid}`;
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },

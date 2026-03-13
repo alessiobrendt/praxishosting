@@ -2,6 +2,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     Copy,
+    Globe,
     Headphones,
     Power,
     PowerOff,
@@ -99,6 +100,7 @@ type Props = {
     productInvitations?: Array<{ id: number; email: string; permissions: string[]; expires_at: string | null; destroy_url: string }>;
     allowedSharePermissions?: string[];
     storeInvitationUrl?: string | null;
+    connectDomainShowUrl?: string;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -115,6 +117,7 @@ const props = withDefaults(defineProps<Props>(), {
     productInvitations: () => [],
     allowedSharePermissions: () => [],
     storeInvitationUrl: null,
+    connectDomainShowUrl: '',
 });
 
 const powerLoading = ref<'start' | 'stop' | null>(null);
@@ -196,7 +199,7 @@ function statusVariant(): 'success' | 'default' | 'error' {
 const isOnline = computed(() => (displayInfo.value?.virtualserver_status ?? '') === 'online');
 
 function fetchOverview() {
-    fetch(`/teamspeak-accounts/${props.teamSpeakServerAccount.id}/overview`, {
+    fetch(`/teamspeak-accounts/${props.teamSpeakServerAccount.uuid}/overview`, {
         method: 'GET',
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'same-origin',
@@ -242,7 +245,7 @@ function sendPower(action: 'start' | 'stop') {
     } else {
         liveServerInfo.value = current ? { ...current, virtualserver_status: 'online' } : { virtualserver_status: 'online' };
     }
-    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.id}/power`, { action }, {
+    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.uuid}/power`, { action }, {
         preserveScroll: true,
         onSuccess: () => {
             powerLoading.value = null;
@@ -261,14 +264,14 @@ function sendPower(action: 'start' | 'stop') {
 function reinstall() {
     if (!confirm('Möchten Sie den TeamSpeak-Server wirklich neu einrichten? Alle Daten gehen verloren!')) return;
     reinstallLoading.value = true;
-    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.id}/reinstall`, {}, {
+    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.uuid}/reinstall`, {}, {
         preserveScroll: true,
         onFinish: () => { reinstallLoading.value = false; },
     });
 }
 
 function submitName() {
-    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.id}/name`, { name: newName.value }, {
+    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.uuid}/name`, { name: newName.value }, {
         preserveScroll: true,
         onSuccess: () => { nameModalOpen.value = false; },
     });
@@ -285,7 +288,7 @@ function submitRenew() {
 }
 
 function createToken() {
-    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.id}/tokens`, {
+    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.uuid}/tokens`, {
         description: newTokenDescription.value,
     }, {
         preserveScroll: true,
@@ -298,13 +301,13 @@ function createToken() {
 
 function deleteToken(token: string) {
     if (!confirm('Token wirklich löschen?')) return;
-    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.id}/tokens/delete`, { token }, {
+    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.uuid}/tokens/delete`, { token }, {
         preserveScroll: true,
     });
 }
 
 function createBackup() {
-    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.id}/backups`, {}, {
+    router.post(`/teamspeak-accounts/${props.teamSpeakServerAccount.uuid}/backups`, {}, {
         preserveScroll: true,
     });
 }
@@ -312,7 +315,7 @@ function createBackup() {
 function deployBackup(snapshotId: number) {
     if (!confirm('Backup wiederherstellen? Der aktuelle Serverzustand wird überschrieben.')) return;
     router.post(
-        `/teamspeak-accounts/${props.teamSpeakServerAccount.id}/backups/${snapshotId}/deploy`,
+        `/teamspeak-accounts/${props.teamSpeakServerAccount.uuid}/backups/${snapshotId}/deploy`,
         {},
         { preserveScroll: true },
     );
@@ -321,7 +324,7 @@ function deployBackup(snapshotId: number) {
 function deleteBackup(snapshotId: number) {
     if (!confirm('Backup wirklich löschen?')) return;
     router.delete(
-        `/teamspeak-accounts/${props.teamSpeakServerAccount.id}/backups/${snapshotId}`,
+        `/teamspeak-accounts/${props.teamSpeakServerAccount.uuid}/backups/${snapshotId}`,
         { preserveScroll: true },
     );
 }
@@ -409,6 +412,12 @@ function deleteBackup(snapshotId: number) {
                         <Link v-if="showAboVerwalten" href="/billing/subscriptions">
                             <Button variant="outline" class="w-full justify-start gap-2">
                                 Abo verwalten
+                            </Button>
+                        </Link>
+                        <Link v-if="connectDomainShowUrl && !isSuspendedOrExpired" :href="connectDomainShowUrl">
+                            <Button variant="outline" class="w-full justify-start gap-2">
+                                <Globe class="h-4 w-4" />
+                                Domain verbinden
                             </Button>
                         </Link>
                     </div>
@@ -895,9 +904,9 @@ function deleteBackup(snapshotId: number) {
         <AutoRenewModal
             v-if="showAutoRenewButton"
             :open="autoRenewModalOpen"
-            :balance-url="autoRenewBalance.url(props.teamSpeakServerAccount.id)"
-            :mollie-url="autoRenewMollieSubscription.url(props.teamSpeakServerAccount.id)"
-            :mollie-cancel-url="teamspeakAccounts.subscription.cancel.url(props.teamSpeakServerAccount.id)"
+            :balance-url="autoRenewBalance.url(props.teamSpeakServerAccount.uuid)"
+            :mollie-url="autoRenewMollieSubscription.url(props.teamSpeakServerAccount.uuid)"
+            :mollie-cancel-url="teamspeakAccounts.subscription.cancel.url(props.teamSpeakServerAccount.uuid)"
             :auto-renew-with-balance="props.auto_renew_with_balance"
             :has-mollie-subscription="props.has_mollie_subscription"
             @update:open="autoRenewModalOpen = $event"

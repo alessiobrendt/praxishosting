@@ -100,7 +100,7 @@ const handlePagination = (url: string) => {
                                 <TableCell>{{ statusLabels[t.status] ?? t.status }}</TableCell>
                                 <TableCell>{{ new Date(t.created_at).toLocaleDateString('de-DE') }}</TableCell>
                                 <TableCell class="text-right">
-                                    <Link :href="supportShow(t.id).url">
+                                    <Link :href="supportShow(t.uuid).url">
                                         <Button variant="ghost" size="sm"><MessageCircle class="h-4 w-4" /></Button>
                                     </Link>
                                 </TableCell>

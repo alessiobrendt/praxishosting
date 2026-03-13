@@ -62,6 +62,7 @@ class GamingAccountController extends Controller
             ->get();
         $accounts = $accounts->map(function (GameServerAccount $account) use ($user) {
             $account->setAttribute('is_shared_with_me', ! $account->isOwnedBy($user));
+            $account->makeHidden('id');
 
             return $account;
         });
@@ -81,7 +82,7 @@ class GamingAccountController extends Controller
                 $client = $client ?? app(PterodactylClient::class);
                 $overview = $client->getServerOverview($account);
                 if ($overview !== null) {
-                    $serverOverviews[(string) $account->id] = $overview;
+                    $serverOverviews[(string) $account->uuid] = $overview;
                     $count++;
                 }
             } catch (\Throwable) {
@@ -108,6 +109,7 @@ class GamingAccountController extends Controller
         $this->authorize('view', $gameServerAccount);
 
         $gameServerAccount->load('hostingPlan', 'hostingServer', 'gameserverCloudSubscription.gameserverCloudPlan');
+        $gameServerAccount->makeHidden('id');
 
         $config = $gameServerAccount->hostingServer?->config ?? [];
         $panelUrl = rtrim((string) ($config['base_uri'] ?? $config['host'] ?? ''), '/');
@@ -147,7 +149,7 @@ class GamingAccountController extends Controller
         if ($gameServerAccount->isCloudAccount() && $gameServerAccount->gameserverCloudSubscription) {
             $sub = $gameServerAccount->gameserverCloudSubscription;
             $gameserverCloudSubscription = [
-                'id' => $sub->id,
+                'uuid' => $sub->uuid,
                 'current_period_ends_at' => $sub->current_period_ends_at?->toIso8601String(),
                 'cancel_at_period_end' => $sub->cancel_at_period_end,
                 'plan' => ['name' => $sub->gameserverCloudPlan?->name ?? 'Cloud'],
@@ -155,14 +157,14 @@ class GamingAccountController extends Controller
                 'remaining_memory_mb' => $sub->getRemainingMemoryMb(),
                 'remaining_disk_mb' => $sub->getRemainingDiskMb(),
             ];
-            $cloudSubscriptionUrl = route('gaming.cloud.subscriptions.show', $sub->id);
+            $cloudSubscriptionUrl = route('gaming.cloud.subscriptions.show', $sub);
         }
 
         $cloudResourcesUpdateUrl = null;
         if ($gameServerAccount->isCloudAccount() && $gameServerAccount->gameserverCloudSubscription) {
             $cloudResourcesUpdateUrl = route('gaming.cloud.subscriptions.servers.resources.update', [
-                $gameServerAccount->gameserverCloudSubscription->id,
-                $gameServerAccount->id,
+                $gameServerAccount->gameserverCloudSubscription,
+                $gameServerAccount,
             ]);
         }
 
@@ -309,7 +311,7 @@ class GamingAccountController extends Controller
             ->resellerDomains()
             ->orderBy('domain')
             ->get()
-            ->map(fn (ResellerDomain $d) => ['id' => $d->id, 'domain' => $d->domain]);
+            ->map(fn (ResellerDomain $d) => ['uuid' => $d->uuid, 'domain' => $d->domain]);
 
         $srvProtocol = '';
         $srvProtocolType = 'tcp';
@@ -354,7 +356,7 @@ class GamingAccountController extends Controller
         GameServerAccount $gameServerAccount
     ): RedirectResponse {
         $resellerDomain = ResellerDomain::query()
-            ->where('id', $request->validated('reseller_domain_id'))
+            ->where('uuid', $request->validated('reseller_domain_uuid'))
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 

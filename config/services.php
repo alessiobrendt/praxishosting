@@ -54,6 +54,10 @@ return [
         'allow_gif_avatars' => (bool) env('DISCORD_AVATAR_GIF', true),
         'avatar_default_extension' => env('DISCORD_EXTENSION_DEFAULT', 'png'),
         'invite_url' => env('DISCORD_INVITE_URL'),
+        'bot_token' => env('DISCORD_BOT_TOKEN'),
+        'guild_id' => env('DISCORD_GUILD_ID'),
+        'customer_role_id' => env('DISCORD_CUSTOMER_ROLE_ID'),
+        'application_public_key' => env('DISCORD_APPLICATION_PUBLIC_KEY'),
     ],
 
     'phpmyadmin' => [

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -48,6 +49,7 @@ class User extends Authenticatable
         'ticket_signature',
         'admin_dashboard_layout',
         'notification_preferences',
+        'discord_notification_consent_at',
         'mollie_customer_id',
     ];
 
@@ -79,6 +81,7 @@ class User extends Authenticatable
             'pin_lockout_until' => 'datetime',
             'admin_dashboard_layout' => 'array',
             'notification_preferences' => 'array',
+            'discord_notification_consent_at' => 'datetime',
         ];
     }
 
@@ -116,6 +119,29 @@ class User extends Authenticatable
     public function hasDefaultPaymentMethod(): bool
     {
         return $this->hasMollieCustomerId();
+    }
+
+    /**
+     * Daily support PIN for support requests (deterministic: user_id + secret + date).
+     * Valid until end of day (midnight next day in app timezone).
+     */
+    public function getSupportPin(?Carbon $date = null): string
+    {
+        $date = $date ?? Carbon::today(config('app.timezone'));
+        $secret = config('support.pin_secret');
+        $input = $this->id.'|'.$secret.'|'.$date->format('Y-m-d');
+        $hash = hash_hmac('sha256', $input, $secret);
+        $num = hexdec(substr($hash, 0, 6)) % 1000000;
+
+        return str_pad((string) $num, 6, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * End of current day (midnight of next day) in app timezone — when the support PIN expires.
+     */
+    public function getSupportPinValidUntil(): Carbon
+    {
+        return Carbon::today(config('app.timezone'))->addDay()->startOfDay();
     }
 
     public function brand(): BelongsTo
@@ -430,6 +456,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the Discord user ID for the discord notification channel.
+     */
+    public function routeNotificationForDiscord(object $notification): ?string
+    {
+        return $this->discord_id ? (string) $this->discord_id : null;
+    }
+
+    /**
      * Get the notification channels the user prefers for a given notification type.
      * Used by Notification::via() to respect user preferences (none, email, discord).
      *
@@ -443,6 +477,7 @@ class User extends Authenticatable
             'none' => [],
             'discord' => ['discord'],
             'email' => ['transactional_mail'],
+            'email_discord' => ['transactional_mail', 'discord'],
             default => ['transactional_mail'],
         };
     }

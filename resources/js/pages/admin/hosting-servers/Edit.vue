@@ -24,6 +24,7 @@ type HostingServer = {
     ip_address: string | null;
     api_username: string | null;
     is_active: boolean;
+    bind_zone_content: string | null;
 };
 
 type PanelTypeOption = { value: string; label: string };
@@ -315,6 +316,21 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 placeholder="Leer lassen um beizubehalten"
                             />
                             <InputError :message="errors.api_token" />
+                        </div>
+                        <div v-if="showPleskFields" class="space-y-2">
+                            <Label for="bind_zone_content">Bind-Zone (.bind)</Label>
+                            <textarea
+                                id="bind_zone_content"
+                                name="bind_zone_content"
+                                rows="12"
+                                class="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                :value="hostingServer.bind_zone_content ?? ''"
+                                placeholder="$ORIGIN meinedomain.de.&#10;$TTL 86400&#10;..."
+                            />
+                            <Text class="text-sm" muted>
+                                Pro Plesk-Server kann eine eigene Zone angegeben werden. Wird bei „Domain verbinden“ für Webspace-Kunden angezeigt (zum Kopieren).
+                            </Text>
+                            <InputError :message="errors.bind_zone_content" />
                         </div>
                         <div class="flex items-center space-x-2">
                             <Switch

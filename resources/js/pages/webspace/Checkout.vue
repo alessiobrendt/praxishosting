@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 import { watch, ref, computed } from 'vue';
+import DiscountCodeBlock from '@/components/checkout/DiscountCodeBlock.vue';
 import InputError from '@/components/InputError.vue';
 import PaymentMethodLogo from '@/components/PaymentMethodLogo.vue';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,11 @@ const currentPlan = computed((): HostingPlan | null => {
 const basePrice = computed(() => (currentPlan.value ? Number(currentPlan.value.price) : 0));
 const totalAmount = computed(() => round2(basePrice.value * periodMonths.value));
 
+const effectiveTotal = ref(0);
+watch(totalAmount, (v) => {
+    effectiveTotal.value = v;
+}, { immediate: true });
+
 function round2(n: number): number {
     return Math.round(n * 100) / 100;
 }
@@ -60,7 +66,7 @@ const PERIOD_OPTIONS = [1, 3, 6] as const;
 
 const canSubmitWithBalance = computed(
     () =>
-        Boolean(props.canPayWithBalance && (props.customerBalance ?? 0) >= totalAmount.value),
+        Boolean(props.canPayWithBalance && (props.customerBalance ?? 0) >= effectiveTotal.value),
 );
 
 const canSubmit = computed(
@@ -255,10 +261,15 @@ const breadcrumbs: BreadcrumbItem[] = [
                                             <span class="text-muted-foreground">Laufzeit</span>
                                             <span>{{ periodMonths }} Monat(e)</span>
                                         </div>
+                                        <DiscountCodeBlock
+                                            :total-amount="totalAmount"
+                                            :period-months="periodMonths"
+                                            @update:effective-total="effectiveTotal = $event"
+                                        />
                                         <div class="border-t pt-3 text-base font-semibold">
                                             <div class="flex justify-between">
                                                 <span>Heute fällig</span>
-                                                <span class="tabular-nums">{{ totalAmount.toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} €</span>
+                                                <span class="tabular-nums">{{ effectiveTotal.toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} €</span>
                                             </div>
                                         </div>
                                     </div>

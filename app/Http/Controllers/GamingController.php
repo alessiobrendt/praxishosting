@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Exceptions\InsufficientBalanceException;
 use App\Models\Brand;
 use App\Models\CustomerBalance;
+use App\Models\DiscountCode;
 use App\Models\GameserverCloudPlan;
 use App\Models\HostingPlan;
 use App\Models\HostingServer;
 use App\Services\BalancePaymentService;
 use App\Services\ControlPanels\PterodactylClient;
+use App\Services\DiscountCodeService;
 use App\Services\HostingPlanOptionSurchargeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -247,6 +249,7 @@ class GamingController extends Controller
             'hosting_plan_id' => ['required', 'exists:hosting_plans,id'],
             'server_name' => ['nullable', 'string', 'max:255'],
             'payment_method' => ['nullable', 'string', 'in:mollie,balance'],
+            'discount_code' => ['nullable', 'string', 'max:255'],
             'option_choices' => ['nullable', 'array'],
             'option_choices.*' => ['nullable'],
             'period_months' => ['required', 'integer', 'in:1,3,6'],
@@ -274,6 +277,17 @@ class GamingController extends Controller
         $periodMonths = (int) $validated['period_months'];
         $totalAmount = round(($basePrice + $surcharge) * $periodMonths, 2);
 
+        $discountCodeId = null;
+        $discountCodeService = app(DiscountCodeService::class);
+        if (! empty($validated['discount_code'])) {
+            $discountCode = $discountCodeService->resolve(trim($validated['discount_code']));
+            if ($discountCode !== null) {
+                $result = $discountCodeService->computeDiscount($discountCode, $totalAmount, $periodMonths);
+                $totalAmount = $result['final_amount'];
+                $discountCodeId = $discountCode->id;
+            }
+        }
+
         $currentBrand = $request->attributes->get('current_brand') ?? Brand::getDefault();
         $brandFeatures = $currentBrand?->getFeaturesArray() ?? [];
         $paymentMethod = $validated['payment_method'] ?? 'mollie';
@@ -297,6 +311,12 @@ class GamingController extends Controller
                 'period_months' => $periodMonths,
             ];
             $request->session()->forget('checkout_gaming');
+            if ($discountCodeId !== null) {
+                $dc = DiscountCode::find($discountCodeId);
+                if ($dc) {
+                    $discountCodeService->incrementRedemption($dc);
+                }
+            }
 
             return app(CheckoutController::class)->processGamingBalanceCheckout($request, $user, $payload);
         }
@@ -309,6 +329,7 @@ class GamingController extends Controller
             'option_surcharge' => $surcharge,
             'total_amount' => $totalAmount,
             'period_months' => $periodMonths,
+            'discount_code_id' => $discountCodeId,
         ];
         $request->session()->put('checkout_gaming', $payload);
 
@@ -433,6 +454,7 @@ class GamingController extends Controller
             'option_choices' => ['nullable', 'array'],
             'option_choices.*' => ['nullable'],
             'payment_method' => ['nullable', 'string', 'in:mollie,balance'],
+            'discount_code' => ['nullable', 'string', 'max:255'],
             'period_months' => ['required', 'integer', 'in:1,3,6,12'],
             'accept_tos' => ['required', 'accepted'],
             'accept_early_execution' => ['required', 'accepted'],
@@ -460,6 +482,18 @@ class GamingController extends Controller
         $basePrice = (float) $plan->price;
         $monthlyTotal = $basePrice + $optionSurcharge;
         $totalAmount = round($monthlyTotal * $periodMonths, 2);
+
+        $discountCodeService = app(DiscountCodeService::class);
+        $discountCodeId = null;
+        if (! empty($validated['discount_code'])) {
+            $discountCode = $discountCodeService->resolve(trim($validated['discount_code']));
+            if ($discountCode !== null) {
+                $result = $discountCodeService->computeDiscount($discountCode, $totalAmount, $periodMonths);
+                $totalAmount = $result['final_amount'];
+                $discountCodeId = $discountCode->id;
+            }
+        }
+
         $currentBrand = $request->attributes->get('current_brand') ?? Brand::getDefault();
         $brandFeatures = $currentBrand?->getFeaturesArray() ?? [];
         $paymentMethod = $validated['payment_method'] ?? 'mollie';
@@ -485,6 +519,12 @@ class GamingController extends Controller
                 'option_surcharge' => $optionSurcharge,
             ];
             $request->session()->forget('checkout_cloud_gaming');
+            if ($discountCodeId !== null) {
+                $dc = DiscountCode::find($discountCodeId);
+                if ($dc) {
+                    $discountCodeService->incrementRedemption($dc);
+                }
+            }
 
             return app(CheckoutController::class)->processCloudGamingBalanceCheckout($request, $user, $payload);
         }
@@ -495,6 +535,8 @@ class GamingController extends Controller
             'period_months' => $periodMonths,
             'option_choices' => $optionChoices,
             'option_surcharge' => $optionSurcharge,
+            'total_amount' => $totalAmount,
+            'discount_code_id' => $discountCodeId,
         ];
         $request->session()->put('checkout_cloud_gaming', $payload);
 

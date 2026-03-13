@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
 
 class WebspaceOrderCompletedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public WebspaceAccount $webspaceAccount,
@@ -57,6 +57,14 @@ class WebspaceOrderCompletedNotification extends Notification implements ShouldQ
             'content' => $content,
             'actionUrl' => $content['action_text'] ? $loginUrl : null,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 
     /**

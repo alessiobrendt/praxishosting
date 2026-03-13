@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class UserEmailLog extends Model
 {
@@ -11,6 +12,7 @@ class UserEmailLog extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'uuid',
         'user_id',
         'subject',
         'body_html',
@@ -62,5 +64,19 @@ class UserEmailLog extends Model
         }
 
         return mb_substr($text, 0, $maxLength).'...';
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (UserEmailLog $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

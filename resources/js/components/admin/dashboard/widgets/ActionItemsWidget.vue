@@ -44,8 +44,8 @@ const invoiceStatusLabel: Record<string, string> = {
         <div v-if="data?.overdueOrFailedInvoices?.length" class="space-y-1">
             <Text variant="small" muted class="font-medium">Rechnungen überfällig oder Zahlung fehlgeschlagen</Text>
             <ul class="mt-2 space-y-1">
-                <li v-for="inv in data.overdueOrFailedInvoices" :key="inv.id">
-                    <Link :href="`/admin/invoices/${inv.id}`" class="text-primary hover:underline">
+                <li v-for="inv in data.overdueOrFailedInvoices" :key="inv.uuid">
+                    <Link :href="`/admin/invoices/${inv.uuid}`" class="text-primary hover:underline">
                         Rechnung {{ inv.number }}
                     </Link>
                     <span class="text-muted-foreground"> · {{ invoiceStatusLabel[inv.status] ?? inv.status }}</span>
@@ -62,8 +62,8 @@ const invoiceStatusLabel: Record<string, string> = {
         <div v-if="data?.openDunningInvoices?.length" class="space-y-1">
             <Text variant="small" muted class="font-medium">Offene Mahnungen (2. oder 3. Mahnung)</Text>
             <ul class="mt-2 space-y-1">
-                <li v-for="inv in data.openDunningInvoices" :key="inv.id">
-                    <Link :href="`/admin/invoices/${inv.id}`" class="text-primary hover:underline">
+                <li v-for="inv in data.openDunningInvoices" :key="inv.uuid">
+                    <Link :href="`/admin/invoices/${inv.uuid}`" class="text-primary hover:underline">
                         Rechnung {{ inv.number }} (Mahnstufe {{ inv.max_level }})
                     </Link>
                     <span v-if="inv.user_name" class="ml-1">({{ inv.user_name }})</span>

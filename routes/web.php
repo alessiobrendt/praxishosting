@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\JobsMonitorController;
 use App\Http\Controllers\Admin\LegacyMigrationController;
 use App\Http\Controllers\Admin\PanelUpdateController;
+use App\Http\Controllers\Admin\PartnerController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\PterodactylEggController;
@@ -44,6 +45,7 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingPortalController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DashboardController as CustomerDashboardController;
+use App\Http\Controllers\DiscordWebhookController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\GameserverCloudSubscriptionController;
 use App\Http\Controllers\GamingAccountController;
@@ -84,6 +86,14 @@ Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'
     ->name('auth.social.redirect');
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
     ->name('auth.social.callback');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/auth/discord/connect', [SocialAuthController::class, 'connectDiscord'])
+        ->name('auth.discord.connect');
+});
+
+Route::post('webhooks/discord/interactions', [DiscordWebhookController::class, 'interactions'])
+    ->name('webhooks.discord.interactions');
 
 Route::get('invitations/accept-product', ProductInvitationAcceptController::class)
     ->name('product-invitations.accept');
@@ -164,12 +174,15 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
     Route::get('checkout/redirect', [CheckoutController::class, 'redirect'])->middleware('billing.profile')->name('checkout.redirect');
     Route::get('checkout/redirect-to-mollie', [CheckoutController::class, 'redirectToStripe'])->middleware('billing.profile')->name('checkout.redirect-to-mollie');
     Route::get('checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
+    Route::post('discount-code/validate', [\App\Http\Controllers\DiscountCodeValidationController::class, '__invoke'])->name('discount-code.validate');
 
     Route::get('webspace', [WebspaceController::class, 'index'])->name('webspace.index');
     Route::get('webspace/checkout', [WebspaceController::class, 'checkout'])->name('webspace.checkout');
     Route::post('webspace/checkout', [WebspaceController::class, 'storeCheckout'])->middleware('billing.profile')->name('webspace.checkout.store');
     Route::get('webspace-accounts', [WebspaceAccountController::class, 'index'])->name('webspace-accounts.index');
     Route::get('webspace-accounts/{webspace_account}/plesk-login', [WebspaceAccountController::class, 'pleskLogin'])->name('webspace-accounts.plesk-login');
+    Route::get('webspace-accounts/{webspace_account}/connect-domain', [WebspaceAccountController::class, 'showConnectDomain'])->name('webspace-accounts.connect-domain.show');
+    Route::post('webspace-accounts/{webspace_account}/connect-domain', [WebspaceAccountController::class, 'storeConnectDomain'])->name('webspace-accounts.connect-domain.store');
     Route::get('webspace-accounts/{webspace_account}', [WebspaceAccountController::class, 'show'])->name('webspace-accounts.show');
     Route::post('webspace-accounts/{webspace_account}/renew', [WebspaceAccountController::class, 'renew'])
         ->middleware('billing.profile')
@@ -265,6 +278,8 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
     Route::post('teamspeak/checkout', [TeamSpeakController::class, 'storeCheckout'])->middleware('billing.profile')->name('teamspeak.checkout.store');
     Route::get('teamspeak-accounts', [TeamSpeakAccountController::class, 'index'])->name('teamspeak-accounts.index');
     Route::get('teamspeak-accounts/{team_speak_server_account}', [TeamSpeakAccountController::class, 'show'])->name('teamspeak-accounts.show');
+    Route::get('teamspeak-accounts/{team_speak_server_account}/connect-domain', [TeamSpeakAccountController::class, 'showConnectDomain'])->name('teamspeak-accounts.connect-domain.show');
+    Route::post('teamspeak-accounts/{team_speak_server_account}/connect-domain', [TeamSpeakAccountController::class, 'storeConnectDomain'])->name('teamspeak-accounts.connect-domain.store');
     Route::post('teamspeak-accounts/{team_speak_server_account}/shares/invitations', [ProductShareController::class, 'storeInvitationTeamSpeak'])->name('teamspeak-accounts.shares.invitations.store');
     Route::patch('teamspeak-accounts/{team_speak_server_account}/shares/{share}', [ProductShareController::class, 'updateShareTeamSpeak'])->name('teamspeak-accounts.shares.update');
     Route::delete('teamspeak-accounts/{team_speak_server_account}/shares/{share}', [ProductShareController::class, 'destroyShareTeamSpeak'])->name('teamspeak-accounts.shares.destroy');
@@ -304,7 +319,7 @@ Route::middleware(['auth', 'verified', 'brand.domain'])->group(function () {
     Route::post('billing/redeem-voucher', [RedeemVoucherController::class, 'store'])->name('billing.redeem-voucher.store');
 
     Route::get('account/postfach', [PostfachController::class, 'index'])->name('postfach.index');
-    Route::get('account/postfach/{postfach}', [PostfachController::class, 'show'])->name('postfach.show')->whereNumber('postfach');
+    Route::get('account/postfach/{postfach}', [PostfachController::class, 'show'])->name('postfach.show');
 
     Route::middleware('brand.feature.sites')->group(function () {
         Route::get('sites/{site}/design', [SiteController::class, 'design'])->name('sites.design');
@@ -420,6 +435,7 @@ Route::middleware(['admin.domain', 'auth', 'verified', 'admin'])->prefix('admin'
     Route::get('brands/{brand}/edit', [BrandController::class, 'edit'])->name('brands.edit');
     Route::put('brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
     Route::resource('discount-codes', DiscountCodeController::class)->except(['show']);
+    Route::resource('partners', PartnerController::class)->except(['show']);
     Route::resource('vouchers', VoucherController::class)->except(['show', 'destroy']);
 
     Route::get('products', [ProductController::class, 'index'])->name('products.index');

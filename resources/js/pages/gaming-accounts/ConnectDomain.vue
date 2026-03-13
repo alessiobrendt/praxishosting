@@ -18,7 +18,7 @@ type GameServerAccount = {
 };
 
 type ResellerDomain = {
-    id: number;
+    uuid: string;
     domain: string;
 };
 
@@ -34,7 +34,7 @@ type Props = {
 const props = defineProps<Props>();
 
 const form = useForm({
-    reseller_domain_id: '' as string | number,
+    reseller_domain_uuid: '' as string,
     subdomain: 'mc',
 });
 
@@ -46,7 +46,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const selectedDomain = computed(() =>
-    props.resellerDomains.find((d) => String(d.id) === String(form.reseller_domain_id)),
+    props.resellerDomains.find((d) => d.uuid === form.reseller_domain_uuid),
 );
 const previewHost = computed(() => {
     const sub = (form.subdomain || 'mc').trim() || 'mc';
@@ -91,24 +91,24 @@ const previewHost = computed(() => {
 
                     <form class="space-y-4" @submit.prevent="form.post(connectDomainUrl)">
                         <div class="space-y-2">
-                            <Label for="reseller_domain_id">Domain</Label>
+                            <Label for="reseller_domain_uuid">Domain</Label>
                             <select
-                                id="reseller_domain_id"
-                                v-model="form.reseller_domain_id"
-                                name="reseller_domain_id"
+                                id="reseller_domain_uuid"
+                                v-model="form.reseller_domain_uuid"
+                                name="reseller_domain_uuid"
                                 required
                                 class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
                                 <option value="">Domain wählen…</option>
                                 <option
                                     v-for="d in resellerDomains"
-                                    :key="d.id"
-                                    :value="d.id"
+                                    :key="d.uuid"
+                                    :value="d.uuid"
                                 >
                                     {{ d.domain }}
                                 </option>
                             </select>
-                            <InputError :message="form.errors.reseller_domain_id" />
+                            <InputError :message="form.errors.reseller_domain_uuid" />
                         </div>
 
                         <div class="space-y-2">
@@ -137,7 +137,7 @@ const previewHost = computed(() => {
                         <div class="flex gap-2 pt-2">
                             <Button
                                 type="submit"
-                                :disabled="!form.reseller_domain_id || !(form.subdomain || '').trim() || form.processing"
+                                :disabled="!form.reseller_domain_uuid || !(form.subdomain || '').trim() || form.processing"
                             >
                                 {{ form.processing ? 'Wird verbunden…' : 'Verbinden' }}
                             </Button>

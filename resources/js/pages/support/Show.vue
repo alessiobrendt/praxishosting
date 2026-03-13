@@ -14,7 +14,7 @@ import { dashboard } from '@/routes';
 import support from '@/routes/support';
 import type { BreadcrumbItem } from '@/types';
 
-type Ticket = { id: number; subject: string; status: string; created_at: string; updated_at: string };
+type Ticket = { id: number; uuid: string; subject: string; status: string; created_at: string; updated_at: string };
 type TicketCategory = { id: number; name: string; slug: string } | null;
 type TicketPriority = { id: number; name: string; slug: string; color: string | null } | null;
 type Site = { uuid: string; name: string; slug: string } | null;
@@ -111,7 +111,7 @@ function submitMessage() {
     const formData = new FormData();
     formData.append('body', form.body);
     attachmentFiles.value.forEach((file) => formData.append('attachments[]', file));
-    router.post(support.messages.store(props.ticket.id).url, formData, {
+    router.post(support.messages.store(props.ticket.uuid).url, formData, {
         forceFormData: true,
         preserveScroll: true,
         onSuccess: () => {

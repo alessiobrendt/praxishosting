@@ -14,11 +14,13 @@ class PostfachController extends Controller
         return $this->renderPostfach($request, null);
     }
 
-    public function show(Request $request, int $postfach): Response
+    public function show(Request $request, UserEmailLog $postfach): Response
     {
-        $selected = UserEmailLog::where('user_id', $request->user()->id)->findOrFail($postfach);
+        if ($postfach->user_id !== $request->user()->id) {
+            abort(403);
+        }
 
-        return $this->renderPostfach($request, $selected);
+        return $this->renderPostfach($request, $postfach);
     }
 
     private function renderPostfach(Request $request, ?UserEmailLog $selected): Response
@@ -27,9 +29,9 @@ class PostfachController extends Controller
         $emails = UserEmailLog::where('user_id', $user->id)
             ->orderByDesc('sent_at')
             ->limit(100)
-            ->get(['id', 'subject', 'snippet', 'body_html', 'sent_at'])
+            ->get(['uuid', 'subject', 'snippet', 'body_html', 'sent_at'])
             ->map(fn (UserEmailLog $log) => [
-                'id' => $log->id,
+                'uuid' => $log->uuid,
                 'subject' => $log->subject,
                 'snippet' => UserEmailLog::snippetFromHtml($log->body_html) ?: $log->snippet ?: '…',
                 'sent_at' => $log->sent_at?->format('d.m.Y'),
@@ -38,7 +40,7 @@ class PostfachController extends Controller
         $selectedEmail = null;
         if ($selected !== null) {
             $selectedEmail = [
-                'id' => $selected->id,
+                'uuid' => $selected->uuid,
                 'subject' => $selected->subject,
                 'body_html' => $selected->body_html,
                 'sent_at' => $selected->sent_at?->format('d.m.Y H:i'),

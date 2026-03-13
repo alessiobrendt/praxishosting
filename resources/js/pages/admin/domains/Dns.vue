@@ -32,7 +32,7 @@ const props = defineProps<Props>();
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
     { title: 'Domains', href: '/admin/domains' },
-    { title: props.domain.domain, href: `/admin/domains/${props.domain.id}` },
+    { title: props.domain.domain, href: `/admin/domains/${props.domain.uuid}` },
     { title: 'DNS', href: '#' },
 ];
 
@@ -55,7 +55,7 @@ const removeRecord = (index: number) => {
 const submit = () => {
     const valid = form.records.filter((r) => r.name.trim() && r.data.trim());
     form.records = valid;
-    form.put(`/admin/domains/${props.domain.id}/dns`, { preserveScroll: true });
+    form.put(`/admin/domains/${props.domain.uuid}/dns`, { preserveScroll: true });
 };
 </script>
 
@@ -146,7 +146,7 @@ const submit = () => {
                                 type="button"
                                 variant="outline"
                                 :disabled="form.processing"
-                                @click="() => router.visit(`/admin/domains/${domain.id}`)"
+                                @click="() => router.visit(`/admin/domains/${domain.uuid}`)"
                             >
                                 Zurück zur Domain
                             </Button>

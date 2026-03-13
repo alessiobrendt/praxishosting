@@ -32,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/verify-domain', // Caddy On-Demand TLS verification (GET, no session)
             'webhooks/mollie',
             'webhooks/mollie/*',
+            'webhooks/discord/interactions',
         ]);
 
         $middleware->prepend(ResolveBrandFromDomain::class);

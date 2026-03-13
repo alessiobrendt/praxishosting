@@ -17,7 +17,7 @@ type GameserverCloudSubscription = {
 };
 
 type GameServerAccount = {
-    id: number;
+    uuid: string;
     name: string;
     status: string;
     current_period_ends_at: string | null;
@@ -48,7 +48,7 @@ const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '–';
 
 function getOverview(acc: GameServerAccount): ServerOverview | null {
-    return props.serverOverviews[String(acc.id)] ?? null;
+    return props.serverOverviews[String(acc.uuid)] ?? null;
 }
 
 function planLabel(acc: GameServerAccount): string {
@@ -116,8 +116,8 @@ function statusVariant(overview: ServerOverview | null, fallbackStatus: string):
             <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Link
                     v-for="acc in props.gameServerAccounts"
-                    :key="acc.id"
-                    :href="`/gaming-accounts/${acc.id}`"
+                    :key="acc.uuid"
+                    :href="`/gaming-accounts/${acc.uuid}`"
                     class="group block"
                 >
                     <Card class="h-full transition-colors hover:border-primary/40 hover:bg-muted/30">

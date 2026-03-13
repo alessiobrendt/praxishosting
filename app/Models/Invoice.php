@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Invoice extends Model
 {
@@ -12,6 +13,7 @@ class Invoice extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'uuid',
         'user_id',
         'site_subscription_id',
         'mollie_payment_id',
@@ -69,5 +71,19 @@ class Invoice extends Model
     public function dunningLetters(): HasMany
     {
         return $this->hasMany(InvoiceDunningLetter::class)->orderBy('level');
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Invoice $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

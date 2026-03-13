@@ -15,7 +15,7 @@ import gamingAccounts from '@/routes/gaming-accounts';
 
 const props = withDefaults(
     defineProps<{
-        gameServerAccountId: number;
+        gameServerAccountId: string;
         phpmyadminAvailable?: boolean;
     }>(),
     { phpmyadminAvailable: false },

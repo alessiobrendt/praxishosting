@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\InsufficientBalanceException;
+use App\Http\Requests\ConnectTeamSpeakDomainRequest;
 use App\Models\Brand;
 use App\Models\CustomerBalance;
+use App\Models\ResellerDomain;
 use App\Models\TeamSpeakServerAccount;
 use App\Models\TeamSpeakSnapshot;
 use App\Services\BalancePaymentService;
 use App\Services\ControlPanels\TeamSpeakClient;
 use App\Services\MollieCustomerService;
+use App\Services\SkrimeApiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,6 +58,7 @@ class TeamSpeakAccountController extends Controller
             ->get()
             ->map(function (TeamSpeakServerAccount $account) use ($user) {
                 $account->setAttribute('is_shared_with_me', ! $account->isOwnedBy($user));
+                $account->makeHidden('id');
 
                 return $account;
             });
@@ -72,7 +76,7 @@ class TeamSpeakAccountController extends Controller
                 $client->setServer($account->hostingServer);
                 $info = $client->getServerInfo($account->virtual_server_id);
                 if ($info !== null) {
-                    $serverInfos[(string) $account->id] = $info;
+                    $serverInfos[(string) $account->uuid] = $info;
                     $count++;
                 }
             } catch (\Throwable) {
@@ -95,6 +99,7 @@ class TeamSpeakAccountController extends Controller
         $this->authorizeAccount($request, $teamSpeakServerAccount);
 
         $teamSpeakServerAccount->load('hostingPlan', 'hostingServer');
+        $teamSpeakServerAccount->makeHidden('id');
 
         $snapshots = $teamSpeakServerAccount->snapshots()
             ->orderByDesc('created_at')
@@ -171,7 +176,121 @@ class TeamSpeakAccountController extends Controller
             'storeInvitationUrl' => $request->user()->can('manageCollaborators', $teamSpeakServerAccount)
                 ? route('teamspeak-accounts.shares.invitations.store', $teamSpeakServerAccount)
                 : null,
+            'connectDomainShowUrl' => route('teamspeak-accounts.connect-domain.show', $teamSpeakServerAccount),
         ]);
+    }
+
+    /**
+     * Show connect-domain page: list user's domains and form to connect one to this TeamSpeak server.
+     */
+    public function showConnectDomain(Request $request, TeamSpeakServerAccount $teamSpeakServerAccount): Response|RedirectResponse
+    {
+        $redirect = $this->ensureTeamSpeakFeature($request);
+        if ($redirect !== null) {
+            return $redirect;
+        }
+        $this->authorizeAccount($request, $teamSpeakServerAccount);
+
+        if (! $teamSpeakServerAccount->hostingServer) {
+            return redirect()->route('teamspeak-accounts.show', $teamSpeakServerAccount)
+                ->with('error', 'Server-Daten fehlen. Bitte später erneut versuchen.');
+        }
+
+        $cfg = config('domain-connection.services.teamspeak', []);
+        if (($cfg['record_type'] ?? '') !== 'srv' || empty($cfg['srv_service'] ?? '') || empty($cfg['srv_protocol'] ?? '')) {
+            return redirect()->route('teamspeak-accounts.show', $teamSpeakServerAccount)
+                ->with('error', 'Domain-Verbindung für TeamSpeak ist nicht konfiguriert. Bitte Support kontaktieren.');
+        }
+
+        $resellerDomains = $request->user()
+            ->resellerDomains()
+            ->orderBy('domain')
+            ->get()
+            ->map(fn (ResellerDomain $d) => ['uuid' => $d->uuid, 'domain' => $d->domain]);
+
+        return Inertia::render('teamspeak-accounts/ConnectDomain', [
+            'teamSpeakServerAccount' => [
+                'uuid' => $teamSpeakServerAccount->uuid,
+                'name' => $teamSpeakServerAccount->name,
+            ],
+            'resellerDomains' => $resellerDomains,
+            'srvProtocol' => $cfg['srv_service'],
+            'srvProtocolType' => $cfg['srv_protocol'],
+            'connectDomainUrl' => route('teamspeak-accounts.connect-domain.store', $teamSpeakServerAccount),
+            'teamSpeakShowUrl' => route('teamspeak-accounts.show', $teamSpeakServerAccount),
+        ]);
+    }
+
+    /**
+     * Store: create SRV record on user's domain pointing to this TeamSpeak server.
+     */
+    public function storeConnectDomain(
+        ConnectTeamSpeakDomainRequest $request,
+        TeamSpeakServerAccount $teamSpeakServerAccount
+    ): RedirectResponse {
+        $resellerDomain = ResellerDomain::query()
+            ->where('uuid', $request->validated('reseller_domain_uuid'))
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $subdomain = strtolower(trim($request->validated('subdomain')));
+
+        if (! $teamSpeakServerAccount->hostingServer) {
+            return redirect()->route('teamspeak-accounts.connect-domain.show', $teamSpeakServerAccount)
+                ->with('error', 'Server-Daten fehlen. Bitte später erneut versuchen.');
+        }
+
+        $cfg = config('domain-connection.services.teamspeak', []);
+        $srvService = (string) ($cfg['srv_service'] ?? '_ts3');
+        $srvProtocol = (string) ($cfg['srv_protocol'] ?? '_udp');
+        $priority = (int) ($cfg['priority'] ?? 0);
+        $weight = (int) ($cfg['weight'] ?? 5);
+        $port = (int) $teamSpeakServerAccount->port;
+        if ($port < 1 || $port > 65535) {
+            return redirect()->route('teamspeak-accounts.connect-domain.show', $teamSpeakServerAccount)
+                ->with('error', 'Der TeamSpeak-Server hat keinen gültigen Port. Bitte Support kontaktieren.');
+        }
+
+        $hostingServer = $teamSpeakServerAccount->hostingServer;
+        $target = trim($hostingServer->hostname ?? $hostingServer->ip_address ?? '');
+        if ($target === '') {
+            return redirect()->route('teamspeak-accounts.connect-domain.show', $teamSpeakServerAccount)
+                ->with('error', 'Hostname oder IP des Servers fehlt. Bitte Support kontaktieren.');
+        }
+        $target = rtrim($target, '.');
+
+        $srvName = strtolower($srvService.'.'.$srvProtocol.'.'.$subdomain);
+        $srvData = $priority.' '.$weight.' '.$port.' '.$target.'.';
+
+        $skrime = app(SkrimeApiService::class);
+        try {
+            $existingRecords = $skrime->getDns($resellerDomain->domain);
+            $records = array_map(fn ($r) => [
+                'name' => $r['name'],
+                'type' => $r['type'],
+                'data' => $r['data'],
+            ], $existingRecords);
+            foreach ($records as $rec) {
+                if (isset($rec['name']) && isset($rec['type']) && $rec['type'] === 'SRV' && $rec['name'] === $srvName) {
+                    return redirect()->route('teamspeak-accounts.connect-domain.show', $teamSpeakServerAccount)
+                        ->with('error', 'Ein SRV-Eintrag für diese Subdomain existiert bereits auf der gewählten Domain.');
+                }
+            }
+            $records[] = [
+                'name' => $srvName,
+                'type' => 'SRV',
+                'data' => $srvData,
+            ];
+            $skrime->setDns($resellerDomain->domain, $records);
+        } catch (\Throwable $e) {
+            return redirect()->route('teamspeak-accounts.connect-domain.show', $teamSpeakServerAccount)
+                ->with('error', 'DNS konnte nicht gesetzt werden: '.$e->getMessage());
+        }
+
+        $fullHost = $subdomain.'.'.$resellerDomain->domain;
+
+        return redirect()->route('teamspeak-accounts.show', $teamSpeakServerAccount)
+            ->with('success', 'Domain verbunden. '.$fullHost.' zeigt nun auf Ihren TeamSpeak-Server. Bitte stellen Sie ggf. die Nameserver der Domain auf uns ein.');
     }
 
     public function overview(Request $request, TeamSpeakServerAccount $teamSpeakServerAccount): JsonResponse

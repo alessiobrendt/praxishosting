@@ -12,7 +12,7 @@ import type { BreadcrumbItem } from '@/types';
 type HostingPlan = { id: number; name: string };
 
 type TeamSpeakServerAccount = {
-    id: number;
+    uuid: string;
     name: string;
     status: string;
     port: number | null;
@@ -47,7 +47,7 @@ const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '–';
 
 function getInfo(acc: TeamSpeakServerAccount): ServerInfo | null {
-    return props.serverInfos[String(acc.id)] ?? null;
+    return props.serverInfos[String(acc.uuid)] ?? null;
 }
 
 function displayStatus(info: ServerInfo | null, fallbackStatus: string): string {
@@ -98,8 +98,8 @@ function statusVariant(info: ServerInfo | null, fallbackStatus: string): 'succes
             <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Link
                     v-for="acc in props.teamSpeakServerAccounts"
-                    :key="acc.id"
-                    :href="`/teamspeak-accounts/${acc.id}`"
+                    :key="acc.uuid"
+                    :href="`/teamspeak-accounts/${acc.uuid}`"
                     class="block"
                 >
                     <Card class="transition-colors hover:bg-muted/50">

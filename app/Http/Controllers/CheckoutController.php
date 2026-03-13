@@ -299,14 +299,15 @@ class CheckoutController extends Controller
                 ],
                 'description' => 'Webspace: '.$domain.' ('.$periodMonths.' Monat(e))',
                 'redirectUrl' => route('checkout.success'),
-                'metadata' => [
+                'metadata' => array_filter([
                     'type' => 'webspace',
                     'hosting_plan_id' => (string) $plan->id,
                     'domain' => $domain,
                     'user_id' => (string) $user->id,
                     'prepaid' => $isPrepaid ? '1' : '0',
                     'period_months' => (string) $periodMonths,
-                ],
+                    'discount_code_id' => ! empty($payload['discount_code_id']) ? (string) $payload['discount_code_id'] : null,
+                ]),
             ];
             $params['customerId'] = app(MollieCustomerService::class)->ensureCustomer($user);
             $webhookUrl = MollieWebhookUrl::get();
@@ -382,6 +383,9 @@ class CheckoutController extends Controller
         ];
         if (! empty($optionChoices)) {
             $metadata['option_choices'] = json_encode($optionChoices);
+        }
+        if (! empty($payload['discount_code_id'])) {
+            $metadata['discount_code_id'] = (string) $payload['discount_code_id'];
         }
 
         $currency = strtoupper(config('cashier.currency', 'eur'));
@@ -472,6 +476,9 @@ class CheckoutController extends Controller
         if (! empty($optionChoices)) {
             $metadata['option_choices'] = json_encode($optionChoices);
         }
+        if (! empty($payload['discount_code_id'])) {
+            $metadata['discount_code_id'] = (string) $payload['discount_code_id'];
+        }
 
         $currency = strtoupper(config('cashier.currency', 'eur'));
 
@@ -538,7 +545,7 @@ class CheckoutController extends Controller
         $periodMonths = max(1, min(12, (int) ($payload['period_months'] ?? 1)));
         $optionSurcharge = (float) ($payload['option_surcharge'] ?? 0);
         $monthlyTotal = (float) $plan->price + $optionSurcharge;
-        $amount = round($monthlyTotal * $periodMonths, 2);
+        $amount = isset($payload['total_amount']) ? (float) $payload['total_amount'] : round($monthlyTotal * $periodMonths, 2);
         if ($amount <= 0) {
             $request->session()->forget('checkout_cloud_gaming');
 
@@ -553,6 +560,9 @@ class CheckoutController extends Controller
             'user_id' => (string) $user->id,
             'period_months' => (string) $periodMonths,
         ];
+        if (! empty($payload['discount_code_id'])) {
+            $metadata['discount_code_id'] = (string) $payload['discount_code_id'];
+        }
 
         try {
             $mollie = app(MollieApiClient::class);
@@ -868,7 +878,7 @@ class CheckoutController extends Controller
             ]);
 
             return redirect()->route('gaming-accounts.show', $account->id)
-                ->with('error', 'Für dieses Paket ist kein Pterodactyl-Panel-Server zugewiesen. Bitte im Admin unter Hosting-Pakete beim betreffenden Paket einen Panel-Server angeben.');
+                ->with('error', 'Für dieses Paket ist derzeit kein Game-Server verfügbar. Bitte kontaktieren Sie uns.');
         }
 
         $password = Str::password(20);
@@ -947,6 +957,14 @@ class CheckoutController extends Controller
             ]);
             Log::debug('Checkout success gaming: Pterodactyl server created (Mollie)', ['account_id' => $account->id]);
 
+            $discountCodeId = isset($metadata['discount_code_id']) ? (int) $metadata['discount_code_id'] : 0;
+            if ($discountCodeId > 0) {
+                $discountCode = \App\Models\DiscountCode::find($discountCodeId);
+                if ($discountCode !== null) {
+                    app(\App\Services\DiscountCodeService::class)->incrementRedemption($discountCode);
+                }
+            }
+
             return redirect()->route('gaming-accounts.show', $account->id)
                 ->with('success', 'Ihr Game-Server wurde erfolgreich eingerichtet. Sie können sich im Panel anmelden.');
         } catch (\Throwable $e) {
@@ -966,6 +984,14 @@ class CheckoutController extends Controller
      */
     protected function handleTeamSpeakCheckoutSuccessFromMollie(Request $request, \App\Models\User $user, array $metadata): RedirectResponse
     {
+        $discountCodeId = isset($metadata['discount_code_id']) ? (int) $metadata['discount_code_id'] : 0;
+        if ($discountCodeId > 0) {
+            $discountCode = \App\Models\DiscountCode::find($discountCodeId);
+            if ($discountCode !== null) {
+                app(\App\Services\DiscountCodeService::class)->incrementRedemption($discountCode);
+            }
+        }
+
         $planId = (int) ($metadata['hosting_plan_id'] ?? 0);
         $userId = (int) ($metadata['user_id'] ?? 0);
         $serverName = $metadata['server_name'] ?? $user->name.' TeamSpeak';
@@ -1035,7 +1061,7 @@ class CheckoutController extends Controller
             ]);
 
             return redirect()->route('teamspeak-accounts.show', $account->id)
-                ->with('error', 'Für dieses Paket ist kein TeamSpeak-Server zugewiesen. Bitte im Admin unter Hosting-Pakete einen Panel-Server angeben.');
+                ->with('error', 'Für dieses Paket ist derzeit kein TeamSpeak-Server verfügbar. Bitte kontaktieren Sie uns.');
         }
 
         $account = $user->teamSpeakServerAccounts()->create([
@@ -1093,6 +1119,14 @@ class CheckoutController extends Controller
      */
     protected function handleCloudGamingCheckoutSuccessFromMollie(Request $request, \App\Models\User $user, array $metadata): RedirectResponse
     {
+        $discountCodeId = isset($metadata['discount_code_id']) ? (int) $metadata['discount_code_id'] : 0;
+        if ($discountCodeId > 0) {
+            $discountCode = \App\Models\DiscountCode::find($discountCodeId);
+            if ($discountCode !== null) {
+                app(\App\Services\DiscountCodeService::class)->incrementRedemption($discountCode);
+            }
+        }
+
         $planId = (int) ($metadata['gameserver_cloud_plan_id'] ?? 0);
         $userId = (int) ($metadata['user_id'] ?? 0);
         $molliePaymentId = $metadata['mollie_payment_id'] ?? null;
@@ -1516,6 +1550,14 @@ class CheckoutController extends Controller
      */
     protected function handleDomainCheckoutSuccessFromMollie(Request $request, \App\Models\User $user, array $metadata): RedirectResponse
     {
+        $discountCodeId = isset($metadata['discount_code_id']) ? (int) $metadata['discount_code_id'] : 0;
+        if ($discountCodeId > 0) {
+            $discountCode = \App\Models\DiscountCode::find($discountCodeId);
+            if ($discountCode !== null) {
+                app(\App\Services\DiscountCodeService::class)->incrementRedemption($discountCode);
+            }
+        }
+
         $token = $metadata['domain_checkout_token'] ?? null;
         if (! $token || ! is_string($token)) {
             Log::debug('Checkout success domain: missing token in metadata');
@@ -1629,7 +1671,7 @@ class CheckoutController extends Controller
             ]);
 
             return redirect()->route('gaming-accounts.show', $account->id)
-                ->with('error', 'Für dieses Paket ist kein Pterodactyl-Panel-Server zugewiesen. Bitte im Admin unter Hosting-Pakete beim betreffenden Paket einen Panel-Server angeben.');
+                ->with('error', 'Für dieses Paket ist derzeit kein Game-Server verfügbar. Bitte kontaktieren Sie uns.');
         }
 
         $password = Str::password(20);
@@ -1708,8 +1750,10 @@ class CheckoutController extends Controller
                 'message' => $e->getMessage(),
             ]);
 
-            return redirect()->route('gaming-accounts.show', $account->id)
-                ->with('error', 'Der Game-Server konnte nicht automatisch angelegt werden: '.$e->getMessage().'. Bitte kontaktieren Sie uns.');
+            $message = 'Der Game-Server konnte nicht eingerichtet werden: '.$e->getMessage().' Bitte kontaktieren Sie uns oder wählen Sie ein anderes Paket.';
+
+            return redirect()->route('gaming-accounts.index')
+                ->with('error', $message);
         }
     }
 
@@ -1774,7 +1818,7 @@ class CheckoutController extends Controller
             ]);
 
             return redirect()->route('teamspeak-accounts.show', $account->id)
-                ->with('error', 'Für dieses Paket ist kein TeamSpeak-Server zugewiesen. Bitte im Admin unter Hosting-Pakete einen Panel-Server angeben.');
+                ->with('error', 'Für dieses Paket ist derzeit kein TeamSpeak-Server verfügbar. Bitte kontaktieren Sie uns.');
         }
 
         $recentCutoff = now()->subMinutes(10);
@@ -1963,6 +2007,14 @@ class CheckoutController extends Controller
      */
     protected function handleWebspaceCheckoutSuccessFromMollie(Request $request, \App\Models\User $user, array $metadata): RedirectResponse
     {
+        $discountCodeId = isset($metadata['discount_code_id']) ? (int) $metadata['discount_code_id'] : 0;
+        if ($discountCodeId > 0) {
+            $discountCode = \App\Models\DiscountCode::find($discountCodeId);
+            if ($discountCode !== null) {
+                app(\App\Services\DiscountCodeService::class)->incrementRedemption($discountCode);
+            }
+        }
+
         $planId = (int) ($metadata['hosting_plan_id'] ?? 0);
         $domain = $metadata['domain'] ?? '';
         $userId = (int) ($metadata['user_id'] ?? 0);

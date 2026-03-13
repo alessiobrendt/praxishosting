@@ -91,6 +91,7 @@ const form = useForm({
     feature_gaming: props.brand.features?.gaming ?? false,
     feature_gameserver_cloud: props.brand.features?.gameserver_cloud ?? false,
     feature_teamspeak: props.brand.features?.teamspeak ?? false,
+    feature_discord_notifications: props.brand.features?.discord_notifications ?? false,
     feature_prepaid_balance: props.brand.features?.prepaid_balance ?? false,
     feature_balance_topup: props.brand.features?.balance_topup ?? false,
     feature_balance_period_months: props.brand.features?.balance_period_months ?? 1,
@@ -124,6 +125,7 @@ const submit = () => {
             gaming: data.feature_gaming,
             gameserver_cloud: data.feature_gameserver_cloud,
             teamspeak: data.feature_teamspeak,
+            discord_notifications: data.feature_discord_notifications,
             prepaid_balance: data.feature_prepaid_balance,
             balance_topup: data.feature_balance_topup,
             balance_period_months: Math.max(1, Math.min(24, Number(data.feature_balance_period_months) || 1)),
@@ -273,6 +275,10 @@ const submit = () => {
                         <div class="flex items-center gap-2">
                             <Checkbox id="feat_teamspeak" v-model="form.feature_teamspeak" />
                             <Label for="feat_teamspeak">TeamSpeak (TeamSpeak-Server mieten)</Label>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Checkbox id="feat_discord_notifications" v-model="form.feature_discord_notifications" />
+                            <Label for="feat_discord_notifications">Discord-Benachrichtigungen (E-Mail-Vorlagen optional per Discord-DM)</Label>
                         </div>
                     </CardContent>
                 </Card>

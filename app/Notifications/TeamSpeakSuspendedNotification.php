@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 
 class TeamSpeakSuspendedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public TeamSpeakServerAccount $teamSpeakServerAccount
@@ -48,5 +48,13 @@ class TeamSpeakSuspendedNotification extends Notification implements ShouldQueue
             ],
             'actionUrl' => $showUrl,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 }

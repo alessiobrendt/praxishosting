@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
 
 class SubscriptionRenewalInvoiceCreatedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsDiscordFromMail;
 
     public function __construct(
         public Invoice $invoice
@@ -61,6 +61,14 @@ class SubscriptionRenewalInvoiceCreatedNotification extends Notification impleme
             'content' => $content,
             'actionUrl' => $content['action_text'] ? $invoiceViewUrl : null,
         ];
+    }
+
+    /**
+     * @return array{content: string}
+     */
+    public function toDiscord(object $notifiable): array
+    {
+        return $this->discordPayloadFromMail($notifiable);
     }
 
     /**
