@@ -18,7 +18,7 @@ class DiscordApiService
     {
         $token = config('services.discord.bot_token');
         if (! $token) {
-            Log::warning('Discord DM not sent: DISCORD_BOT_TOKEN not configured');
+            Log::warning('Discord DM not sent: DISCORD_BOT_TOKEN not configured. Ensure .env has DISCORD_BOT_TOKEN, run php artisan config:clear, and restart the queue worker (php artisan queue:work) so it picks up the token.');
 
             return false;
         }
