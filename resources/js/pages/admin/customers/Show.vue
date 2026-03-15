@@ -1,37 +1,26 @@
+<!-- Admin: Kunde (Detail) -->
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import {
-    ExternalLink,
-    Pencil,
-    Sparkles,
-    LogIn,
-    Globe,
-    FileText,
-    MessageCircle,
-    HardDrive,
-    Server,
-    CreditCard,
-    Headphones,
-    KeyRound,
-} from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
-import InputError from '@/components/InputError.vue';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Heading, Text } from '@/components/ui/typography';
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BNav,
+    BNavItem,
+    BModal,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BButton,
+    BBadge,
+    BTable,
+} from 'bootstrap-vue-next';
+import InputError from '@/components/InputError.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { pushAdminRecent } from '@/composables/useAdminRecent';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
@@ -70,6 +59,7 @@ type CustomerNote = {
 
 type Invoice = {
     id: number;
+    uuid?: string;
     number: string;
     invoice_date: string | null;
     due_date: string | null;
@@ -79,6 +69,7 @@ type Invoice = {
 
 type Ticket = {
     id: number;
+    uuid?: string;
     subject: string;
     status: string;
     ticket_category?: { name: string };
@@ -88,6 +79,7 @@ type Ticket = {
 
 type ResellerDomain = {
     id: number;
+    uuid?: string;
     domain: string;
     status: string;
     expires_at?: string | null;
@@ -95,12 +87,14 @@ type ResellerDomain = {
 
 type WebspaceAccount = {
     id: number;
+    uuid: string;
     hosting_plan?: { name: string };
     hosting_server?: { hostname: string };
 };
 
 type GameServerAccount = {
     id: number;
+    uuid: string;
     name: string;
     hosting_plan?: { name: string };
     hosting_server?: { hostname: string };
@@ -108,6 +102,7 @@ type GameServerAccount = {
 
 type TeamSpeakServerAccount = {
     id: number;
+    uuid: string;
     name: string;
     status: string;
     current_period_ends_at?: string | null;
@@ -179,19 +174,13 @@ const INVOICE_STATUS_LABELS: Record<string, string> = {
 const invoiceStatusLabel = (status: string): string =>
     INVOICE_STATUS_LABELS[status] ?? status;
 
-const invoiceStatusClass = (status: string): string => {
-    const base = 'inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium';
+const invoiceStatusVariant = (status: string): string => {
     switch (status) {
-        case 'paid':
-            return `${base} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300`;
-        case 'pending':
-            return `${base} bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300`;
-        case 'draft':
-            return `${base} bg-muted text-muted-foreground`;
-        case 'sent':
-            return `${base} bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300`;
-        default:
-            return `${base} bg-muted text-muted-foreground`;
+        case 'paid': return 'success';
+        case 'pending': return 'warning';
+        case 'draft': return 'secondary';
+        case 'sent': return 'info';
+        default: return 'secondary';
     }
 };
 
@@ -231,6 +220,7 @@ const showImpersonateButton = computed(
 
 const balanceModalOpen = ref(false);
 const aiTokensModalOpen = ref(false);
+const productsTab = ref<'sites' | 'webspace' | 'gaming' | 'teamspeak' | 'domains'>('sites');
 
 const balanceForm = useForm({
     amount: '',
@@ -293,714 +283,430 @@ onMounted(() => {
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Kunde: ${customer.name}`" />
 
-        <div class="space-y-6">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <Heading level="h1">{{ customer.name }}</Heading>
-                    <div class="mt-2 flex flex-wrap items-center gap-2">
-                        <Text muted>{{ customer.email }}</Text>
-                        <Badge v-if="customer.brand" variant="secondary">{{ customer.brand.name }}</Badge>
-                        <Badge v-if="rankLabel" variant="outline">{{ rankLabel }}</Badge>
-                        <Badge v-if="customer.is_admin" variant="default">Administrator</Badge>
-                    </div>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <Link v-if="showImpersonateButton" :href="impersonateUrl">
-                        <Button variant="outline" size="sm">
-                            <LogIn class="mr-2 h-4 w-4" />
-                            Als Kunde anmelden
-                        </Button>
-                    </Link>
-                    <Link :href="`/admin/customers/${customer.id}/edit`">
-                        <Button variant="outline" size="sm">
-                            <Pencil class="mr-2 h-4 w-4" />
-                            Bearbeiten
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                <Link
-                    :href="`#sites`"
-                    class="rounded-lg border bg-card p-3 text-card-foreground shadow-sm transition-colors hover:bg-muted/50"
-                >
-                    <div class="flex items-center gap-2">
-                        <Globe class="h-4 w-4 text-muted-foreground" />
-                        <span class="text-2xl font-semibold">{{ customer.sites?.length ?? 0 }}</span>
-                    </div>
-                    <Text variant="small" muted>Sites</Text>
-                </Link>
-                <Link
-                    :href="`/admin/invoices?user_id=${customer.id}`"
-                    class="rounded-lg border bg-card p-3 text-card-foreground shadow-sm transition-colors hover:bg-muted/50"
-                >
-                    <div class="flex items-center gap-2">
-                        <FileText class="h-4 w-4 text-muted-foreground" />
-                        <span class="text-2xl font-semibold">{{ invoicesCount }}</span>
-                    </div>
-                    <Text variant="small" muted>Rechnungen</Text>
-                </Link>
-                <Link
-                    :href="`/admin/tickets?user_id=${customer.id}`"
-                    class="rounded-lg border bg-card p-3 text-card-foreground shadow-sm transition-colors hover:bg-muted/50"
-                >
-                    <div class="flex items-center gap-2">
-                        <MessageCircle class="h-4 w-4 text-muted-foreground" />
-                        <span class="text-2xl font-semibold">{{ ticketsCount }}</span>
-                    </div>
-                    <Text variant="small" muted>Tickets</Text>
-                </Link>
-                <Link
-                    :href="`/admin/domains?customer_id=${customer.id}`"
-                    class="rounded-lg border bg-card p-3 text-card-foreground shadow-sm transition-colors hover:bg-muted/50"
-                >
-                    <div class="flex items-center gap-2">
-                        <Globe class="h-4 w-4 text-muted-foreground" />
-                        <span class="text-2xl font-semibold">{{ domainsCount }}</span>
-                    </div>
-                    <Text variant="small" muted>Domains</Text>
-                </Link>
-                <button
-                    type="button"
-                    class="rounded-lg border bg-card p-3 text-left text-card-foreground shadow-sm transition-colors hover:bg-muted/50 cursor-pointer w-full"
-                    @click="balanceModalOpen = true"
-                >
-                    <div class="flex items-center gap-2">
-                        <span class="text-2xl font-semibold">{{ balanceAmount }}</span>
-                    </div>
-                    <Text variant="small" muted>Guthaben</Text>
-                </button>
-                <button
-                    type="button"
-                    class="rounded-lg border bg-card p-3 text-left text-card-foreground shadow-sm transition-colors hover:bg-muted/50 cursor-pointer w-full"
-                    @click="aiTokensModalOpen = true"
-                >
-                    <div class="flex items-center gap-2">
-                        <Sparkles class="h-4 w-4 text-muted-foreground" />
-                        <span class="text-2xl font-semibold">{{ aiTokenBalance }}</span>
-                    </div>
-                    <Text variant="small" muted>AI-Tokens</Text>
-                </button>
-                <div
-                    class="rounded-lg border bg-card p-3 text-card-foreground"
-                    title="Support-PIN (täglich wechselnd)"
-                >
-                    <div class="flex items-center gap-2">
-                        <KeyRound class="h-4 w-4 text-muted-foreground" />
-                        <span class="font-mono text-xl font-semibold tracking-wider">{{ customer.support_pin ?? '–' }}</span>
-                    </div>
-                    <Text variant="small" muted>Support-PIN (gültig bis 00:00)</Text>
-                </div>
-            </div>
-
-            <Dialog v-model:open="balanceModalOpen">
-                <DialogContent class="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Guthaben</DialogTitle>
-                        <DialogDescription>Aktuelles Guthaben und Transaktionen; Guthaben aufladen</DialogDescription>
-                    </DialogHeader>
-                    <div class="space-y-4">
-                        <div>
-                            <Text variant="small" muted>Aktuelles Guthaben:</Text>
-                            <Text class="ml-2 font-medium">{{ customer.customerBalance ? `${customer.customerBalance.balance} €` : '0,00 €' }}</Text>
-                        </div>
-                        <form @submit.prevent="submitBalance" class="space-y-3">
-                            <div class="space-y-2">
-                                <Label for="balance_amount">Betrag (€)</Label>
-                                <Input
-                                    id="balance_amount"
-                                    v-model="balanceForm.amount"
-                                    type="number"
-                                    step="0.01"
-                                    min="0.01"
-                                    placeholder="0,00"
-                                    :aria-invalid="!!balanceForm.errors.amount"
-                                />
-                                <InputError :message="balanceForm.errors.amount" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="balance_description">Beschreibung (optional)</Label>
-                                <Input
-                                    id="balance_description"
-                                    v-model="balanceForm.description"
-                                    placeholder="Guthaben aufladen (Admin)"
-                                    :aria-invalid="!!balanceForm.errors.description"
-                                />
-                                <InputError :message="balanceForm.errors.description" />
-                            </div>
-                            <Button type="submit" :disabled="balanceForm.processing">Guthaben aufladen</Button>
-                        </form>
-                        <div v-if="customer.balanceTransactions?.length">
-                            <Text variant="small" muted class="block mt-4">Letzte Transaktionen</Text>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Datum</TableHead>
-                                        <TableHead>Typ</TableHead>
-                                        <TableHead>Betrag</TableHead>
-                                        <TableHead>Beschreibung</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow v-for="tx in customer.balanceTransactions" :key="tx.id">
-                                        <TableCell>{{ tx.created_at }}</TableCell>
-                                        <TableCell>{{ tx.type }}</TableCell>
-                                        <TableCell :class="parseFloat(tx.amount) >= 0 ? 'text-green-600' : 'text-red-600'">{{ tx.amount }} €</TableCell>
-                                        <TableCell>{{ tx.description ?? '–' }}</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog v-model:open="aiTokensModalOpen">
-                <DialogContent class="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle class="flex items-center gap-2">
-                            <Sparkles class="h-5 w-5" />
-                            AI Tokens
-                        </DialogTitle>
-                        <DialogDescription>
-                            Aktueller Token-Stand und manuelle Anpassung (hinzufügen oder abziehen)
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div class="space-y-4">
-                        <div>
-                            <Text variant="small" muted>Aktueller Token-Stand:</Text>
-                            <Text class="ml-2 font-medium">{{ aiTokenBalance }}</Text>
-                        </div>
-                        <form @submit.prevent="submitAiTokens" class="space-y-3">
-                            <div class="space-y-2">
-                                <Label for="ai_tokens_amount">Anzahl (+ hinzufügen, − abziehen)</Label>
-                                <Input
-                                    id="ai_tokens_amount"
-                                    v-model="aiTokensForm.amount"
-                                    type="number"
-                                    step="1"
-                                    placeholder="z.B. 500 oder -100"
-                                    :aria-invalid="!!aiTokensForm.errors.amount"
-                                />
-                                <InputError :message="aiTokensForm.errors.amount" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="ai_tokens_description">Beschreibung</Label>
-                                <Input
-                                    id="ai_tokens_description"
-                                    v-model="aiTokensForm.description"
-                                    placeholder="Admin-Anpassung"
-                                    :aria-invalid="!!aiTokensForm.errors.description"
-                                />
-                                <InputError :message="aiTokensForm.errors.description" />
-                            </div>
-                            <Button type="submit" :disabled="aiTokensForm.processing">Tokens anpassen</Button>
-                        </form>
-                        <div v-if="aiTokenTransactions?.length">
-                            <Text variant="small" muted class="block mt-4">Letzte Transaktionen</Text>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Datum</TableHead>
-                                        <TableHead>Typ</TableHead>
-                                        <TableHead>Betrag</TableHead>
-                                        <TableHead>Beschreibung</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow v-for="tx in aiTokenTransactions" :key="tx.id">
-                                        <TableCell>{{ tx.created_at }}</TableCell>
-                                        <TableCell>{{ tx.type }}</TableCell>
-                                        <TableCell :class="tx.amount >= 0 ? 'text-green-600' : 'text-red-600'">
-                                            {{ tx.amount >= 0 ? '+' : '' }}{{ tx.amount }}
-                                        </TableCell>
-                                        <TableCell>{{ tx.description ?? '–' }}</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            <div class="grid gap-6 lg:grid-cols-2">
-                <div class="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Stammdaten</CardTitle>
-                            <CardDescription>Name, E-Mail, Firma, Adresse</CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-3">
-                            <div class="grid gap-2 sm:grid-cols-2">
-                                <div>
-                                    <Text variant="small" muted>Name</Text>
-                                    <Text class="block">{{ customer.name }}</Text>
-                                </div>
-                                <div>
-                                    <Text variant="small" muted>E-Mail</Text>
-                                    <Text class="block">{{ customer.email }}</Text>
-                                </div>
-                                <div>
-                                    <Text variant="small" muted>Telefon</Text>
-                                    <Text class="block">{{ customer.phone ?? '–' }}</Text>
-                                </div>
-                                <div>
-                                    <Text variant="small" muted>Firma</Text>
-                                    <Text class="block">{{ customer.company ?? '–' }}</Text>
-                                </div>
-                                <div>
-                                    <Text variant="small" muted>Straße</Text>
-                                    <Text class="block">{{ customer.street ?? '–' }}</Text>
-                                </div>
-                                <div>
-                                    <Text variant="small" muted>PLZ</Text>
-                                    <Text class="block">{{ customer.postal_code ?? '–' }}</Text>
-                                </div>
-                                <div>
-                                    <Text variant="small" muted>Ort</Text>
-                                    <Text class="block">{{ customer.city ?? '–' }}</Text>
-                                </div>
-                                <div>
-                                    <Text variant="small" muted>Land</Text>
-                                    <Text class="block">{{ customer.country ?? '–' }}</Text>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle class="flex items-center gap-2">
-                                <CreditCard class="h-5 w-5" />
-                                Mollie
-                            </CardTitle>
-                            <CardDescription>Zahlungen, Abos – Kunden-ID bei Mollie</CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-2">
-                            <div>
-                                <Text variant="small" muted>Mollie-Kunden-ID</Text>
-                                <div class="mt-1 flex flex-wrap items-center gap-2">
-                                    <code v-if="customer.mollie_customer_id" class="rounded bg-muted px-2 py-1 text-sm font-mono">{{ customer.mollie_customer_id }}</code>
-                                    <Text v-else class="text-muted-foreground">–</Text>
-                                    <a
-                                        v-if="customer.mollie_customer_id"
-                                        :href="`https://www.mollie.com/dashboard/customers/${customer.mollie_customer_id}`"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="text-sm text-primary hover:underline inline-flex items-center gap-1"
-                                    >
-                                        Bei Mollie anzeigen
-                                        <ExternalLink class="h-3.5 w-3.5" />
-                                    </a>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-            <Card v-if="customer.customer_notes !== undefined">
-                <CardHeader>
-                    <CardTitle>Notizen</CardTitle>
-                    <CardDescription>Kundennotizen; neue Notiz anlegen</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <form @submit.prevent="submitNote" class="space-y-3">
-                        <div class="space-y-2">
-                            <Label for="note_body">Neue Notiz</Label>
-                            <Textarea
-                                id="note_body"
-                                v-model="noteForm.body"
-                                rows="3"
-                                placeholder="Notiz eingeben…"
-                                :aria-invalid="!!noteForm.errors.body"
-                            />
-                            <InputError :message="noteForm.errors.body" />
-                        </div>
-                        <Button type="submit" size="sm" :disabled="noteForm.processing">Notiz speichern</Button>
-                    </form>
-                    <div v-if="customer.customer_notes?.length" class="space-y-2 border-t pt-4">
-                        <Text variant="small" muted class="block">Letzte Notizen</Text>
-                        <ul class="space-y-2">
-                            <li
-                                v-for="note in customer.customer_notes"
-                                :key="note.id"
-                                class="rounded-md border bg-muted/30 p-3 text-sm"
-                            >
-                                <Text class="whitespace-pre-wrap">{{ note.body }}</Text>
-                                <Text variant="small" muted class="mt-1 block">
-                                    {{ note.created_at }}
-                                    <span v-if="note.admin"> · {{ note.admin.name }}</span>
-                                </Text>
-                            </li>
-                        </ul>
-                    </div>
-                </CardContent>
-            </Card>
-                </div>
-
-                <div class="space-y-6">
-                    <Card>
-                        <CardHeader class="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle>Rechnungen</CardTitle>
-                                <CardDescription>Letzte Rechnungen</CardDescription>
-                            </div>
-                            <Link :href="`/admin/invoices?user_id=${customer.id}`">
-                                <Button variant="ghost" size="sm">Alle anzeigen</Button>
-                            </Link>
-                        </CardHeader>
-                        <CardContent>
-                            <Table v-if="customer.invoices?.length" class="text-sm">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Nr.</TableHead>
-                                        <TableHead>Datum</TableHead>
-                                        <TableHead>Betrag</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead class="w-10" />
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow v-for="inv in customer.invoices.slice(0, 5)" :key="inv.uuid">
-                                        <TableCell class="font-medium">{{ inv.number }}</TableCell>
-                                        <TableCell>{{ inv.invoice_date ?? '–' }}</TableCell>
-                                        <TableCell>{{ inv.amount }} €</TableCell>
-                                        <TableCell>
-                                            <span :class="invoiceStatusClass(inv.status)">
-                                                {{ invoiceStatusLabel(inv.status) }}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Link :href="`/admin/invoices/${inv.uuid}`">
-                                                <Button variant="ghost" size="sm" aria-label="Anzeigen"><ExternalLink class="h-3 w-3" /></Button>
-                                            </Link>
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                            <Text v-else variant="small" muted>Keine Rechnungen</Text>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader class="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle>Tickets</CardTitle>
-                                <CardDescription>Support-Tickets</CardDescription>
-                            </div>
-                            <Link :href="`/admin/tickets?user_id=${customer.id}`">
-                                <Button variant="ghost" size="sm">Alle anzeigen</Button>
-                            </Link>
-                        </CardHeader>
-                        <CardContent>
-                            <Table v-if="customer.tickets?.length" class="text-sm">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Betreff</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead class="w-10" />
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow v-for="t in customer.tickets.slice(0, 5)" :key="t.id">
-                                        <TableCell class="font-medium">{{ t.subject }}</TableCell>
-                                        <TableCell>{{ t.status }}</TableCell>
-                                        <TableCell>
-                                            <Link :href="`/admin/tickets/${t.uuid}`">
-                                                <Button variant="ghost" size="sm" aria-label="Anzeigen"><ExternalLink class="h-3 w-3" /></Button>
-                                            </Link>
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                            <Text v-else variant="small" muted>Keine Tickets</Text>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-
-            <Card id="sites">
-                <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+        <BRow>
+            <BCol>
+                <div class="mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
                     <div>
-                        <CardTitle>Produkte &amp; Domains</CardTitle>
-                        <CardDescription>Webseiten, Webspace, Game-Server und Reseller-Domains dieses Kunden</CardDescription>
+                        <h4 class="mb-1">{{ customer.name }}</h4>
+                        <p class="text-muted small mb-0 d-flex flex-wrap align-items-center gap-2">
+                            <span>{{ customer.email }}</span>
+                            <BBadge v-if="customer.brand" variant="secondary">{{ customer.brand.name }}</BBadge>
+                            <BBadge v-if="rankLabel" variant="outline">{{ rankLabel }}</BBadge>
+                            <BBadge v-if="customer.is_admin" variant="primary">Administrator</BBadge>
+                        </p>
                     </div>
-                </CardHeader>
-                <CardContent>
-                    <Tabs default-tab="sites" class="w-full">
-                        <TabsList class="mb-4 flex flex-wrap gap-1">
-                            <TabsTrigger value="sites">
-                                <Globe class="mr-1.5 h-4 w-4" />
-                                Webseiten ({{ customer.sites?.length ?? 0 }})
-                            </TabsTrigger>
-                            <TabsTrigger value="webspace">
-                                <HardDrive class="mr-1.5 h-4 w-4" />
-                                Webspace ({{ customer.webspace_accounts?.length ?? 0 }})
-                            </TabsTrigger>
-                            <TabsTrigger value="gaming">
-                                <Server class="mr-1.5 h-4 w-4" />
-                                Game-Server ({{ customer.game_server_accounts?.length ?? 0 }})
-                            </TabsTrigger>
-                            <TabsTrigger value="teamspeak">
-                                <Headphones class="mr-1.5 h-4 w-4" />
-                                TeamSpeak ({{ customer.team_speak_server_accounts?.length ?? 0 }})
-                            </TabsTrigger>
-                            <TabsTrigger value="domains">
-                                <Globe class="mr-1.5 h-4 w-4" />
-                                Reseller-Domains ({{ customer.reseller_domains?.length ?? 0 }})
-                            </TabsTrigger>
-                        </TabsList>
+                    <div class="d-flex flex-wrap gap-2">
+                        <Link v-if="showImpersonateButton" :href="impersonateUrl">
+                            <BButton variant="outline-primary" size="sm">
+                                <Icon icon="login" class="me-1" /> Als Kunde anmelden
+                            </BButton>
+                        </Link>
+                        <Link :href="`/admin/customers/${customer.id}/edit`">
+                            <BButton variant="outline-primary" size="sm">
+                                <Icon icon="pencil" class="me-1" /> Bearbeiten
+                            </BButton>
+                        </Link>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">Kundendetail: Stammdaten, Produkte, Rechnungen und Tickets</p>
+            </BCol>
+        </BRow>
 
-                        <TabsContent value="sites" class="mt-0">
-                            <div class="overflow-x-auto rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Slug</TableHead>
-                                            <TableHead>Template</TableHead>
-                                            <TableHead>Laufzeit Ende</TableHead>
-                                            <TableHead class="text-right w-20">Aktionen</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow v-for="site in customer.sites" :key="site.uuid">
-                                            <TableCell class="font-medium">{{ site.name }}</TableCell>
-                                            <TableCell>
-                                                <code class="rounded bg-muted px-1.5 py-0.5 text-xs">{{ site.slug }}</code>
-                                            </TableCell>
-                                            <TableCell class="text-muted-foreground">{{ site.template?.name ?? '–' }}</TableCell>
-                                            <TableCell class="text-muted-foreground text-sm">
-                                                {{ site.site_subscription?.current_period_ends_at ?? '–' }}
-                                            </TableCell>
-                                            <TableCell class="text-right">
-                                                <Link :href="sitesShow({ site: site.uuid }).url">
-                                                    <Button variant="ghost" size="sm" aria-label="Bearbeiten">
-                                                        <ExternalLink class="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </Link>
-                                            </TableCell>
-                                        </TableRow>
-                                        <TableRow v-if="!customer.sites?.length">
-                                            <TableCell colspan="5" class="text-center text-muted-foreground py-8">
-                                                Keine Webseiten
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </TabsContent>
+        <BRow class="mb-4">
+            <BCol cols="6" md="4" lg="2" class="mb-3">
+                <Link :href="`#sites`" class="text-decoration-none">
+                    <BCard class="h-100 hover-shadow">
+                        <BCardBody class="py-3 d-flex align-items-center gap-2">
+                            <Icon icon="world" class="text-muted" />
+                            <span class="fs-4 fw-semibold">{{ customer.sites?.length ?? 0 }}</span>
+                        </BCardBody>
+                        <BCardBody class="py-2 pt-0 small text-muted">Sites</BCardBody>
+                    </BCard>
+                </Link>
+            </BCol>
+            <BCol cols="6" md="4" lg="2" class="mb-3">
+                <Link :href="`/admin/invoices?user_id=${customer.id}`" class="text-decoration-none">
+                    <BCard class="h-100 hover-shadow">
+                        <BCardBody class="py-3 d-flex align-items-center gap-2">
+                            <Icon icon="file-text" class="text-muted" />
+                            <span class="fs-4 fw-semibold">{{ invoicesCount }}</span>
+                        </BCardBody>
+                        <BCardBody class="py-2 pt-0 small text-muted">Rechnungen</BCardBody>
+                    </BCard>
+                </Link>
+            </BCol>
+            <BCol cols="6" md="4" lg="2" class="mb-3">
+                <Link :href="`/admin/tickets?user_id=${customer.id}`" class="text-decoration-none">
+                    <BCard class="h-100 hover-shadow">
+                        <BCardBody class="py-3 d-flex align-items-center gap-2">
+                            <Icon icon="message-circle" class="text-muted" />
+                            <span class="fs-4 fw-semibold">{{ ticketsCount }}</span>
+                        </BCardBody>
+                        <BCardBody class="py-2 pt-0 small text-muted">Tickets</BCardBody>
+                    </BCard>
+                </Link>
+            </BCol>
+            <BCol cols="6" md="4" lg="2" class="mb-3">
+                <Link :href="`/admin/domains?customer_id=${customer.id}`" class="text-decoration-none">
+                    <BCard class="h-100 hover-shadow">
+                        <BCardBody class="py-3 d-flex align-items-center gap-2">
+                            <Icon icon="world" class="text-muted" />
+                            <span class="fs-4 fw-semibold">{{ domainsCount }}</span>
+                        </BCardBody>
+                        <BCardBody class="py-2 pt-0 small text-muted">Domains</BCardBody>
+                    </BCard>
+                </Link>
+            </BCol>
+            <BCol cols="6" md="4" lg="2" class="mb-3">
+                <BCard class="h-100 cursor-pointer" @click="balanceModalOpen = true">
+                    <BCardBody class="py-3">
+                        <span class="fs-4 fw-semibold">{{ balanceAmount }}</span>
+                    </BCardBody>
+                    <BCardBody class="py-2 pt-0 small text-muted">Guthaben</BCardBody>
+                </BCard>
+            </BCol>
+            <BCol cols="6" md="4" lg="2" class="mb-3">
+                <BCard class="h-100 cursor-pointer" @click="aiTokensModalOpen = true">
+                    <BCardBody class="py-3 d-flex align-items-center gap-2">
+                        <Icon icon="sparkles" class="text-muted" />
+                        <span class="fs-4 fw-semibold">{{ aiTokenBalance }}</span>
+                    </BCardBody>
+                    <BCardBody class="py-2 pt-0 small text-muted">AI-Tokens</BCardBody>
+                </BCard>
+            </BCol>
+            <BCol cols="6" md="4" lg="2" class="mb-3">
+                <BCard class="h-100" title="Support-PIN (täglich wechselnd)">
+                    <BCardBody class="py-3 d-flex align-items-center gap-2">
+                        <Icon icon="key" class="text-muted" />
+                        <span class="font-monospace fs-5 fw-semibold">{{ customer.support_pin ?? '–' }}</span>
+                    </BCardBody>
+                    <BCardBody class="py-2 pt-0 small text-muted">Support-PIN (gültig bis 00:00)</BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
 
-                        <TabsContent value="webspace" class="mt-0">
-                            <div class="overflow-x-auto rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>ID</TableHead>
-                                            <TableHead>Paket / Plan</TableHead>
-                                            <TableHead>Server / Node</TableHead>
-                                            <TableHead class="text-right w-20">Aktionen</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow v-for="wa in customer.webspace_accounts" :key="wa.id">
-                                            <TableCell class="font-mono text-sm text-muted-foreground">{{ wa.id }}</TableCell>
-                                            <TableCell class="font-medium">{{ wa.hosting_plan?.name ?? '–' }}</TableCell>
-                                            <TableCell>
-                                                <code class="rounded bg-muted px-1.5 py-0.5 text-xs">{{ wa.hosting_server?.hostname ?? '–' }}</code>
-                                            </TableCell>
-                                            <TableCell class="text-right">
-                                                <Link :href="`/admin/webspace-accounts/${wa.id}`">
-                                                    <Button variant="ghost" size="sm" aria-label="Anzeigen">
-                                                        <ExternalLink class="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </Link>
-                                            </TableCell>
-                                        </TableRow>
-                                        <TableRow v-if="!customer.webspace_accounts?.length">
-                                            <TableCell colspan="4" class="text-center text-muted-foreground py-8">
-                                                Keine Webspace-Accounts
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <Link
-                                v-if="customer.webspace_accounts?.length"
-                                :href="`/admin/webspace-accounts?user_id=${customer.id}`"
-                                class="mt-3 inline-block text-sm text-primary hover:underline"
+        <BModal v-model="balanceModalOpen" title="Guthaben" hide-footer>
+            <p class="text-muted small mb-3">Aktuelles Guthaben und Transaktionen; Guthaben aufladen</p>
+            <div class="mb-3">
+                <span class="small text-muted">Aktuelles Guthaben:</span>
+                <span class="ms-2 fw-medium">{{ customer.customerBalance ? `${customer.customerBalance.balance} €` : '0,00 €' }}</span>
+            </div>
+            <BForm @submit.prevent="submitBalance">
+                <BFormGroup label="Betrag (€)" label-for="balance_amount">
+                    <BFormInput
+                        id="balance_amount"
+                        v-model="balanceForm.amount"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="0,00"
+                        :aria-invalid="!!balanceForm.errors.amount"
+                    />
+                    <InputError :message="balanceForm.errors.amount" />
+                </BFormGroup>
+                <BFormGroup label="Beschreibung (optional)" label-for="balance_description">
+                    <BFormInput
+                        id="balance_description"
+                        v-model="balanceForm.description"
+                        placeholder="Guthaben aufladen (Admin)"
+                        :aria-invalid="!!balanceForm.errors.description"
+                    />
+                    <InputError :message="balanceForm.errors.description" />
+                </BFormGroup>
+                <BButton type="submit" variant="primary" :disabled="balanceForm.processing">Guthaben aufladen</BButton>
+            </BForm>
+            <div v-if="customer.balanceTransactions?.length" class="mt-4">
+                <p class="small text-muted mb-2">Letzte Transaktionen</p>
+                <BTable small :items="customer.balanceTransactions" :fields="[{ key: 'created_at', label: 'Datum' }, { key: 'type', label: 'Typ' }, { key: 'amount', label: 'Betrag' }, { key: 'description', label: 'Beschreibung' }]">
+                    <template #cell(amount)="{ item }">
+                        <span :class="parseFloat(item.amount) >= 0 ? 'text-success' : 'text-danger'">{{ item.amount }} €</span>
+                    </template>
+                    <template #cell(description)="{ item }">
+                        {{ item.description ?? '–' }}
+                    </template>
+                </BTable>
+            </div>
+        </BModal>
+
+        <BModal v-model="aiTokensModalOpen" title="AI Tokens" hide-footer>
+            <p class="text-muted small mb-3">Aktueller Token-Stand und manuelle Anpassung (hinzufügen oder abziehen)</p>
+            <div class="mb-3">
+                <span class="small text-muted">Aktueller Token-Stand:</span>
+                <span class="ms-2 fw-medium">{{ aiTokenBalance }}</span>
+            </div>
+            <BForm @submit.prevent="submitAiTokens">
+                <BFormGroup label="Anzahl (+ hinzufügen, − abziehen)" label-for="ai_tokens_amount">
+                    <BFormInput
+                        id="ai_tokens_amount"
+                        v-model="aiTokensForm.amount"
+                        type="number"
+                        step="1"
+                        placeholder="z.B. 500 oder -100"
+                        :aria-invalid="!!aiTokensForm.errors.amount"
+                    />
+                    <InputError :message="aiTokensForm.errors.amount" />
+                </BFormGroup>
+                <BFormGroup label="Beschreibung" label-for="ai_tokens_description">
+                    <BFormInput
+                        id="ai_tokens_description"
+                        v-model="aiTokensForm.description"
+                        placeholder="Admin-Anpassung"
+                        :aria-invalid="!!aiTokensForm.errors.description"
+                    />
+                    <InputError :message="aiTokensForm.errors.description" />
+                </BFormGroup>
+                <BButton type="submit" variant="primary" :disabled="aiTokensForm.processing">Tokens anpassen</BButton>
+            </BForm>
+            <div v-if="aiTokenTransactions?.length" class="mt-4">
+                <p class="small text-muted mb-2">Letzte Transaktionen</p>
+                <BTable small :items="aiTokenTransactions" :fields="[{ key: 'created_at', label: 'Datum' }, { key: 'type', label: 'Typ' }, { key: 'amount', label: 'Betrag' }, { key: 'description', label: 'Beschreibung' }]">
+                    <template #cell(amount)="{ item }">
+                        <span :class="item.amount >= 0 ? 'text-success' : 'text-danger'">{{ item.amount >= 0 ? '+' : '' }}{{ item.amount }}</span>
+                    </template>
+                    <template #cell(description)="{ item }">
+                        {{ item.description ?? '–' }}
+                    </template>
+                </BTable>
+            </div>
+        </BModal>
+
+        <BRow>
+            <BCol lg="6" class="mb-4">
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Stammdaten</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Name, E-Mail, Firma, Adresse</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div class="row g-2 small">
+                            <div class="col-sm-6"><span class="text-muted">Name</span><div>{{ customer.name }}</div></div>
+                            <div class="col-sm-6"><span class="text-muted">E-Mail</span><div>{{ customer.email }}</div></div>
+                            <div class="col-sm-6"><span class="text-muted">Telefon</span><div>{{ customer.phone ?? '–' }}</div></div>
+                            <div class="col-sm-6"><span class="text-muted">Firma</span><div>{{ customer.company ?? '–' }}</div></div>
+                            <div class="col-sm-6"><span class="text-muted">Straße</span><div>{{ customer.street ?? '–' }}</div></div>
+                            <div class="col-sm-6"><span class="text-muted">PLZ</span><div>{{ customer.postal_code ?? '–' }}</div></div>
+                            <div class="col-sm-6"><span class="text-muted">Ort</span><div>{{ customer.city ?? '–' }}</div></div>
+                            <div class="col-sm-6"><span class="text-muted">Land</span><div>{{ customer.country ?? '–' }}</div></div>
+                        </div>
+                    </BCardBody>
+                </BCard>
+
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0 d-flex align-items-center gap-2">
+                            <Icon icon="credit-card" /> Mollie
+                        </BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Zahlungen, Abos – Kunden-ID bei Mollie</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <p class="small text-muted mb-1">Mollie-Kunden-ID</p>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <code v-if="customer.mollie_customer_id" class="rounded bg-light px-2 py-1 small">{{ customer.mollie_customer_id }}</code>
+                            <span v-else class="text-muted">–</span>
+                            <a
+                                v-if="customer.mollie_customer_id"
+                                :href="`https://www.mollie.com/dashboard/customers/${customer.mollie_customer_id}`"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="small d-inline-flex align-items-center gap-1"
                             >
-                                Alle Webspace-Accounts anzeigen →
-                            </Link>
-                        </TabsContent>
+                                Bei Mollie anzeigen <Icon icon="external-link" />
+                            </a>
+                        </div>
+                    </BCardBody>
+                </BCard>
 
-                        <TabsContent value="gaming" class="mt-0">
-                            <div class="overflow-x-auto rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>ID</TableHead>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Paket / Plan</TableHead>
-                                            <TableHead>Server / Node</TableHead>
-                                            <TableHead class="text-right w-20">Aktionen</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow v-for="ga in customer.game_server_accounts" :key="ga.id">
-                                            <TableCell class="font-mono text-sm text-muted-foreground">{{ ga.id }}</TableCell>
-                                            <TableCell class="font-medium">{{ ga.name ?? '–' }}</TableCell>
-                                            <TableCell>{{ ga.hosting_plan?.name ?? '–' }}</TableCell>
-                                            <TableCell>
-                                                <code class="rounded bg-muted px-1.5 py-0.5 text-xs">{{ ga.hosting_server?.hostname ?? '–' }}</code>
-                                            </TableCell>
-                                            <TableCell class="text-right">
-                                                <Link :href="`/admin/gaming-accounts/${ga.id}`">
-                                                    <Button variant="ghost" size="sm" aria-label="Anzeigen">
-                                                        <ExternalLink class="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </Link>
-                                            </TableCell>
-                                        </TableRow>
-                                        <TableRow v-if="!customer.game_server_accounts?.length">
-                                            <TableCell colspan="5" class="text-center text-muted-foreground py-8">
-                                                Keine Game-Server-Accounts
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <Link
-                                v-if="customer.game_server_accounts?.length"
-                                :href="`/admin/gaming-accounts?user_id=${customer.id}`"
-                                class="mt-3 inline-block text-sm text-primary hover:underline"
-                            >
-                                Alle Game-Server anzeigen →
-                            </Link>
-                        </TabsContent>
+                <BCard v-if="customer.customer_notes !== undefined" no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Notizen</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Kundennotizen; neue Notiz anlegen</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BForm @submit.prevent="submitNote">
+                            <BFormGroup label="Neue Notiz" label-for="note_body">
+                                <textarea
+                                    id="note_body"
+                                    v-model="noteForm.body"
+                                    class="form-control"
+                                    rows="3"
+                                    placeholder="Notiz eingeben…"
+                                    :aria-invalid="!!noteForm.errors.body"
+                                />
+                                <InputError :message="noteForm.errors.body" />
+                            </BFormGroup>
+                            <BButton type="submit" size="sm" variant="primary" :disabled="noteForm.processing">Notiz speichern</BButton>
+                        </BForm>
+                        <div v-if="customer.customer_notes?.length" class="mt-4 pt-3 border-top">
+                            <p class="small text-muted mb-2">Letzte Notizen</p>
+                            <ul class="list-unstyled mb-0">
+                                <li v-for="note in customer.customer_notes" :key="note.id" class="rounded border p-3 mb-2 bg-light small">
+                                    <span class="whitespace-pre-wrap d-block">{{ note.body }}</span>
+                                    <span class="text-muted small">{{ note.created_at }}<template v-if="note.admin"> · {{ note.admin.name }}</template></span>
+                                </li>
+                            </ul>
+                        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
 
-                        <TabsContent value="teamspeak" class="mt-0">
-                            <div class="overflow-x-auto rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>ID</TableHead>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Paket / Plan</TableHead>
-                                            <TableHead>Server</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Laufzeit Ende</TableHead>
-                                            <TableHead class="text-right w-20">Aktionen</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow v-for="ts in customer.team_speak_server_accounts" :key="ts.id">
-                                            <TableCell class="font-mono text-sm text-muted-foreground">{{ ts.id }}</TableCell>
-                                            <TableCell class="font-medium">{{ ts.name ?? '–' }}</TableCell>
-                                            <TableCell>{{ ts.hosting_plan?.name ?? '–' }}</TableCell>
-                                            <TableCell>
-                                                <code class="rounded bg-muted px-1.5 py-0.5 text-xs">{{ ts.hosting_server?.hostname ?? '–' }}</code>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span class="inline-flex items-center rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                                                    {{ ts.status }}
-                                                </span>
-                                                <span v-if="ts.mollie_subscription_id" class="ml-1 text-xs text-green-600 dark:text-green-400" title="Mollie-Abo aktiv">Abo</span>
-                                                <span v-if="ts.cancel_at_period_end" class="ml-1 text-xs text-amber-600 dark:text-amber-400" title="Zum Periodenende gekündigt">↷</span>
-                                            </TableCell>
-                                            <TableCell class="text-muted-foreground text-sm">{{ ts.current_period_ends_at ?? '–' }}</TableCell>
-                                            <TableCell class="text-right">
-                                                <Link :href="`/admin/teamspeak-accounts/${ts.id}`">
-                                                    <Button variant="ghost" size="sm" aria-label="Anzeigen">
-                                                        <ExternalLink class="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </Link>
-                                            </TableCell>
-                                        </TableRow>
-                                        <TableRow v-if="!customer.team_speak_server_accounts?.length">
-                                            <TableCell colspan="7" class="text-center text-muted-foreground py-8">
-                                                Keine TeamSpeak-Server
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <Link
-                                v-if="customer.team_speak_server_accounts?.length"
-                                :href="`/admin/teamspeak-accounts?user_id=${customer.id}`"
-                                class="mt-3 inline-block text-sm text-primary hover:underline"
-                            >
-                                Alle TeamSpeak-Server anzeigen →
-                            </Link>
-                        </TabsContent>
+            <BCol lg="6" class="mb-4">
+                <BCard no-body class="mb-4">
+                    <BCardHeader class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div>
+                            <BCardTitle class="mb-0">Rechnungen</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">Letzte Rechnungen</p>
+                        </div>
+                        <Link :href="`/admin/invoices?user_id=${customer.id}`">
+                            <BButton variant="link" size="sm">Alle anzeigen</BButton>
+                        </Link>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BTable v-if="customer.invoices?.length" small :items="customer.invoices.slice(0, 5)" :fields="[{ key: 'number', label: 'Nr.' }, { key: 'invoice_date', label: 'Datum' }, { key: 'amount', label: 'Betrag' }, { key: 'status', label: 'Status' }, { key: 'actions', label: '' }]">
+                            <template #cell(invoice_date)="{ item }">{{ item.invoice_date ?? '–' }}</template>
+                            <template #cell(amount)="{ item }">{{ item.amount }} €</template>
+                            <template #cell(status)="{ item }">
+                                <BBadge :variant="invoiceStatusVariant(item.status)">{{ invoiceStatusLabel(item.status) }}</BBadge>
+                            </template>
+                            <template #cell(actions)="{ item }">
+                                <Link :href="`/admin/invoices/${(item as Invoice).uuid ?? (item as Invoice).id}`">
+                                    <BButton variant="link" size="sm" aria-label="Anzeigen"><Icon icon="external-link" /></BButton>
+                                </Link>
+                            </template>
+                        </BTable>
+                        <p v-else class="small text-muted mb-0">Keine Rechnungen</p>
+                    </BCardBody>
+                </BCard>
 
-                        <TabsContent value="domains" class="mt-0">
-                            <div class="overflow-x-auto rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Domain</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Ablauf</TableHead>
-                                            <TableHead class="text-right w-20">Aktionen</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow v-for="d in customer.reseller_domains" :key="d.uuid">
-                                            <TableCell class="font-medium">{{ d.domain }}</TableCell>
-                                            <TableCell>
-                                                <span class="inline-flex items-center rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                                                {{ d.status }}
-                                            </span>
-                                            </TableCell>
-                                            <TableCell class="text-muted-foreground text-sm">{{ d.expires_at ?? '–' }}</TableCell>
-                                            <TableCell class="text-right">
-                                                <Link :href="`/admin/domains/${d.uuid}`">
-                                                    <Button variant="ghost" size="sm" aria-label="Anzeigen">
-                                                        <ExternalLink class="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </Link>
-                                            </TableCell>
-                                        </TableRow>
-                                        <TableRow v-if="!customer.reseller_domains?.length">
-                                            <TableCell colspan="4" class="text-center text-muted-foreground py-8">
-                                                Keine Reseller-Domains
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <Link
-                                v-if="customer.reseller_domains?.length"
-                                :href="`/admin/domains?customer_id=${customer.id}`"
-                                class="mt-3 inline-block text-sm text-primary hover:underline"
-                            >
-                                Alle Domains anzeigen →
-                            </Link>
-                        </TabsContent>
-                    </Tabs>
-                </CardContent>
-            </Card>
+                <BCard no-body>
+                    <BCardHeader class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div>
+                            <BCardTitle class="mb-0">Tickets</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">Support-Tickets</p>
+                        </div>
+                        <Link :href="`/admin/tickets?user_id=${customer.id}`">
+                            <BButton variant="link" size="sm">Alle anzeigen</BButton>
+                        </Link>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BTable v-if="customer.tickets?.length" small :items="customer.tickets.slice(0, 5)" :fields="[{ key: 'subject', label: 'Betreff' }, { key: 'status', label: 'Status' }, { key: 'actions', label: '' }]">
+                            <template #cell(actions)="{ item }">
+                                <Link :href="`/admin/tickets/${(item as Ticket).uuid}`">
+                                    <BButton variant="link" size="sm" aria-label="Anzeigen"><Icon icon="external-link" /></BButton>
+                                </Link>
+                            </template>
+                        </BTable>
+                        <p v-else class="small text-muted mb-0">Keine Tickets</p>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
 
-            <Card v-if="activityLog?.length">
-                <CardHeader>
-                    <CardTitle>Letzte Änderungen</CardTitle>
-                    <CardDescription>Aktivitätslog für diesen Kunden</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ul class="space-y-2">
-                        <li
-                            v-for="entry in activityLog"
-                            :key="entry.id"
-                            class="flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
-                        >
-                            <span class="font-medium">{{ actionLabels[entry.action] ?? entry.action }}</span>
-                            <span class="text-muted-foreground">{{ entry.created_at }}</span>
-                            <span v-if="entry.user" class="text-muted-foreground">· {{ entry.user.name }}</span>
-                        </li>
-                    </ul>
-                </CardContent>
-            </Card>
-        </div>
+        <BCard id="sites" no-body class="mb-4">
+            <BCardHeader>
+                <BCardTitle class="mb-0">Produkte &amp; Domains</BCardTitle>
+                <p class="text-muted small mb-0 mt-1">Webseiten, Webspace, Game-Server und Reseller-Domains dieses Kunden</p>
+            </BCardHeader>
+            <BCardBody>
+                <BNav tabs class="mb-4 flex-wrap">
+                    <BNavItem :active="productsTab === 'sites'" @click="productsTab = 'sites'">
+                        <Icon icon="world" class="me-1" /> Webseiten ({{ customer.sites?.length ?? 0 }})
+                    </BNavItem>
+                    <BNavItem :active="productsTab === 'webspace'" @click="productsTab = 'webspace'">
+                        <Icon icon="device-desktop" class="me-1" /> Webspace ({{ customer.webspace_accounts?.length ?? 0 }})
+                    </BNavItem>
+                    <BNavItem :active="productsTab === 'gaming'" @click="productsTab = 'gaming'">
+                        <Icon icon="server" class="me-1" /> Game-Server ({{ customer.game_server_accounts?.length ?? 0 }})
+                    </BNavItem>
+                    <BNavItem :active="productsTab === 'teamspeak'" @click="productsTab = 'teamspeak'">
+                        <Icon icon="headphones" class="me-1" /> TeamSpeak ({{ customer.team_speak_server_accounts?.length ?? 0 }})
+                    </BNavItem>
+                    <BNavItem :active="productsTab === 'domains'" @click="productsTab = 'domains'">
+                        <Icon icon="world" class="me-1" /> Reseller-Domains ({{ customer.reseller_domains?.length ?? 0 }})
+                    </BNavItem>
+                </BNav>
+
+                <div v-show="productsTab === 'sites'">
+                    <BTable small :items="customer.sites ?? []" :fields="[{ key: 'name', label: 'Name' }, { key: 'slug', label: 'Slug' }, { key: 'template_name', label: 'Template' }, { key: 'period_end', label: 'Laufzeit Ende' }, { key: 'actions', label: '', thClass: 'text-end' }]">
+                        <template #cell(slug)="{ item }"><code class="rounded bg-light px-1 small">{{ item.slug }}</code></template>
+                        <template #cell(template_name)="{ item }">{{ item.template?.name ?? '–' }}</template>
+                        <template #cell(period_end)="{ item }">{{ item.site_subscription?.current_period_ends_at ?? '–' }}</template>
+                        <template #cell(actions)="{ item }">
+                            <Link :href="sitesShow({ site: item.uuid }).url"><BButton variant="link" size="sm" aria-label="Bearbeiten"><Icon icon="external-link" /></BButton></Link>
+                        </template>
+                    </BTable>
+                    <p v-if="!customer.sites?.length" class="text-muted text-center py-4 mb-0">Keine Webseiten</p>
+                </div>
+
+                <div v-show="productsTab === 'webspace'">
+                    <BTable small :items="customer.webspace_accounts ?? []" :fields="[{ key: 'id', label: 'ID' }, { key: 'plan', label: 'Paket / Plan' }, { key: 'server', label: 'Server / Node' }, { key: 'actions', label: '', thClass: 'text-end' }]">
+                        <template #cell(plan)="{ item }">{{ item.hosting_plan?.name ?? '–' }}</template>
+                        <template #cell(server)="{ item }"><code class="rounded bg-light px-1 small">{{ item.hosting_server?.hostname ?? '–' }}</code></template>
+                        <template #cell(actions)="{ item }">
+                            <Link :href="`/admin/webspace-accounts/${item.uuid}`"><BButton variant="link" size="sm" aria-label="Anzeigen"><Icon icon="external-link" /></BButton></Link>
+                        </template>
+                    </BTable>
+                    <p v-if="!customer.webspace_accounts?.length" class="text-muted text-center py-4 mb-0">Keine Webspace-Accounts</p>
+                    <Link v-if="customer.webspace_accounts?.length" :href="`/admin/webspace-accounts?user_id=${customer.id}`" class="small mt-2 d-inline-block">Alle Webspace-Accounts anzeigen →</Link>
+                </div>
+
+                <div v-show="productsTab === 'gaming'">
+                    <BTable small :items="customer.game_server_accounts ?? []" :fields="[{ key: 'id', label: 'ID' }, { key: 'name', label: 'Name' }, { key: 'plan', label: 'Paket / Plan' }, { key: 'server', label: 'Server / Node' }, { key: 'actions', label: '', thClass: 'text-end' }]">
+                        <template #cell(plan)="{ item }">{{ item.hosting_plan?.name ?? '–' }}</template>
+                        <template #cell(server)="{ item }"><code class="rounded bg-light px-1 small">{{ item.hosting_server?.hostname ?? '–' }}</code></template>
+                        <template #cell(actions)="{ item }">
+                            <Link :href="`/admin/gaming-accounts/${item.uuid}`"><BButton variant="link" size="sm" aria-label="Anzeigen"><Icon icon="external-link" /></BButton></Link>
+                        </template>
+                    </BTable>
+                    <p v-if="!customer.game_server_accounts?.length" class="text-muted text-center py-4 mb-0">Keine Game-Server-Accounts</p>
+                    <Link v-if="customer.game_server_accounts?.length" :href="`/admin/gaming-accounts?user_id=${customer.id}`" class="small mt-2 d-inline-block">Alle Game-Server anzeigen →</Link>
+                </div>
+
+                <div v-show="productsTab === 'teamspeak'">
+                    <BTable small :items="customer.team_speak_server_accounts ?? []" :fields="[{ key: 'id', label: 'ID' }, { key: 'name', label: 'Name' }, { key: 'plan', label: 'Paket / Plan' }, { key: 'server', label: 'Server' }, { key: 'status', label: 'Status' }, { key: 'period_end', label: 'Laufzeit Ende' }, { key: 'actions', label: '', thClass: 'text-end' }]">
+                        <template #cell(plan)="{ item }">{{ item.hosting_plan?.name ?? '–' }}</template>
+                        <template #cell(server)="{ item }"><code class="rounded bg-light px-1 small">{{ item.hosting_server?.hostname ?? '–' }}</code></template>
+                        <template #cell(status)="{ item }">
+                            <BBadge variant="secondary">{{ item.status }}</BBadge>
+                            <span v-if="item.mollie_subscription_id" class="small text-success ms-1" title="Mollie-Abo aktiv">Abo</span>
+                            <span v-if="item.cancel_at_period_end" class="small text-warning ms-1" title="Zum Periodenende gekündigt">↷</span>
+                        </template>
+                        <template #cell(period_end)="{ item }">{{ item.current_period_ends_at ?? '–' }}</template>
+                        <template #cell(actions)="{ item }">
+                            <Link :href="`/admin/teamspeak-accounts/${item.uuid}`"><BButton variant="link" size="sm" aria-label="Anzeigen"><Icon icon="external-link" /></BButton></Link>
+                        </template>
+                    </BTable>
+                    <p v-if="!customer.team_speak_server_accounts?.length" class="text-muted text-center py-4 mb-0">Keine TeamSpeak-Server</p>
+                    <Link v-if="customer.team_speak_server_accounts?.length" :href="`/admin/teamspeak-accounts?user_id=${customer.id}`" class="small mt-2 d-inline-block">Alle TeamSpeak-Server anzeigen →</Link>
+                </div>
+
+                <div v-show="productsTab === 'domains'">
+                    <BTable small :items="customer.reseller_domains ?? []" :fields="[{ key: 'domain', label: 'Domain' }, { key: 'status', label: 'Status' }, { key: 'expires_at', label: 'Ablauf' }, { key: 'actions', label: '', thClass: 'text-end' }]">
+                        <template #cell(expires_at)="{ item }">{{ item.expires_at ?? '–' }}</template>
+                        <template #cell(status)="{ item }"><BBadge variant="secondary">{{ item.status }}</BBadge></template>
+                        <template #cell(actions)="{ item }">
+                            <Link :href="`/admin/domains/${(item as ResellerDomain).uuid ?? (item as ResellerDomain).id}`"><BButton variant="link" size="sm" aria-label="Anzeigen"><Icon icon="external-link" /></BButton></Link>
+                        </template>
+                    </BTable>
+                    <p v-if="!customer.reseller_domains?.length" class="text-muted text-center py-4 mb-0">Keine Reseller-Domains</p>
+                    <Link v-if="customer.reseller_domains?.length" :href="`/admin/domains?customer_id=${customer.id}`" class="small mt-2 d-inline-block">Alle Domains anzeigen →</Link>
+                </div>
+            </BCardBody>
+        </BCard>
+
+        <BCard v-if="activityLog?.length" no-body>
+            <BCardHeader>
+                <BCardTitle class="mb-0">Letzte Änderungen</BCardTitle>
+                <p class="text-muted small mb-0 mt-1">Aktivitätslog für diesen Kunden</p>
+            </BCardHeader>
+            <BCardBody>
+                <ul class="list-unstyled mb-0">
+                    <li v-for="entry in activityLog" :key="entry.id" class="d-flex flex-wrap align-items-center gap-2 rounded border px-3 py-2 mb-2 small">
+                        <span class="fw-medium">{{ actionLabels[entry.action] ?? entry.action }}</span>
+                        <span class="text-muted">{{ entry.created_at }}</span>
+                        <span v-if="entry.user" class="text-muted">· {{ entry.user.name }}</span>
+                    </li>
+                </ul>
+            </BCardBody>
+        </BCard>
     </AdminLayout>
 </template>

@@ -1,343 +1,238 @@
+<template>
+  <DefaultLayout>
+    <Head :title="`Domain bestellen: ${domain}`" />
+    <PageBreadcrumb title="Domain bestellen" subtitle="Domains" subtitle-url="/domains" />
+
+    <div class="mb-4">
+      <h4 class="mb-1">Domain bestellen</h4>
+      <p class="text-muted mb-0">
+        {{ domain }} – {{ effectiveTotal.toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} € (inkl. Registrierung)
+      </p>
+    </div>
+
+    <BForm @submit.prevent="submit">
+      <input v-model="form.domain" type="hidden" />
+      <input v-model="form.sale_price" type="hidden" />
+      <input v-model="form.tld" type="hidden" />
+
+      <BCard v-if="transfer" no-body class="mb-4">
+        <BCardHeader>
+          <h5 class="mb-0">Auth-Code (EPP-Code) für Domain-Transfer</h5>
+          <p class="text-muted small mb-0">
+            Der Auth-Code wird von Ihrem bisherigen Registrar bereitgestellt. Ohne diesen Code kann der Transfer nicht durchgeführt werden.
+          </p>
+        </BCardHeader>
+        <BCardBody>
+          <div class="mb-3">
+            <label class="form-label" for="auth_code">Auth-Code *</label>
+            <BFormInput
+              id="auth_code"
+              v-model="form.auth_code"
+              type="text"
+              autocomplete="off"
+              placeholder="z. B. ABC123XYZ"
+              :class="{ 'is-invalid': form.errors.auth_code }"
+            />
+            <div v-if="form.errors.auth_code" class="invalid-feedback d-block">{{ form.errors.auth_code }}</div>
+          </div>
+        </BCardBody>
+      </BCard>
+
+      <BCard no-body class="mb-4">
+        <BCardHeader>
+          <h5 class="mb-0">Kontaktdaten für die Domain-Registrierung</h5>
+          <p class="text-muted small mb-0">Diese Daten werden an den Registrar übermittelt (WHOIS).</p>
+        </BCardHeader>
+        <BCardBody>
+          <div class="mb-4">
+            <BFormRadio v-model="form.use_profile_contact" :value="true" name="use_profile_contact" class="me-3">Adresse aus meinem Profil verwenden</BFormRadio>
+            <BFormRadio v-model="form.use_profile_contact" :value="false" name="use_profile_contact">Andere Kontaktdaten angeben</BFormRadio>
+          </div>
+
+          <BRow v-if="!form.use_profile_contact" class="g-3 mb-4">
+            <BCol md="6">
+              <label class="form-label">Vorname</label>
+              <BFormInput v-model="form.contact.firstname" :class="{ 'is-invalid': form.errors['contact.firstname'] }" />
+              <div v-if="form.errors['contact.firstname']" class="invalid-feedback d-block">{{ form.errors['contact.firstname'] }}</div>
+            </BCol>
+            <BCol md="6">
+              <label class="form-label">Nachname</label>
+              <BFormInput v-model="form.contact.lastname" :class="{ 'is-invalid': form.errors['contact.lastname'] }" />
+              <div v-if="form.errors['contact.lastname']" class="invalid-feedback d-block">{{ form.errors['contact.lastname'] }}</div>
+            </BCol>
+            <BCol xs="12">
+              <label class="form-label">Straße</label>
+              <BFormInput v-model="form.contact.street" :class="{ 'is-invalid': form.errors['contact.street'] }" />
+              <div v-if="form.errors['contact.street']" class="invalid-feedback d-block">{{ form.errors['contact.street'] }}</div>
+            </BCol>
+            <BCol md="6">
+              <label class="form-label">Hausnummer</label>
+              <BFormInput v-model="form.contact.number" :class="{ 'is-invalid': form.errors['contact.number'] }" />
+              <div v-if="form.errors['contact.number']" class="invalid-feedback d-block">{{ form.errors['contact.number'] }}</div>
+            </BCol>
+            <BCol md="6">
+              <label class="form-label">PLZ</label>
+              <BFormInput v-model="form.contact.postcode" :class="{ 'is-invalid': form.errors['contact.postcode'] }" />
+              <div v-if="form.errors['contact.postcode']" class="invalid-feedback d-block">{{ form.errors['contact.postcode'] }}</div>
+            </BCol>
+            <BCol md="6">
+              <label class="form-label">Ort</label>
+              <BFormInput v-model="form.contact.city" :class="{ 'is-invalid': form.errors['contact.city'] }" />
+              <div v-if="form.errors['contact.city']" class="invalid-feedback d-block">{{ form.errors['contact.city'] }}</div>
+            </BCol>
+            <BCol md="6">
+              <label class="form-label">Bundesland / State</label>
+              <BFormInput v-model="form.contact.state" placeholder="z. B. Bayern" />
+            </BCol>
+            <BCol md="6">
+              <label class="form-label">Land (ISO 2)</label>
+              <BFormInput v-model="form.contact.country" placeholder="DE" />
+            </BCol>
+            <BCol md="6">
+              <label class="form-label">E-Mail</label>
+              <BFormInput v-model="form.contact.email" type="email" />
+            </BCol>
+            <BCol md="6">
+              <label class="form-label">Telefon</label>
+              <BFormInput v-model="form.contact.phone" />
+            </BCol>
+            <BCol xs="12">
+              <label class="form-label">Firma (optional)</label>
+              <BFormInput v-model="form.contact.company" />
+            </BCol>
+          </BRow>
+
+          <div class="border rounded p-3 bg-light mb-4">
+            <h6 class="mb-2">Rechtliches</h6>
+            <BFormCheckbox v-model="form.accept_tos" name="accept_tos" :class="{ 'is-invalid': form.errors.accept_tos }">
+              Ich habe die
+              <a :href="tosUrl ?? '#'" target="_blank" rel="noopener" class="text-decoration-underline">AGB</a>
+              und
+              <a :href="privacyUrl ?? '#'" target="_blank" rel="noopener" class="text-decoration-underline">Datenschutzerklärung</a>
+              gelesen und akzeptiere diese.
+            </BFormCheckbox>
+            <div v-if="form.errors.accept_tos" class="invalid-feedback d-block">{{ form.errors.accept_tos }}</div>
+            <BFormCheckbox v-model="form.accept_early_execution" name="accept_early_execution" :class="{ 'is-invalid': form.errors.accept_early_execution }" class="mt-2">
+              Ich wünsche die vollständige Ausführung der Dienstleistung vor Fristablauf des Widerrufsrechts gemäß Fernabsatzgesetz.
+            </BFormCheckbox>
+            <div v-if="form.errors.accept_early_execution" class="invalid-feedback d-block">{{ form.errors.accept_early_execution }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Rabattcode</label>
+            <BFormInput v-model="form.discount_code" placeholder="Gutscheincode (optional)" />
+          </div>
+
+          <div v-if="canPayWithBalance" class="mb-4">
+            <label class="form-label">Zahlungsart</label>
+            <div class="d-flex flex-column gap-2">
+              <BFormRadio v-model="form.payment_method" value="mollie" name="payment_method">
+                Karte, PayPal, SEPA, … (Mollie)
+              </BFormRadio>
+              <BFormRadio v-model="form.payment_method" value="balance" name="payment_method" :disabled="!canSubmitWithBalance">
+                Mit Guthaben bezahlen
+                <span v-if="canSubmitWithBalance" class="text-muted small">(Aktuell {{ (customerBalance ?? 0).toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} €)</span>
+                <span v-else class="text-muted small">– Guthaben reicht nicht aus (mind. {{ (amountRequired ?? 0).toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} € nötig)</span>
+              </BFormRadio>
+            </div>
+          </div>
+
+          <BButton type="submit" variant="primary" :disabled="form.processing || !canSubmit">
+            {{ form.payment_method === 'balance' && canSubmitWithBalance ? 'Mit Guthaben bezahlen' : 'Weiter zur Zahlung' }}
+          </BButton>
+        </BCardBody>
+      </BCard>
+    </BForm>
+  </DefaultLayout>
+</template>
+
 <script setup lang="ts">
-import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { watch, ref, computed } from 'vue';
-import DiscountCodeBlock from '@/components/checkout/DiscountCodeBlock.vue';
-import InputError from '@/components/InputError.vue';
-import PaymentMethodLogo from '@/components/PaymentMethodLogo.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Heading, Text } from '@/components/ui/typography';
-import { notify } from '@/composables/useNotify';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { dashboard } from '@/routes';
+import { Head, useForm, usePage } from '@inertiajs/vue3'
+import { computed, ref, watch } from 'vue'
+import {
+  BButton,
+  BCard,
+  BCardBody,
+  BCardHeader,
+  BCol,
+  BForm,
+  BFormCheckbox,
+  BFormInput,
+  BFormRadio,
+  BRow,
+} from 'bootstrap-vue-next'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue'
 
 type Contact = {
-    firstname: string;
-    lastname: string;
-    street: string;
-    number: string;
-    postcode: string;
-    city: string;
-    state: string;
-    country: string;
-    email: string;
-    phone: string;
-    company?: string;
-};
+  firstname: string
+  lastname: string
+  street: string
+  number: string
+  postcode: string
+  city: string
+  state: string
+  country: string
+  email: string
+  phone: string
+  company?: string
+}
 
-type Props = {
-    domain: string;
-    sale_price: number;
-    tld: string;
-    transfer?: boolean;
-    profile_contact: Contact;
-    canPayWithBalance?: boolean;
-    customerBalance?: number;
-    amountRequired?: number;
-    tosUrl?: string;
-    privacyUrl?: string;
-};
+const props = defineProps<{
+  domain: string
+  sale_price: number
+  tld: string
+  transfer?: boolean
+  profile_contact: Contact
+  canPayWithBalance?: boolean
+  customerBalance?: number
+  amountRequired?: number
+  tosUrl?: string
+  privacyUrl?: string
+}>()
 
-const props = defineProps<Props>();
-
-const canSubmit = computed(() => {
-    if (!form.accept_tos || !form.accept_early_execution) return false;
-    if (props.transfer) return Boolean((form.auth_code ?? '').toString().trim());
-    return true;
-});
-
-const paymentMethod = ref<'mollie' | 'balance'>('mollie');
-const effectiveTotal = ref(props.sale_price);
-const discountBlockRef = ref<InstanceType<typeof DiscountCodeBlock> | null>(null);
-const canSubmitWithBalance = computed(() =>
-    props.canPayWithBalance &&
-    (props.customerBalance ?? 0) >= effectiveTotal.value
-);
+const effectiveTotal = ref(props.sale_price)
 
 const form = useForm({
-    domain: props.domain,
-    sale_price: props.sale_price,
-    discount_code: '',
-    purchase_price: 0,
-    tld: props.tld,
-    transfer: Boolean(props.transfer),
-    auth_code: '',
-    use_profile_contact: true,
-    payment_method: 'mollie' as 'mollie' | 'balance',
-    accept_tos: false,
-    accept_early_execution: false,
-    contact: {
-        firstname: props.profile_contact.firstname,
-        lastname: props.profile_contact.lastname,
-        street: props.profile_contact.street,
-        number: props.profile_contact.number,
-        postcode: props.profile_contact.postcode,
-        city: props.profile_contact.city,
-        state: props.profile_contact.state,
-        country: props.profile_contact.country,
-        email: props.profile_contact.email,
-        phone: props.profile_contact.phone,
-        company: props.profile_contact.company ?? '',
-    },
-});
+  domain: props.domain,
+  sale_price: props.sale_price,
+  discount_code: '',
+  purchase_price: 0,
+  tld: props.tld,
+  transfer: Boolean(props.transfer),
+  auth_code: '',
+  use_profile_contact: true,
+  payment_method: 'mollie' as 'mollie' | 'balance',
+  accept_tos: false,
+  accept_early_execution: false,
+  contact: {
+    firstname: props.profile_contact.firstname,
+    lastname: props.profile_contact.lastname,
+    street: props.profile_contact.street,
+    number: props.profile_contact.number,
+    postcode: props.profile_contact.postcode,
+    city: props.profile_contact.city,
+    state: props.profile_contact.state,
+    country: props.profile_contact.country,
+    email: props.profile_contact.email,
+    phone: props.profile_contact.phone,
+    company: props.profile_contact.company ?? '',
+  },
+})
 
-watch(
-    () => paymentMethod.value,
-    (v) => { form.payment_method = v; },
-    { immediate: true },
-);
+const canSubmit = computed(() => {
+  if (!form.accept_tos || !form.accept_early_execution) return false
+  if (props.transfer) return Boolean((form.auth_code ?? '').toString().trim())
+  return true
+})
 
-const page = usePage();
-const molliePaymentMethods = computed(
-    () =>
-        (page.props.molliePaymentMethods as { type: string; label: string }[]) ?? [
-            { type: 'card', label: 'Karte' },
-            { type: 'paypal', label: 'PayPal' },
-            { type: 'sepa_debit', label: 'SEPA-Lastschrift' },
-        ],
-);
+const canSubmitWithBalance = computed(() =>
+  props.canPayWithBalance && (props.customerBalance ?? 0) >= effectiveTotal.value,
+)
 
-watch(
-    () => (page.props.flash as { error?: string })?.error,
-    (message) => {
-        if (message) {
-            notify.error(message);
-        }
-    },
-    { immediate: true },
-);
-
-const breadcrumbs = [
-    { title: 'Dashboard', href: dashboard().url },
-    { title: 'Domains', href: '/domains' },
-    { title: 'Domain bestellen', href: '#' },
-];
+watch(() => form.payment_method, (v) => { form.payment_method = v }, { immediate: true })
 
 function submit() {
-    const block = discountBlockRef.value;
-    form.discount_code = block?.appliedDiscount?.code ?? '';
-    form.post('/domains/checkout');
+  form.post('/domains/checkout')
 }
 </script>
-
-<template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head :title="`Domain bestellen: ${domain}`" />
-
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Domain bestellen</Heading>
-                <Text class="mt-2" muted>
-                    {{ domain }} – {{ effectiveTotal.toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} € (inkl. Registrierung)
-                </Text>
-            </div>
-
-            <form @submit.prevent="submit">
-                <input v-model="form.domain" type="hidden" />
-                <input v-model="form.sale_price" type="hidden" />
-                <input v-model="form.tld" type="hidden" />
-
-                <Card v-if="props.transfer" class="mb-6">
-                    <CardHeader>
-                        <CardTitle>Auth-Code (EPP-Code) für Domain-Transfer</CardTitle>
-                        <CardDescription>
-                            Der Auth-Code wird von Ihrem bisherigen Registrar bereitgestellt. Ohne diesen Code kann der Transfer nicht durchgeführt werden.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div class="space-y-2">
-                            <Label for="auth_code">Auth-Code *</Label>
-                            <Input
-                                id="auth_code"
-                                v-model="form.auth_code"
-                                type="text"
-                                autocomplete="off"
-                                placeholder="z. B. ABC123XYZ"
-                                :aria-invalid="!!form.errors.auth_code"
-                            />
-                            <InputError :message="form.errors.auth_code" />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Kontaktdaten für die Domain-Registrierung</CardTitle>
-                        <CardDescription>
-                            Diese Daten werden an den Registrar (Skrime) übermittelt (WHOIS).
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-6">
-                        <div class="flex gap-4">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    v-model="form.use_profile_contact"
-                                    type="radio"
-                                    :value="true"
-                                />
-                                <span>Adresse aus meinem Profil verwenden</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    v-model="form.use_profile_contact"
-                                    type="radio"
-                                    :value="false"
-                                />
-                                <span>Andere Kontaktdaten angeben</span>
-                            </label>
-                        </div>
-
-                        <div v-if="!form.use_profile_contact" class="grid gap-4 sm:grid-cols-2">
-                            <div class="space-y-2">
-                                <Label for="firstname">Vorname</Label>
-                                <Input id="firstname" v-model="form.contact.firstname" />
-                                <InputError :message="form.errors['contact.firstname']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="lastname">Nachname</Label>
-                                <Input id="lastname" v-model="form.contact.lastname" />
-                                <InputError :message="form.errors['contact.lastname']" />
-                            </div>
-                            <div class="space-y-2 sm:col-span-2">
-                                <Label for="street">Straße</Label>
-                                <Input id="street" v-model="form.contact.street" />
-                                <InputError :message="form.errors['contact.street']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="number">Hausnummer</Label>
-                                <Input id="number" v-model="form.contact.number" />
-                                <InputError :message="form.errors['contact.number']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="postcode">PLZ</Label>
-                                <Input id="postcode" v-model="form.contact.postcode" />
-                                <InputError :message="form.errors['contact.postcode']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="city">Ort</Label>
-                                <Input id="city" v-model="form.contact.city" />
-                                <InputError :message="form.errors['contact.city']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="state">Bundesland / State</Label>
-                                <Input
-                                    id="state"
-                                    v-model="form.contact.state"
-                                    placeholder="z. B. Bayern"
-                                />
-                                <InputError :message="form.errors['contact.state']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="country">Land (ISO 2)</Label>
-                                <Input id="country" v-model="form.contact.country" placeholder="DE" />
-                                <InputError :message="form.errors['contact.country']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="email">E-Mail</Label>
-                                <Input id="email" v-model="form.contact.email" type="email" />
-                                <InputError :message="form.errors['contact.email']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="phone">Telefon</Label>
-                                <Input id="phone" v-model="form.contact.phone" />
-                                <InputError :message="form.errors['contact.phone']" />
-                            </div>
-                            <div class="space-y-2 sm:col-span-2">
-                                <Label for="company">Firma (optional)</Label>
-                                <Input id="company" v-model="form.contact.company" />
-                            </div>
-                        </div>
-
-                        <div class="space-y-4 rounded-lg border bg-muted/30 p-4">
-                            <h3 class="font-semibold">Rechtliches</h3>
-                            <label class="flex cursor-pointer items-start gap-3">
-                                <input
-                                    v-model="form.accept_tos"
-                                    type="checkbox"
-                                    value="1"
-                                    class="mt-1 h-4 w-4 rounded border-input"
-                                    :aria-invalid="!!form.errors.accept_tos"
-                                />
-                                <span class="text-sm">
-                                    Ich habe die
-                                    <a :href="props.tosUrl ?? '#'" target="_blank" rel="noopener noreferrer" class="underline hover:no-underline">allgemeinen Geschäftsbedingungen</a>
-                                    und
-                                    <a :href="props.privacyUrl ?? '#'" target="_blank" rel="noopener noreferrer" class="underline hover:no-underline">Datenschutzerklärung</a>
-                                    gelesen und akzeptiere diese.
-                                </span>
-                            </label>
-                            <InputError :message="form.errors.accept_tos" />
-                            <label class="flex cursor-pointer items-start gap-3">
-                                <input
-                                    v-model="form.accept_early_execution"
-                                    type="checkbox"
-                                    value="1"
-                                    class="mt-1 h-4 w-4 rounded border-input"
-                                    :aria-invalid="!!form.errors.accept_early_execution"
-                                />
-                                <span class="text-sm">
-                                    Ich wünsche die vollständige Ausführung der Dienstleistung vor Fristablauf des Widerrufsrechts gemäß Fernabsatzgesetz. Die automatische Einrichtung und Erbringung der Dienstleistung führt zum Erlöschen des Widerrufsrechts.
-                                </span>
-                            </label>
-                            <InputError :message="form.errors.accept_early_execution" />
-                        </div>
-
-                        <div class="space-y-2 rounded-md border p-4">
-                            <Label class="text-base">Rabattcode</Label>
-                            <DiscountCodeBlock
-                                ref="discountBlockRef"
-                                :total-amount="props.sale_price"
-                                :period-months="1"
-                                @update:effective-total="effectiveTotal = $event"
-                            />
-                        </div>
-                        <div v-if="props.canPayWithBalance" class="space-y-2 rounded-md border p-4">
-                            <Label class="text-base">Zahlungsart</Label>
-                            <div class="flex flex-col gap-3">
-                                <label class="flex cursor-pointer flex-col gap-2">
-                                    <div class="flex items-center gap-2">
-                                        <input v-model="paymentMethod" type="radio" value="mollie" />
-                                        <span class="text-sm font-medium">Karte, PayPal, SEPA, … (Mollie)</span>
-                                    </div>
-                                    <div class="flex flex-wrap gap-2 pl-6">
-                                        <div
-                                            v-for="method in molliePaymentMethods"
-                                            :key="method.type"
-                                            class="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2"
-                                        >
-                                            <PaymentMethodLogo :type="method.type" :size="20" />
-                                            <span class="text-sm">{{ method.label }}</span>
-                                        </div>
-                                    </div>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        v-model="paymentMethod"
-                                        type="radio"
-                                        value="balance"
-                                        :disabled="!canSubmitWithBalance"
-                                    />
-                                    <span>Mit Guthaben bezahlen</span>
-                                    <span v-if="canSubmitWithBalance" class="text-muted-foreground text-sm">
-                                        (Aktuell {{ (props.customerBalance ?? 0).toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} €)
-                                    </span>
-                                    <span v-else class="text-muted-foreground text-sm">
-                                        – Guthaben reicht nicht aus (mind. {{ (props.amountRequired ?? 0).toLocaleString('de-DE', { minimumFractionDigits: 2 }) }} € nötig)
-                                    </span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="pt-4">
-                            <Button type="submit" :disabled="form.processing || !canSubmit">
-                                {{ paymentMethod === 'balance' && canSubmitWithBalance ? 'Mit Guthaben bezahlen' : 'Weiter zur Zahlung' }}
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            </form>
-        </div>
-    </AppLayout>
-</template>

@@ -1,21 +1,22 @@
+<!-- Admin: Pterodactyl Egg (Konfiguration) -->
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
-import { ArrowLeft, Save, Server } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
+import { ref } from 'vue';
 import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-    CardContent,
-    CardFooter,
-} from '@/components/ui/card';
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BButton,
+    BFormGroup,
+    BFormInput,
+} from 'bootstrap-vue-next';
 import InputError from '@/components/InputError.vue';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Heading, Text } from '@/components/ui/typography';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import hostingServers from '@/routes/admin/hosting-servers/index';
 import type { BreadcrumbItem } from '@/types';
@@ -137,66 +138,68 @@ function isBooleanDefault(val: string | undefined): boolean {
 function setBooleanDefault(envVar: string, checked: boolean): void {
     variableDefaults.value[envVar] = checked ? '1' : '0';
 }
+
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Egg: ${egg.name}`" />
 
-        <div class="space-y-6">
-            <div class="flex flex-wrap items-center gap-4">
-                <Link :href="eggsIndexUrl()">
-                    <Button variant="outline" size="sm">
-                        <ArrowLeft class="mr-2 h-4 w-4" />
-                        Zurück zu Eggs
-                    </Button>
-                </Link>
-                <div>
-                    <Heading level="h1">{{ egg.name }}</Heading>
-                    <Text class="mt-2" muted>
-                        {{ nest.name }} – Variablen-Prefill, Pflichtfelder und Subdomain-Einstellungen für dieses Egg.
-                    </Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+                    <Link :href="eggsIndexUrl()">
+                        <BButton variant="outline-secondary" size="sm">
+                            <Icon icon="arrow-left" class="me-2" />
+                            Zurück zu Eggs
+                        </BButton>
+                    </Link>
+                    <div>
+                        <h4 class="mb-1">{{ egg.name }}</h4>
+                        <p class="text-muted small mb-0">
+                            {{ nest.name }} – Variablen-Prefill, Pflichtfelder und Subdomain-Einstellungen für dieses Egg.
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Egg-Details</CardTitle>
-                    <CardDescription>Vom Pterodactyl-Panel (nur Leseansicht)</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-3">
-                    <p v-if="egg.description" class="text-sm text-muted-foreground">{{ egg.description }}</p>
-                    <div class="flex flex-wrap gap-4">
-                        <div class="rounded bg-muted/50 px-3 py-2">
-                            <span class="text-xs text-muted-foreground">Docker Image</span>
-                            <code class="ml-2 text-sm">{{ egg.docker_image }}</code>
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Egg-Details</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Vom Pterodactyl-Panel (nur Leseansicht)</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <p v-if="egg.description" class="small text-muted mb-2">{{ egg.description }}</p>
+                        <div class="d-flex flex-wrap gap-3 mb-2">
+                            <div class="rounded bg-light px-3 py-2">
+                                <span class="small text-muted">Docker Image</span>
+                                <code class="ms-2 small">{{ egg.docker_image }}</code>
+                            </div>
                         </div>
-                    </div>
-                    <div v-if="egg.startup" class="rounded bg-muted/50 p-3">
-                        <span class="text-xs text-muted-foreground">Startup</span>
-                        <pre class="mt-1 max-w-full whitespace-pre-wrap break-words text-sm">{{ egg.startup }}</pre>
-                    </div>
-                </CardContent>
-            </Card>
+                        <div v-if="egg.startup" class="rounded bg-light p-3">
+                            <span class="small text-muted">Startup</span>
+                            <pre class="mt-1 mb-0 small overflow-auto">{{ egg.startup }}</pre>
+                        </div>
+                    </BCardBody>
+                </BCard>
 
-            <Form
-                :action="configUpdateUrl()"
-                method="post"
-                class="block"
-                v-slot="{ errors }"
-            >
-                <input type="hidden" name="_method" value="PUT" />
+                <Form
+                    :action="configUpdateUrl()"
+                    method="post"
+                    class="d-block"
+                    v-slot="{ errors }"
+                >
+                    <input type="hidden" name="_method" value="PUT" />
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Service-Variablen</CardTitle>
-                        <CardDescription>
-                            <strong>Durch Service vorbefüllen:</strong> Wert von uns setzen, User sieht das Feld nicht. –
-                            <strong>Vom User ausfüllen (Pflichtfeld):</strong> Kunde muss es beim Server-Erstellen ausfüllen. –
-                            <strong>Vom User ausfüllen (Optional):</strong> Kunde kann es ausfüllen, ist aber nicht verpflichtet.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
+                    <BCard no-body class="mb-4">
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Service-Variablen</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">
+                                <strong>Durch Service vorbefüllen:</strong> Wert von uns setzen, User sieht das Feld nicht. –
+                                <strong>Vom User ausfüllen (Pflichtfeld):</strong> Kunde muss es beim Server-Erstellen ausfüllen. –
+                                <strong>Vom User ausfüllen (Optional):</strong> Kunde kann es ausfüllen, ist aber nicht verpflichtet.
+                            </p>
+                        </BCardHeader>
+                        <BCardBody>
                         <div
                             v-if="variables.length === 0"
                             class="rounded-xl border-2 border-dashed border-gray-200 py-8 text-center text-muted-foreground dark:border-gray-700"
@@ -240,7 +243,8 @@ function setBooleanDefault(envVar: string, checked: boolean): void {
                                                 v-model="variableDescriptions[v.env_variable]"
                                                 rows="2"
                                                 placeholder="Optionale Beschreibung für den User"
-                                                class="flex min-h-[60px] w-full max-w-xs rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                class="form-control form-control-sm"
+                                                style="min-height: 60px; max-width: 20rem"
                                             />
                                         </td>
                                         <td class="py-3 pr-4">
@@ -265,13 +269,13 @@ function setBooleanDefault(envVar: string, checked: boolean): void {
                                                     <span class="text-sm">An</span>
                                                 </label>
                                             </template>
-                                            <Input
+                                            <BFormInput
                                                 v-else
                                                 :name="`config[variable_defaults][${v.env_variable}]`"
                                                 v-model="variableDefaults[v.env_variable]"
                                                 type="text"
                                                 :placeholder="v.default_value"
-                                                class="max-w-xs"
+                                                class="form-control form-control-sm max-w-xs"
                                             />
                                         </td>
                                         <td class="py-3">
@@ -327,81 +331,86 @@ function setBooleanDefault(envVar: string, checked: boolean): void {
                                 </tbody>
                             </table>
                         </div>
-                    </CardContent>
-                </Card>
+                        </BCardBody>
+                    </BCard>
 
-                <Card class="mt-6">
-                    <CardHeader>
-                        <CardTitle>GameQ / Spieler-Anzeige</CardTitle>
-                        <CardDescription>
-                            Wenn gesetzt, wird auf der Gaming-Account-Seite die aktuelle Spieleranzahl (GameQ bzw. FiveM) neben der Netzwerk-Card angezeigt.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div class="space-y-2">
-                            <Label for="gameq_type">Spiel / Protokoll</Label>
-                            <select
-                                id="gameq_type"
-                                name="config[gameq_type]"
-                                v-model="gameqType"
-                                class="flex h-9 w-full max-w-xs rounded-md border border-input bg-background px-3 py-1 text-sm"
-                            >
-                                <option
-                                    v-for="(label, value) in gameqTypes"
-                                    :key="value"
-                                    :value="value"
+                    <BCard no-body class="mb-4">
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">GameQ / Spieler-Anzeige</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">
+                                Wenn gesetzt, wird auf der Gaming-Account-Seite die aktuelle Spieleranzahl (GameQ bzw. FiveM) angezeigt.
+                            </p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BFormGroup label="Spiel / Protokoll" label-for="gameq_type">
+                                <select
+                                    id="gameq_type"
+                                    name="config[gameq_type]"
+                                    v-model="gameqType"
+                                    class="form-select form-select-sm"
+                                    style="max-width: 14rem"
                                 >
-                                    {{ label }}
-                                </option>
-                            </select>
-                            <InputError :message="errors['config.gameq_type']" />
-                        </div>
-                    </CardContent>
-                </Card>
+                                    <option
+                                        v-for="(label, value) in gameqTypes"
+                                        :key="value"
+                                        :value="value"
+                                    >
+                                        {{ label }}
+                                    </option>
+                                </select>
+                                <InputError :message="errors['config.gameq_type']" />
+                            </BFormGroup>
+                        </BCardBody>
+                    </BCard>
 
-                <Card class="mt-6">
-                    <CardHeader>
-                        <CardTitle>Subdomain (SRV)</CardTitle>
-                        <CardDescription>
-                            Beim optionalen Subdomain-Feature wird ein SRV-Eintrag angelegt (Node:Port). SRV-Protokoll z. B. <code>_minecraft</code>; Typ: tcp, udp oder tls. Ohne Protokoll: Subdomain zeigt z. B. myserver.example.com:25565; mit SRV: myserver.example.com.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="grid gap-4 sm:grid-cols-2">
-                        <div class="space-y-2">
-                            <Label for="subdomain_srv_protocol">SRV-Protokoll</Label>
-                            <Input
-                                id="subdomain_srv_protocol"
-                                name="config[subdomain_srv_protocol]"
-                                v-model="subdomainSrvProtocol"
-                                placeholder="z. B. _minecraft"
-                                maxlength="64"
-                            />
-                            <InputError :message="errors['config.subdomain_srv_protocol']" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="subdomain_protocol_type">Protokoll-Typ</Label>
-                            <select
-                                id="subdomain_protocol_type"
-                                name="config[subdomain_protocol_type]"
-                                v-model="subdomainProtocolType"
-                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                            >
-                                <option value="none">none</option>
-                                <option value="tcp">tcp</option>
-                                <option value="udp">udp</option>
-                                <option value="tls">tls</option>
-                            </select>
-                            <InputError :message="errors['config.subdomain_protocol_type']" />
-                        </div>
-                    </CardContent>
-                    <CardFooter>
-                        <Button type="submit">
-                            <Save class="mr-2 h-4 w-4" />
-                            Konfiguration speichern
-                        </Button>
-                    </CardFooter>
-                </Card>
-            </Form>
-        </div>
+                    <BCard no-body class="mb-4">
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Subdomain (SRV)</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">
+                                Beim optionalen Subdomain-Feature wird ein SRV-Eintrag angelegt. SRV-Protokoll z. B. <code>_minecraft</code>; Typ: tcp, udp oder tls.
+                            </p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BRow>
+                                <BCol md="6" class="mb-3">
+                                    <BFormGroup label="SRV-Protokoll" label-for="subdomain_srv_protocol">
+                                        <BFormInput
+                                            id="subdomain_srv_protocol"
+                                            name="config[subdomain_srv_protocol]"
+                                            v-model="subdomainSrvProtocol"
+                                            placeholder="z. B. _minecraft"
+                                            maxlength="64"
+                                        />
+                                        <InputError :message="errors['config.subdomain_srv_protocol']" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol md="6" class="mb-3">
+                                    <BFormGroup label="Protokoll-Typ" label-for="subdomain_protocol_type">
+                                        <select
+                                            id="subdomain_protocol_type"
+                                            name="config[subdomain_protocol_type]"
+                                            v-model="subdomainProtocolType"
+                                            class="form-select"
+                                        >
+                                            <option value="none">none</option>
+                                            <option value="tcp">tcp</option>
+                                            <option value="udp">udp</option>
+                                            <option value="tls">tls</option>
+                                        </select>
+                                        <InputError :message="errors['config.subdomain_protocol_type']" />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+                        </BCardBody>
+                        <BCardFooter class="d-flex gap-2">
+                            <BButton type="submit" variant="primary">
+                                <Icon icon="device-floppy" class="me-2" />
+                                Konfiguration speichern
+                            </BButton>
+                        </BCardFooter>
+                    </BCard>
+                </Form>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

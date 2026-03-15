@@ -1,10 +1,18 @@
+<!-- Admin: Hosting-Server anzeigen -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Edit, Server, HardDrive, Egg } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import { computed } from 'vue';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
+import Icon from '@/components/wrappers/Icon.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import hostingServers from '@/routes/admin/hosting-servers/index';
@@ -56,9 +64,15 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: props.hostingServer.name ?? props.hostingServer.hostname, href: '#' },
 ];
 
-const panelType = () => props.hostingServer.panel_type ?? 'plesk';
-const isPterodactyl = () => panelType() === 'pterodactyl';
-const isTeamSpeak = () => panelType() === 'teamspeak';
+const panelType = computed(() => props.hostingServer.panel_type ?? 'plesk');
+const isPterodactyl = computed(() => panelType.value === 'pterodactyl');
+const isTeamSpeak = computed(() => panelType.value === 'teamspeak');
+const panelLabel = computed(() => {
+    const t = panelType.value;
+    if (t === 'pterodactyl') return 'Pterodactyl-Panel';
+    if (t === 'teamspeak') return 'TeamSpeak-Node';
+    return 'Plesk-Hosting-Server';
+});
 
 const formatMb = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`);
 
@@ -73,165 +87,182 @@ const formatCurrency = (value: number) =>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="hostingServer.name ?? hostingServer.hostname" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">{{ hostingServer.name ?? hostingServer.hostname }}</Heading>
-                    <Text class="mt-2" muted>
-                        {{ isPterodactyl() ? 'Pterodactyl-Panel' : isTeamSpeak() ? 'TeamSpeak-Node' : 'Plesk-Hosting-Server' }}
-                    </Text>
-                </div>
-                <div class="flex gap-2">
-                    <Link
-                        v-if="isPterodactyl()"
-                        :href="`/admin/hosting-servers/${hostingServer.id}/pterodactyl-nests`"
-                    >
-                        <Button variant="outline">
-                            <Egg class="mr-2 h-4 w-4" />
-                            Nests & Eggs
-                        </Button>
-                    </Link>
-                    <Link :href="hostingServers.edit.url(hostingServer.id)">
-                        <Button>
-                            <Edit class="mr-2 h-4 w-4" />
-                            Bearbeiten
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Details</CardTitle>
-                    <CardDescription>Server-Informationen</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-2">
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Hostname</span>
-                        <code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">{{ hostingServer.hostname }}</code>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">{{ hostingServer.name ?? hostingServer.hostname }}</h4>
+                        <p class="text-muted small mb-0">{{ panelLabel }}</p>
                     </div>
-                    <div v-if="hostingServer.ip_address" class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">IP-Adresse</span>
-                        <span>{{ hostingServer.ip_address }}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Status</span>
-                        <Badge :variant="hostingServer.is_active ? 'success' : 'error'">
-                            {{ hostingServer.is_active ? 'Aktiv' : 'Inaktiv' }}
-                        </Badge>
-                    </div>
-                    <div v-if="panelType() === 'plesk'" class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Webspace-Accounts</span>
-                        <span>{{ hostingServer.webspace_accounts_count }}</span>
-                    </div>
-                    <div v-if="isPterodactyl()" class="flex justify-between py-2 border-b">
-                        <span class="text-muted-foreground">Game-Server-Accounts</span>
-                        <span>{{ hostingServer.game_server_accounts_count }}</span>
-                    </div>
-                    <div v-if="isTeamSpeak()" class="flex justify-between py-2">
-                        <span class="text-muted-foreground">TeamSpeak-Accounts</span>
-                        <span>{{ hostingServer.team_speak_server_accounts_count }}</span>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <!-- TeamSpeak: Slots, Umsatz, Kosten, Gewinn -->
-            <Card v-if="isTeamSpeak() && teamspeakStats">
-                <CardHeader>
-                    <CardTitle>TeamSpeak – Kennzahlen</CardTitle>
-                    <CardDescription>
-                        Slots, monatlicher Umsatz und Gewinn (Kosten: {{ formatCurrency(teamspeakStats.cost_per_slot_per_month) }} pro Slot).
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                            <p class="text-sm text-muted-foreground">Slots gesamt</p>
-                            <p class="mt-1 text-2xl font-semibold">{{ teamspeakStats.total_slots }}</p>
-                        </div>
-                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                            <p class="text-sm text-muted-foreground">Umsatz (€/Monat)</p>
-                            <p class="mt-1 text-2xl font-semibold">{{ formatCurrency(teamspeakStats.monthly_revenue) }}</p>
-                        </div>
-                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                            <p class="text-sm text-muted-foreground">Kosten (€/Monat)</p>
-                            <p class="mt-1 text-2xl font-semibold">{{ formatCurrency(teamspeakStats.monthly_cost) }}</p>
-                        </div>
-                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                            <p class="text-sm text-muted-foreground">Gewinn (€/Monat)</p>
-                            <p class="mt-1 text-2xl font-semibold" :class="teamspeakStats.monthly_profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
-                                {{ formatCurrency(teamspeakStats.monthly_profit) }}
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <!-- Pterodactyl Nodes -->
-            <Card v-if="isPterodactyl()">
-                <CardHeader>
-                    <CardTitle>Nodes (Pterodactyl)</CardTitle>
-                    <CardDescription>
-                        Speicher- und Disk-Nutzung pro Node laut Panel-API
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p v-if="pterodactylNodes === null" class="text-sm text-amber-600 dark:text-amber-400">
-                        Node-Daten konnten nicht geladen werden. API prüfen unter Hosting-Server-Übersicht.
-                    </p>
-                    <div v-else-if="pterodactylNodes && pterodactylNodes.length === 0" class="text-sm text-muted-foreground">
-                        Keine Nodes im Panel konfiguriert.
-                    </div>
-                    <div v-else class="space-y-4">
-                        <div
-                            v-for="node in pterodactylNodes"
-                            :key="node.id"
-                            class="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+                    <div class="d-flex gap-2">
+                        <Link
+                            v-if="isPterodactyl"
+                            :href="`/admin/hosting-servers/${hostingServer.id}/pterodactyl-nests`"
                         >
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                <div class="flex items-center gap-2">
-                                    <Server class="h-5 w-5 text-violet-500 dark:text-violet-400" />
-                                    <span class="font-medium">{{ node.name }}</span>
-                                    <Badge v-if="node.maintenance_mode" variant="warning" size="sm">Wartung</Badge>
+                            <BButton variant="outline-primary" size="sm">
+                                <Icon icon="egg" class="me-2" />
+                                Nests &amp; Eggs
+                            </BButton>
+                        </Link>
+                        <Link :href="hostingServers.edit.url(hostingServer.id)">
+                            <BButton variant="primary" size="sm">
+                                <Icon icon="pencil" class="me-2" />
+                                Bearbeiten
+                            </BButton>
+                        </Link>
+                    </div>
+                </div>
+
+                <BCard no-body class="mb-3">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Details</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Server-Informationen</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">Hostname</span>
+                            <code class="rounded bg-light px-2 py-1 small">{{ hostingServer.hostname }}</code>
+                        </div>
+                        <div v-if="hostingServer.ip_address" class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">IP-Adresse</span>
+                            <span>{{ hostingServer.ip_address }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">Status</span>
+                            <BBadge :variant="hostingServer.is_active ? 'success' : 'secondary'">
+                                {{ hostingServer.is_active ? 'Aktiv' : 'Inaktiv' }}
+                            </BBadge>
+                        </div>
+                        <div v-if="panelType === 'plesk'" class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">Webspace-Accounts</span>
+                            <span>{{ hostingServer.webspace_accounts_count }}</span>
+                        </div>
+                        <div v-if="isPterodactyl" class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">Game-Server-Accounts</span>
+                            <span>{{ hostingServer.game_server_accounts_count }}</span>
+                        </div>
+                        <div v-if="isTeamSpeak" class="d-flex justify-content-between py-2">
+                            <span class="text-muted">TeamSpeak-Accounts</span>
+                            <span>{{ hostingServer.team_speak_server_accounts_count }}</span>
+                        </div>
+                    </BCardBody>
+                </BCard>
+
+                <!-- TeamSpeak: Slots, Umsatz, Kosten, Gewinn -->
+                <BCard v-if="isTeamSpeak && teamspeakStats" no-body class="mb-3">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">TeamSpeak – Kennzahlen</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Slots, monatlicher Umsatz und Gewinn (Kosten: {{ formatCurrency(teamspeakStats.cost_per_slot_per_month) }} pro Slot).
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BRow>
+                            <BCol sm="6" lg="3" class="mb-3 mb-lg-0">
+                                <div class="rounded border p-3">
+                                    <p class="text-muted small mb-1">Slots gesamt</p>
+                                    <p class="fs-5 fw-semibold mb-0">{{ teamspeakStats.total_slots }}</p>
                                 </div>
-                                <code v-if="node.fqdn" class="text-xs text-muted-foreground">{{ node.fqdn }}</code>
-                            </div>
-                            <div class="mt-3 grid gap-4 sm:grid-cols-2">
-                                <div>
-                                    <div class="flex items-center gap-1.5 text-sm text-muted-foreground">
-                                        <Server class="h-4 w-4" />
-                                        RAM
-                                    </div>
-                                    <p class="mt-0.5 font-medium">
-                                        {{ formatMb(node.memory_allocated_mb) }} von {{ formatMb(node.memory_total_mb) }} gebucht
+                            </BCol>
+                            <BCol sm="6" lg="3" class="mb-3 mb-lg-0">
+                                <div class="rounded border p-3">
+                                    <p class="text-muted small mb-1">Umsatz (€/Monat)</p>
+                                    <p class="fs-5 fw-semibold mb-0">{{ formatCurrency(teamspeakStats.monthly_revenue) }}</p>
+                                </div>
+                            </BCol>
+                            <BCol sm="6" lg="3" class="mb-3 mb-lg-0">
+                                <div class="rounded border p-3">
+                                    <p class="text-muted small mb-1">Kosten (€/Monat)</p>
+                                    <p class="fs-5 fw-semibold mb-0">{{ formatCurrency(teamspeakStats.monthly_cost) }}</p>
+                                </div>
+                            </BCol>
+                            <BCol sm="6" lg="3">
+                                <div class="rounded border p-3">
+                                    <p class="text-muted small mb-1">Gewinn (€/Monat)</p>
+                                    <p
+                                        class="fs-5 fw-semibold mb-0"
+                                        :class="teamspeakStats.monthly_profit >= 0 ? 'text-success' : 'text-danger'"
+                                    >
+                                        {{ formatCurrency(teamspeakStats.monthly_profit) }}
                                     </p>
-                                    <div class="mt-1 h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                                        <div
-                                            class="h-full rounded-full bg-violet-500 dark:bg-violet-600"
-                                            :style="{ width: `${progressPercent(node.memory_allocated_mb, node.memory_total_mb)}%` }"
-                                        />
-                                    </div>
                                 </div>
-                                <div>
-                                    <div class="flex items-center gap-1.5 text-sm text-muted-foreground">
-                                        <HardDrive class="h-4 w-4" />
-                                        Disk
+                            </BCol>
+                        </BRow>
+                    </BCardBody>
+                </BCard>
+
+                <!-- Pterodactyl Nodes -->
+                <BCard v-if="isPterodactyl" no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Nodes (Pterodactyl)</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Speicher- und Disk-Nutzung pro Node laut Panel-API</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <p v-if="pterodactylNodes === null" class="text-warning small mb-0">
+                            Node-Daten konnten nicht geladen werden. API prüfen unter Hosting-Server-Übersicht.
+                        </p>
+                        <p v-else-if="!pterodactylNodes?.length" class="text-muted small mb-0">
+                            Keine Nodes im Panel konfiguriert.
+                        </p>
+                        <div v-else class="d-flex flex-column gap-3">
+                            <div
+                                v-for="node in pterodactylNodes"
+                                :key="node.id"
+                                class="rounded border p-3"
+                            >
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <Icon icon="server" class="text-primary" />
+                                        <span class="fw-medium">{{ node.name }}</span>
+                                        <BBadge v-if="node.maintenance_mode" variant="warning">Wartung</BBadge>
                                     </div>
-                                    <p class="mt-0.5 font-medium">
-                                        {{ formatMb(node.disk_allocated_mb) }} von {{ formatMb(node.disk_total_mb) }} gebucht
-                                    </p>
-                                    <div class="mt-1 h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                                        <div
-                                            class="h-full rounded-full bg-sky-500 dark:bg-sky-600"
-                                            :style="{ width: `${progressPercent(node.disk_allocated_mb, node.disk_total_mb)}%` }"
-                                        />
-                                    </div>
+                                    <code v-if="node.fqdn" class="small text-muted">{{ node.fqdn }}</code>
                                 </div>
+                                <BRow>
+                                    <BCol sm="6" class="mb-2 mb-sm-0">
+                                        <div class="d-flex align-items-center gap-1 text-muted small">
+                                            <Icon icon="server" />
+                                            RAM
+                                        </div>
+                                        <p class="fw-medium small mb-1">
+                                            {{ formatMb(node.memory_allocated_mb) }} von {{ formatMb(node.memory_total_mb) }} gebucht
+                                        </p>
+                                        <div class="progress" style="height: 6px">
+                                            <div
+                                                class="progress-bar bg-primary"
+                                                role="progressbar"
+                                                :style="{ width: `${progressPercent(node.memory_allocated_mb, node.memory_total_mb)}%` }"
+                                                :aria-valuenow="progressPercent(node.memory_allocated_mb, node.memory_total_mb)"
+                                                aria-valuemin="0"
+                                                aria-valuemax="100"
+                                            />
+                                        </div>
+                                    </BCol>
+                                    <BCol sm="6">
+                                        <div class="d-flex align-items-center gap-1 text-muted small">
+                                            <Icon icon="device-hard-drive" />
+                                            Disk
+                                        </div>
+                                        <p class="fw-medium small mb-1">
+                                            {{ formatMb(node.disk_allocated_mb) }} von {{ formatMb(node.disk_total_mb) }} gebucht
+                                        </p>
+                                        <div class="progress" style="height: 6px">
+                                            <div
+                                                class="progress-bar bg-info"
+                                                role="progressbar"
+                                                :style="{ width: `${progressPercent(node.disk_allocated_mb, node.disk_total_mb)}%` }"
+                                                :aria-valuenow="progressPercent(node.disk_allocated_mb, node.disk_total_mb)"
+                                                aria-valuemin="0"
+                                                aria-valuemax="100"
+                                            />
+                                        </div>
+                                    </BCol>
+                                </BRow>
                             </div>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

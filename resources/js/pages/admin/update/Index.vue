@@ -1,15 +1,19 @@
+<!-- Admin: Panel-Update -->
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BTable,
+    BBadge,
+    BButton,
+    BAlert,
+} from 'bootstrap-vue-next';
 import {
     Dialog,
     DialogContent,
@@ -17,15 +21,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Heading, Text } from '@/components/ui/typography';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -195,97 +190,95 @@ function closeConsole() {
         consoleDone.value = null;
     }
 }
+
+const commitFields = [
+    { key: 'hash', label: 'Hash' },
+    { key: 'message', label: 'Nachricht' },
+    { key: 'author', label: 'Autor' },
+    { key: 'date', label: 'Datum' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Panel-Update" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Panel-Update Neroserv Dashboard</Heading>
-                <Text class="mt-2" muted>
-                    Prüfen Sie den Git-Status und führen Sie Updates aus dem main-Branch aus.
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Panel-Update Neroserv Dashboard</h4>
+                    <p class="text-muted small mb-0">
+                        Prüfen Sie den Git-Status und führen Sie Updates aus dem main-Branch aus.
+                    </p>
+                </div>
 
-            <div v-if="error" class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
-                {{ error }}
-            </div>
+                <BAlert v-if="error" variant="danger" show class="mb-4">
+                    {{ error }}
+                </BAlert>
 
-            <template v-else>
-                <div class="flex flex-wrap items-center gap-4">
-                    <Badge :variant="updateAvailable ? 'default' : 'secondary'" class="text-sm">
-                        {{ updateAvailable ? 'Update verfügbar' : 'System ist aktuell' }}
-                    </Badge>
-                    <div class="flex flex-wrap gap-6 text-sm">
-                        <span>
-                            <span class="text-muted-foreground">Aktuell installiert:</span>
-                            <code class="ml-1 rounded bg-muted px-1.5 py-0.5 font-mono">{{ currentCommit || '–' }}</code>
-                        </span>
-                        <span>
-                            <span class="text-muted-foreground">Neuester Remote:</span>
-                            <code class="ml-1 rounded bg-muted px-1.5 py-0.5 font-mono">{{ remoteCommit ?? '–' }}</code>
-                        </span>
+                <template v-else>
+                    <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+                        <BBadge :variant="updateAvailable ? 'primary' : 'secondary'">
+                            {{ updateAvailable ? 'Update verfügbar' : 'System ist aktuell' }}
+                        </BBadge>
+                        <div class="d-flex flex-wrap gap-4 small">
+                            <span>
+                                <span class="text-muted">Aktuell installiert:</span>
+                                <code class="ms-1 bg-light rounded px-1 py-0 font-monospace">{{ currentCommit || '–' }}</code>
+                            </span>
+                            <span>
+                                <span class="text-muted">Neuester Remote:</span>
+                                <code class="ms-1 bg-light rounded px-1 py-0 font-monospace">{{ remoteCommit ?? '–' }}</code>
+                            </span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="flex flex-wrap gap-2">
-                    <Button
-                        :disabled="!canStartUpdate"
-                        @click="startUpdate"
-                    >
-                        Update ausführen
-                    </Button>
-                    <Text v-if="updateAvailable && !canRunUpdate" muted class="self-center text-sm">
-                        Sie haben nur Leseberechtigung. Update kann nicht ausgeführt werden.
-                    </Text>
-                </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+                        <BButton
+                            variant="primary"
+                            :disabled="!canStartUpdate"
+                            @click="startUpdate"
+                        >
+                            Update ausführen
+                        </BButton>
+                        <p v-if="updateAvailable && !canRunUpdate" class="text-muted small mb-0">
+                            Sie haben nur Leseberechtigung. Update kann nicht ausgeführt werden.
+                        </p>
+                    </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Letzte Commits (main)</CardTitle>
-                        <CardDescription>
-                            Änderungen die im nächsten Update enthalten sind
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table v-if="recentCommits.length">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead class="w-24">Hash</TableHead>
-                                    <TableHead>Nachricht</TableHead>
-                                    <TableHead class="w-40">Autor</TableHead>
-                                    <TableHead class="w-40">Datum</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow
-                                    v-for="commit in recentCommits"
-                                    :key="commit.hash"
-                                >
-                                    <TableCell>
-                                        <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{{ commit.hash }}</code>
-                                    </TableCell>
-                                    <TableCell class="max-w-md truncate font-medium">
-                                        {{ commit.message }}
-                                    </TableCell>
-                                    <TableCell class="text-muted-foreground">
-                                        {{ commit.author }}
-                                    </TableCell>
-                                    <TableCell class="text-muted-foreground text-sm">
-                                        {{ formatDate(commit.date) }}
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                        <Text v-else muted>
-                            Keine Commits geladen.
-                        </Text>
-                    </CardContent>
-                </Card>
-            </template>
-        </div>
+                    <BCard no-body>
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Letzte Commits (main)</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">Änderungen die im nächsten Update enthalten sind</p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BTable
+                                v-if="recentCommits.length"
+                                :items="recentCommits"
+                                :fields="commitFields"
+                                striped
+                                responsive
+                                small
+                            >
+                                <template #cell(hash)="row">
+                                    <code class="small bg-light rounded px-1 py-0">{{ row.item.hash }}</code>
+                                </template>
+                                <template #cell(message)="row">
+                                    <span class="text-truncate d-inline-block fw-medium" style="max-width: 24rem">{{ row.item.message }}</span>
+                                </template>
+                                <template #cell(author)="row">
+                                    <span class="text-muted">{{ row.item.author }}</span>
+                                </template>
+                                <template #cell(date)="row">
+                                    <span class="text-muted small">{{ formatDate(row.item.date) }}</span>
+                                </template>
+                            </BTable>
+                            <p v-else class="text-muted small mb-0">Keine Commits geladen.</p>
+                        </BCardBody>
+                    </BCard>
+                </template>
+            </BCol>
+        </BRow>
 
         <Dialog :open="consoleOpen" @update:open="(v) => { if (!v) closeConsole(); }">
             <DialogContent
@@ -301,30 +294,24 @@ function closeConsole() {
                     </DialogDescription>
                 </DialogHeader>
                 <div
-                    class="max-h-[70vh] overflow-auto rounded-lg border bg-zinc-950 p-4 font-mono text-sm text-zinc-100"
+                    class="max-h-[70vh] overflow-auto rounded border bg-dark p-3 font-monospace small text-light"
                 >
                     <div
                         v-for="(line, i) in consoleLines"
                         :key="i"
                         class="whitespace-pre-wrap break-all"
-                        :class="line.channel === 'err' ? 'text-red-400' : ''"
+                        :class="line.channel === 'err' ? 'text-danger' : ''"
                     >
                         {{ line.text }}
                     </div>
-                    <div v-if="consoleRunning && consoleLines.length === 0" class="text-zinc-500">
+                    <div v-if="consoleRunning && consoleLines.length === 0" class="text-body-secondary">
                         Befehl wird ausgeführt…
                     </div>
-                    <div v-if="consoleDone" class="mt-2 border-t border-zinc-700 pt-2">
-                        <span
-                            v-if="consoleDone.success"
-                            class="text-green-400"
-                        >
+                    <div v-if="consoleDone" class="mt-2 border-top border-secondary pt-2">
+                        <span v-if="consoleDone.success" class="text-success">
                             Update erfolgreich abgeschlossen.
                         </span>
-                        <span
-                            v-else
-                            class="text-red-400"
-                        >
+                        <span v-else class="text-danger">
                             {{ consoleDone.error ?? 'Update fehlgeschlagen.' }}
                         </span>
                     </div>

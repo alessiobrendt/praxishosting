@@ -1,97 +1,76 @@
+<template>
+  <DefaultLayout>
+    <Head :title="`Kontaktanfragen – ${site?.name ?? ''}`" />
+    <PageBreadcrumb
+      :title="`Kontaktanfragen – ${site?.name ?? ''}`"
+      subtitle="Kontaktformular"
+      subtitle-url="/modules/contact"
+    />
+
+    <div class="mb-4">
+      <Link href="/modules/contact" class="d-inline-flex align-items-center gap-1 text-muted small text-decoration-none mb-2">
+        <Icon icon="arrow-left" />
+        Zurück zur Übersicht
+      </Link>
+      <h4 class="mb-1">Kontaktanfragen – {{ site?.name }}</h4>
+      <p class="text-muted mb-0">Eingegangene Nachrichten über das Kontaktformular</p>
+    </div>
+
+    <BCard no-body>
+      <BCardHeader>
+        <h5 class="mb-0">Eingegangene Anfragen</h5>
+        <p class="text-muted small mb-0">{{ submissions.length }} Einträge</p>
+      </BCardHeader>
+      <BCardBody>
+        <BTable v-if="submissions.length > 0" :items="submissions" :fields="submissionFields" responsive stacked="sm">
+          <template #cell(created_at)="{ item }">
+            <span class="text-muted">{{ new Date(item.created_at).toLocaleString('de-DE') }}</span>
+          </template>
+          <template #cell(email)="{ item }">
+            <a :href="`mailto:${item.email}`" class="text-primary text-decoration-none">{{ item.email }}</a>
+          </template>
+          <template #cell(subject)="{ item }">
+            {{ item.subject ?? '–' }}
+          </template>
+          <template #cell(message)="{ item }">
+            <span class="text-truncate d-inline-block" style="max-width: 200px">{{ item.message }}</span>
+          </template>
+        </BTable>
+        <p v-else class="text-muted mb-0 py-4 text-center">Noch keine Kontaktanfragen eingegangen.</p>
+      </BCardBody>
+    </BCard>
+  </DefaultLayout>
+</template>
+
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft } from 'lucide-vue-next';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { dashboard } from '@/routes';
-import modules from '@/routes/modules';
-import type { BreadcrumbItem } from '@/types';
+import { Head, Link } from '@inertiajs/vue3'
+import { BCard, BCardBody, BCardHeader, BTable } from 'bootstrap-vue-next'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue'
+import Icon from '@/components/wrappers/Icon.vue'
 
 type Submission = {
-    id: number;
-    name: string;
-    email: string;
-    subject: string | null;
-    message: string;
-    custom_fields: Record<string, unknown> | null;
-    created_at: string;
-};
+  id: number
+  name: string
+  email: string
+  subject: string | null
+  message: string
+  custom_fields: Record<string, unknown> | null
+  created_at: string
+}
 
-type Site = {
-    uuid: string;
-    name: string;
-    slug: string;
-};
+type Site = { uuid: string; name: string; slug: string }
 
-type Props = {
-    site: Site;
-    submissions: Submission[];
-};
+defineProps<{
+  site: Site
+  submissions: Submission[]
+}>()
 
-defineProps<Props>();
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: dashboard().url },
-    { title: 'Module', href: '#' },
-    { title: 'Kontaktformular', href: modules.contact.index.url() },
-];
+const submissionFields = [
+  { key: 'created_at', label: 'Datum' },
+  { key: 'name', label: 'Name' },
+  { key: 'email', label: 'E-Mail' },
+  { key: 'subject', label: 'Betreff' },
+  { key: 'message', label: 'Nachricht' },
+]
 </script>
-
-<template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head :title="`Kontaktanfragen – ${site.name}`" />
-
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Link
-                        :href="modules.contact.index.url()"
-                        class="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                        <ArrowLeft class="h-4 w-4" /> Zurück zur Übersicht
-                    </Link>
-                    <Heading level="h1">Kontaktanfragen – {{ site.name }}</Heading>
-                    <Text class="mt-2" muted>Eingegangene Nachrichten über das Kontaktformular</Text>
-                </div>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Eingegangene Anfragen</CardTitle>
-                    <CardDescription>{{ submissions.length }} Einträge</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table v-if="submissions.length > 0">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Datum</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>E-Mail</TableHead>
-                                <TableHead>Betreff</TableHead>
-                                <TableHead>Nachricht</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="s in submissions" :key="s.id">
-                                <TableCell class="whitespace-nowrap text-muted-foreground">
-                                    {{ new Date(s.created_at).toLocaleString('de-DE') }}
-                                </TableCell>
-                                <TableCell>{{ s.name }}</TableCell>
-                                <TableCell>
-                                    <a :href="`mailto:${s.email}`" class="text-primary hover:underline">{{ s.email }}</a>
-                                </TableCell>
-                                <TableCell>{{ s.subject ?? '–' }}</TableCell>
-                                <TableCell class="max-w-xs truncate">{{ s.message }}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <p v-else class="py-8 text-center text-muted-foreground">
-                        Noch keine Kontaktanfragen eingegangen.
-                    </p>
-                </CardContent>
-            </Card>
-        </div>
-    </AppLayout>
-</template>

@@ -1,0 +1,818 @@
+<script setup lang="ts">
+import { MoreHorizontal, Copy, Trash2, ClipboardPaste } from 'lucide-vue-next';
+import { GripVertical } from 'lucide-vue-next';
+import { motion } from 'motion-v';
+import { ref, watch, computed, provide, inject, onMounted, onUnmounted } from 'vue';
+import draggable from 'vuedraggable';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { generateResponsiveContainerCSS, hasResponsiveValues } from '@/lib/responsive-styles';
+import { acceptsChildren } from '@/templates/praxisemerald/combined-registry';
+import { getLayoutComponent } from '@/templates/praxisemerald/component-map';
+import ResizeHandle from '@/templates/praxisemerald/components/ResizeHandle.vue';
+import DesignBlock from '@/templates/praxisemerald/DesignBlock.vue';
+import { getMotionPreset } from '@/templates/praxisemerald/motion-presets';
+import type {
+    LayoutComponentEntry,
+    SectionJustify,
+    SectionAlign,
+} from '@/types/layout-components';
+import type { LayoutComponentType } from '@/types/layout-components';
+
+const usePreviewContainerQueries = inject<boolean>('usePreviewContainerQueries', false);
+
+type BlockContextActions = {
+    duplicate: (id: string) => void;
+    remove: (id: string) => void;
+    copy: (id: string) => void;
+    paste: (afterId: string) => void;
+    getCanPaste: () => boolean;
+};
+const blockContextActions = inject<{ value: BlockContextActions } | null>('blockContextActions', null);
+const layoutIsDragging = inject<{ value: boolean } | null>('layoutIsDragging', null);
+const setLayoutDragging = inject<((value: boolean) => void) | null>('setLayoutDragging', null);
+const _addSelectionToContainer = inject<
+    ((containerId: string, newChildren: LayoutComponentEntry[]) => void) | null
+>('addSelectionToContainer', null);
+const _selectedBlockIds = inject<{ value: Set<string> } | null>('selectedBlockIds', null);
+const setLastDraggedEntry = inject<((entry: LayoutComponentEntry | null) => void) | null>(
+    'setLastDraggedEntry',
+    null,
+);
+const addDraggedEntryToContainer = inject<
+    ((containerId: string, index: number) => void) | null
+>('addDraggedEntryToContainer', null);
+
+function isValidContainerChild(e: unknown): e is LayoutComponentEntry {
+    return (
+        e !== null &&
+        typeof e === 'object' &&
+        typeof (e as LayoutComponentEntry).id === 'string' &&
+        typeof (e as LayoutComponentEntry).type === 'string'
+    );
+}
+
+/** Reject drops from sidebar (VisibleItem) or any non–layout-block shape. */
+function isLayoutBlockEntry(el: unknown): el is LayoutComponentEntry {
+    if (el == null || typeof el !== 'object') return false;
+    const o = el as Record<string, unknown>;
+    if (typeof o.id !== 'string' || typeof o.type !== 'string') return false;
+    if ('flatItem' in o || 'flatIndex' in o) return false;
+    return true;
+}
+
+/** Normalize to a clean LayoutComponentEntry so container never holds invalid/corrupt refs. */
+function normalizeEntry(entry: LayoutComponentEntry): LayoutComponentEntry {
+    const out: LayoutComponentEntry = {
+        id: entry.id,
+        type: entry.type,
+        data: entry.data != null && typeof entry.data === 'object' ? { ...entry.data } : {},
+    };
+    if (acceptsChildren(entry.type as LayoutComponentType)) {
+        const c = entry.children;
+        out.children = Array.isArray(c)
+            ? c.filter(isValidContainerChild).map(normalizeEntry)
+            : [];
+    }
+    return out;
+}
+
+const props = withDefaults(
+    defineProps<{
+        entry: LayoutComponentEntry;
+        designMode?: boolean;
+        selectedModuleId?: string | null;
+        insertAtParent?: (parentId: string, index: number, type: string) => void;
+        /** Wenn true, rendert dieser Block keinen eigenen Drag-Handle (wird vom Container-Wrapper bereitgestellt). */
+        embeddingProvidesDragHandle?: boolean;
+    }>(),
+    { designMode: false, selectedModuleId: null, insertAtParent: undefined, embeddingProvidesDragHandle: false },
+);
+
+const emit = defineEmits<{
+    (e: 'select', id: string, addToSelection?: boolean): void;
+    (e: 'reorder'): void;
+    (e: 'dragStart'): void;
+}>();
+
+provide('layoutEntry', computed(() => props.entry));
+
+function childEntries(): LayoutComponentEntry[] {
+    if (!acceptsChildren(props.entry.type as LayoutComponentType)) return [];
+    const c = props.entry.children;
+    if (!Array.isArray(c)) return [];
+    return c.filter(
+        (e): e is LayoutComponentEntry =>
+            e && typeof e === 'object' && typeof (e as LayoutComponentEntry).id === 'string' && typeof (e as LayoutComponentEntry).type === 'string',
+    );
+}
+
+/** Container list: single source of truth bound to entry.children so cross-list moves (root→container) don't duplicate. */
+const containerList = computed({
+    get(): LayoutComponentEntry[] {
+        if (!acceptsChildren(props.entry.type as LayoutComponentType)) return [];
+        let c = props.entry.children;
+        if (!Array.isArray(c)) {
+            c = [];
+            (props.entry as Record<string, unknown>).children = c;
+        }
+        return c as LayoutComponentEntry[];
+    },
+    set(v: LayoutComponentEntry[]) {
+        const valid = v.filter(isValidContainerChild).map(normalizeEntry);
+        (props.entry as Record<string, unknown>).children = valid;
+        emit('reorder');
+    },
+});
+
+function onContainerMove(evt: { draggedContext?: { element?: unknown } }): boolean {
+    const el = evt.draggedContext?.element;
+    if (!isLayoutBlockEntry(el)) return false;
+    return true;
+}
+
+function onContainerDragStart(evt: { oldIndex?: number }): void {
+    const list = containerList.value;
+    if (evt?.oldIndex != null && list[evt.oldIndex]) {
+        setLastDraggedEntry?.(list[evt.oldIndex] as LayoutComponentEntry);
+    }
+    emit('dragStart');
+}
+
+function onContainerDragEnd(): void {
+    setLayoutDragging?.(false);
+}
+
+const isRow = (): boolean => (props.entry.data?.direction as string) === 'row';
+
+function getChildFlexStyle(child: LayoutComponentEntry): Record<string, string> {
+    if (props.entry.type !== 'section' || !isRow()) return { minWidth: '0' };
+    const basis = child.data?.flexBasis as string | undefined;
+    if (basis) {
+        return { flex: `0 0 ${basis}`, minWidth: '0', overflow: 'hidden' };
+    }
+    return { flex: '1 1 0%', minWidth: '0', overflow: 'hidden' };
+}
+
+function onSelect(id: string, evtOrAdd?: MouseEvent | boolean): void {
+    const addToSelection =
+        typeof evtOrAdd === 'boolean' ? evtOrAdd : (evtOrAdd as MouseEvent | undefined)?.ctrlKey ?? false;
+    emit('select', id, addToSelection);
+}
+
+function getNextChild(index: number): LayoutComponentEntry | undefined {
+    return containerList.value[index + 1];
+}
+
+/** Grid/Flex containers: child wrappers use w-full so content fills the cell; Section uses flex-1. */
+const isGridOrFlexContainer = (): boolean =>
+    props.entry.type === 'grid' || props.entry.type === 'flex';
+
+function mapJustify(v: SectionJustify | string | undefined): string {
+    const map: Record<string, string> = {
+        start: 'flex-start',
+        center: 'center',
+        end: 'flex-end',
+        'space-between': 'space-between',
+        'space-around': 'space-around',
+    };
+    return map[(v as SectionJustify) ?? 'start'] ?? 'flex-start';
+}
+
+function mapAlign(v: SectionAlign | string | undefined): string {
+    const map: Record<string, string> = {
+        start: 'flex-start',
+        center: 'center',
+        end: 'flex-end',
+        stretch: 'stretch',
+    };
+    return map[(v as SectionAlign) ?? 'stretch'] ?? 'stretch';
+}
+
+const containerUsesResponsiveQueries = computed(
+    () =>
+        usePreviewContainerQueries &&
+        props.designMode &&
+        acceptsChildren(props.entry.type as LayoutComponentType) &&
+        hasResponsiveValues((props.entry.data ?? {}) as Record<string, unknown>),
+);
+
+function getSectionFlexStyle(): Record<string, string> {
+    const d = props.entry.data ?? {};
+    const style: Record<string, string> = {
+        display: 'flex',
+        flexWrap: (d.wrap as boolean) !== false ? 'wrap' : 'nowrap',
+    };
+    if (!containerUsesResponsiveQueries.value) {
+        style.flexDirection = (d.direction as string) === 'row' ? 'row' : 'column';
+        style.gap = (d.gap as string) ?? '1rem';
+        style.justifyContent = mapJustify(d.justify as SectionJustify);
+        style.alignItems = mapAlign(d.align as SectionAlign);
+    }
+    return style;
+}
+
+function getGridStyle(): Record<string, string> {
+    const d = props.entry.data ?? {};
+    const style: Record<string, string> = { display: 'grid' };
+    if (!containerUsesResponsiveQueries.value) {
+        style.gap = (d.gap as string) ?? '1rem';
+        if (d.columns) style.gridTemplateColumns = d.columns as string;
+    }
+    if (d.rowGap) style.rowGap = d.rowGap as string;
+    if (d.columnGap) style.columnGap = d.columnGap as string;
+    return style;
+}
+
+function getContainerStyle(): Record<string, string> {
+    if (props.entry.type === 'grid') {
+        return getGridStyle();
+    }
+    return getSectionFlexStyle();
+}
+
+const layoutContainerStyleEl = ref<HTMLStyleElement | null>(null);
+const layoutContainerCSS = computed(() => {
+    if (!containerUsesResponsiveQueries.value) return '';
+    const d = (props.entry.data ?? {}) as Record<string, unknown>;
+    const selector = `.layout-block-container-responsive[data-layout-container-id="${props.entry.id}"]`;
+    const parts: string[] = [];
+    if (props.entry.type === 'grid') {
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'grid-template-columns', {
+                base: (d.columns as string) || '1fr',
+                sm: d.columnsSm as string,
+                md: d.columnsMd as string,
+                lg: d.columnsLg as string,
+                xl: d.columnsXl as string,
+            }),
+        );
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'gap', {
+                base: (d.gap as string) || '1rem',
+                sm: d.gapSm as string,
+                md: d.gapMd as string,
+                lg: d.gapLg as string,
+                xl: d.gapXl as string,
+            }),
+        );
+    } else if (props.entry.type === 'section' || props.entry.type === 'flex') {
+        const dir = (v: string | undefined) => (v === 'row' ? 'row' : 'column');
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'flex-direction', {
+                base: dir((d.direction as string) || 'column'),
+                sm: d.directionSm ? dir(d.directionSm as string) : undefined,
+                md: d.directionMd ? dir(d.directionMd as string) : undefined,
+                lg: d.directionLg ? dir(d.directionLg as string) : undefined,
+                xl: d.directionXl ? dir(d.directionXl as string) : undefined,
+            }),
+        );
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'gap', {
+                base: (d.gap as string) || '1rem',
+                sm: d.gapSm as string,
+                md: d.gapMd as string,
+                lg: d.gapLg as string,
+                xl: d.gapXl as string,
+            }),
+        );
+        const mapJ = (v: string | undefined) =>
+            ({ start: 'flex-start', center: 'center', end: 'flex-end', 'space-between': 'space-between', 'space-around': 'space-around' }[v ?? 'start'] ?? 'flex-start');
+        const mapA = (v: string | undefined) =>
+            ({ start: 'flex-start', center: 'center', end: 'flex-end', stretch: 'stretch' }[v ?? 'stretch'] ?? 'stretch');
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'justify-content', {
+                base: mapJ(d.justify as string),
+                sm: d.justifySm ? mapJ(d.justifySm as string) : undefined,
+                md: d.justifyMd ? mapJ(d.justifyMd as string) : undefined,
+                lg: d.justifyLg ? mapJ(d.justifyLg as string) : undefined,
+                xl: d.justifyXl ? mapJ(d.justifyXl as string) : undefined,
+            }),
+        );
+        parts.push(
+            generateResponsiveContainerCSS(selector, 'align-items', {
+                base: mapA(d.align as string),
+                sm: d.alignSm ? mapA(d.alignSm as string) : undefined,
+                md: d.alignMd ? mapA(d.alignMd as string) : undefined,
+                lg: d.alignLg ? mapA(d.alignLg as string) : undefined,
+                xl: d.alignXl ? mapA(d.alignXl as string) : undefined,
+            }),
+        );
+    }
+    return parts.filter(Boolean).join('\n');
+});
+
+function injectLayoutContainerStyles(): void {
+    if (!layoutContainerCSS.value) {
+        if (layoutContainerStyleEl.value) {
+            layoutContainerStyleEl.value.remove();
+            layoutContainerStyleEl.value = null;
+        }
+        return;
+    }
+    if (!layoutContainerStyleEl.value) {
+        layoutContainerStyleEl.value = document.createElement('style');
+        layoutContainerStyleEl.value.setAttribute('data-layout-container', props.entry.id);
+        document.head.appendChild(layoutContainerStyleEl.value);
+    }
+    layoutContainerStyleEl.value.textContent = layoutContainerCSS.value;
+}
+
+onMounted(() => injectLayoutContainerStyles());
+onUnmounted(() => {
+    if (layoutContainerStyleEl.value) {
+        layoutContainerStyleEl.value.remove();
+        layoutContainerStyleEl.value = null;
+    }
+});
+watch(layoutContainerCSS, () => injectLayoutContainerStyles());
+
+const containerDropTargetIndex = ref<number | null>(null);
+
+function onContainerDropZoneDragOver(index: number, e: DragEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer ??= new DataTransfer();
+    e.dataTransfer.dropEffect = 'move';
+    containerDropTargetIndex.value = index;
+}
+
+function onContainerDropZoneDragLeave(e: DragEvent): void {
+    if (!(e.currentTarget as HTMLElement)?.contains?.(e.relatedTarget as Node)) {
+        containerDropTargetIndex.value = null;
+    }
+}
+
+function onContainerDropZoneDrop(index: number, e: DragEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    containerDropTargetIndex.value = null;
+    const type = e.dataTransfer?.getData('component-type');
+    if (type && props.insertAtParent) {
+        props.insertAtParent(props.entry.id, index, type);
+        return;
+    }
+    if (addDraggedEntryToContainer) {
+        addDraggedEntryToContainer(props.entry.id, index);
+    }
+}
+
+const motionPreset = computed(() =>
+    getMotionPreset((props.entry.data as Record<string, unknown>)?.motion as string),
+);
+
+const DESIGN_BLOCK_TYPES = ['hero', 'cta', 'about', 'hours'] as const;
+const useDesignBlock = computed(
+    () =>
+        props.designMode &&
+        DESIGN_BLOCK_TYPES.includes(props.entry.type as (typeof DESIGN_BLOCK_TYPES)[number]),
+);
+</script>
+
+<template>
+    <div
+        v-if="designMode"
+        :data-module-id="entry.id"
+        class="relative flex min-h-[2.5rem] cursor-pointer outline-none ring-1 ring-transparent transition-[outline-color,box-shadow] hover:ring-primary/50 focus-within:ring-primary"
+        :class="{ 'ring-1 ring-primary': selectedModuleId === entry.id }"
+        tabindex="0"
+        role="button"
+        aria-label="Bereich auswählen (Strg+Klick für Mehrfachauswahl)"
+        @click.stop="onSelect(entry.id, $event)"
+        @keydown.enter.space.prevent="onSelect(entry.id)"
+    >
+        <div
+            v-if="!embeddingProvidesDragHandle"
+            class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-5 cursor-grab items-center justify-center bg-muted/50 text-muted-foreground active:cursor-grabbing"
+            aria-hidden
+            @click.stop
+        >
+            <GripVertical class="h-3.5 w-3.5" />
+        </div>
+        <DropdownMenu v-if="blockContextActions?.value">
+            <template #default>
+            <DropdownMenuTrigger as-child>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    class="absolute right-0 top-0 z-10 h-7 w-7 shrink-0 rounded-sm opacity-70 hover:opacity-100"
+                    aria-label="Block-Menü"
+                    @click.stop
+                >
+                    <MoreHorizontal class="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="min-w-[10rem]">
+                <DropdownMenuItem
+                    @select="blockContextActions.value.duplicate(entry.id)"
+                >
+                    <Copy class="mr-2 h-4 w-4" />
+                    Duplizieren
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    @select="blockContextActions.value.copy(entry.id)"
+                >
+                    <Copy class="mr-2 h-4 w-4" />
+                    Kopieren
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    :disabled="!blockContextActions.value.getCanPaste()"
+                    @select="blockContextActions.value.paste(entry.id)"
+                >
+                    <ClipboardPaste class="mr-2 h-4 w-4" />
+                    Einfügen
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    variant="destructive"
+                    @select="blockContextActions.value.remove(entry.id)"
+                >
+                    <Trash2 class="mr-2 h-4 w-4" />
+                    Löschen
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+            </template>
+        </DropdownMenu>
+        <div class="min-w-0 flex-1" :class="embeddingProvidesDragHandle ? 'pl-0' : 'pl-5'">
+        <!-- Container in design mode: draggable slot and drop zones for section, grid, flex -->
+        <template v-if="designMode && acceptsChildren(entry.type as LayoutComponentType)">
+            <template v-if="motionPreset">
+                <motion.div
+                    class="min-w-0 flex-1"
+                    :initial="motionPreset.initial"
+                    :animate="motionPreset.animate"
+                    :transition="motionPreset.transition"
+                >
+                    <component
+                        :is="getLayoutComponent(entry.type)"
+                        v-if="getLayoutComponent(entry.type)"
+                        :data="entry.data ?? {}"
+                        :design-mode="designMode"
+                        class="min-w-0 flex-1 flex flex-col"
+                    >
+                        <div
+                            v-if="insertAtParent"
+                            class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                            :class="[
+                                containerDropTargetIndex === 0
+                                    ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                                    : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                                layoutIsDragging?.value && 'pointer-events-none',
+                            ]"
+                            @dragover.prevent.stop="onContainerDropZoneDragOver(0, $event)"
+                            @dragleave="onContainerDropZoneDragLeave"
+                            @drop.prevent.stop="onContainerDropZoneDrop(0, $event)"
+                        >
+                            <span v-if="containerDropTargetIndex === 0" class="text-xs font-medium text-primary">Hier einfügen</span>
+                            <span v-else class="sr-only">Komponente hier einfügen</span>
+                        </div>
+                        <draggable
+                            v-model="containerList"
+                            item-key="id"
+                            handle=".block-drag-handle"
+                            :group="{ name: 'layout-blocks', pull: true, put: true }"
+                            :move="onContainerMove"
+                            ghost-class="page-designer-ghost"
+                            chosen-class="page-designer-chosen"
+                            drag-class="page-designer-drag"
+                            :revert-on-spill="true"
+                            :animation="200"
+                            :class="[
+                                'section-children-flex min-h-[2.5rem] min-w-0 flex-1',
+                                containerUsesResponsiveQueries && 'layout-block-container-responsive',
+                            ]"
+                            :data-layout-container-id="containerUsesResponsiveQueries ? entry.id : undefined"
+                            :style="getContainerStyle()"
+                            @start="onContainerDragStart"
+                            @end="onContainerDragEnd"
+                        >
+                            <template #item="{ element: child, index }">
+                                <div
+                                    class="flex min-w-0 flex-col"
+                                    :class="{ 'w-full': isGridOrFlexContainer() }"
+                                    :style="getChildFlexStyle(child)"
+                                >
+                                    <div
+                                        v-if="insertAtParent"
+                                        class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                                        :class="[
+                                            containerDropTargetIndex === index + 1
+                                                ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                                                : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                                            layoutIsDragging?.value && 'pointer-events-none',
+                                        ]"
+                                        @dragover.prevent.stop="onContainerDropZoneDragOver(index + 1, $event)"
+                                        @dragleave="onContainerDropZoneDragLeave"
+                                        @drop.prevent.stop="onContainerDropZoneDrop(index + 1, $event)"
+                                    >
+                                        <span v-if="containerDropTargetIndex === index + 1" class="text-xs font-medium text-primary">Hier einfügen</span>
+                                        <span v-else class="sr-only">Komponente hier einfügen</span>
+                                    </div>
+                                    <div
+                                        class="section-child relative flex min-h-[2rem] min-w-0 flex-1 flex-row"
+                                        :class="{ 'w-full': isGridOrFlexContainer() }"
+                                    >
+                                        <div
+                                            class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-5 cursor-grab items-center justify-center bg-muted/50 text-muted-foreground active:cursor-grabbing"
+                                            aria-hidden
+                                            @click.stop
+                                        >
+                                            <GripVertical class="h-3.5 w-3.5" />
+                                        </div>
+                                        <div class="min-w-0 pl-5">
+                                            <LayoutBlock
+                                                :entry="child"
+                                                :design-mode="designMode"
+                                                :selected-module-id="selectedModuleId"
+                                                :insert-at-parent="insertAtParent"
+                                                embedding-provides-drag-handle
+                                                @select="(id: string, add?: boolean) => onSelect(id, add)"
+                                                @reorder="emit('reorder')"
+                                                @drag-start="emit('dragStart')"
+                                            />
+                                        </div>
+                                        <ResizeHandle
+                                            v-if="entry.type === 'section' && isRow() && getNextChild(index)"
+                                            :left-entry="child"
+                                            :right-entry="getNextChild(index)!"
+                                            class="shrink-0"
+                                            @resize="emit('reorder')"
+                                        />
+                                    </div>
+                                </div>
+                            </template>
+                        </draggable>
+                        <div
+                            v-if="insertAtParent"
+                            class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                            :class="[
+                                containerDropTargetIndex === containerList.length
+                                    ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                                    : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                                layoutIsDragging?.value && 'pointer-events-none',
+                            ]"
+                            @dragover.prevent.stop="onContainerDropZoneDragOver(containerList.length, $event)"
+                            @dragleave="onContainerDropZoneDragLeave"
+                            @drop.prevent.stop="onContainerDropZoneDrop(containerList.length, $event)"
+                        >
+                            <span v-if="containerDropTargetIndex === containerList.length" class="text-xs font-medium text-primary">Hier einfügen</span>
+                            <span v-else class="sr-only">Komponente am Ende einfügen</span>
+                        </div>
+                    </component>
+                </motion.div>
+            </template>
+            <template v-else>
+                <component
+                    v-if="getLayoutComponent(entry.type)"
+                    :is="getLayoutComponent(entry.type)"
+                    :data="entry.data ?? {}"
+                    :design-mode="designMode"
+                    class="min-w-0 flex-1 flex flex-col"
+                >
+                <div
+                    v-if="insertAtParent"
+                    class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                    :class="[
+                        containerDropTargetIndex === 0
+                            ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                            : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                        layoutIsDragging?.value && 'pointer-events-none',
+                    ]"
+                    @dragover.prevent.stop="onContainerDropZoneDragOver(0, $event)"
+                    @dragleave="onContainerDropZoneDragLeave"
+                    @drop.prevent.stop="onContainerDropZoneDrop(0, $event)"
+                >
+                    <span v-if="containerDropTargetIndex === 0" class="text-xs font-medium text-primary">Hier einfügen</span>
+                    <span v-else class="sr-only">Komponente hier einfügen</span>
+                </div>
+                <draggable
+                    v-model="containerList"
+                    item-key="id"
+                    handle=".block-drag-handle"
+                    :group="{ name: 'layout-blocks', pull: true, put: true }"
+                    :move="onContainerMove"
+                    ghost-class="page-designer-ghost"
+                    chosen-class="page-designer-chosen"
+                    drag-class="page-designer-drag"
+                    :revert-on-spill="true"
+                    :animation="200"
+                    :class="[
+                        'section-children-flex min-h-[2.5rem] min-w-0 flex-1',
+                        containerUsesResponsiveQueries && 'layout-block-container-responsive',
+                    ]"
+                    :data-layout-container-id="containerUsesResponsiveQueries ? entry.id : undefined"
+                    :style="getContainerStyle()"
+                    @start="onContainerDragStart"
+                    @end="onContainerDragEnd"
+                >
+                    <template #item="{ element: child, index }">
+                        <div
+                            class="flex min-w-0 flex-col"
+                            :class="{ 'w-full': isGridOrFlexContainer() }"
+                            :style="getChildFlexStyle(child)"
+                        >
+                            <div
+                                v-if="insertAtParent"
+                                class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                                        :class="[
+                                            containerDropTargetIndex === index + 1
+                                                ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                                                : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                                            layoutIsDragging?.value && 'pointer-events-none',
+                                        ]"
+                                @dragover.prevent.stop="onContainerDropZoneDragOver(index + 1, $event)"
+                                @dragleave="onContainerDropZoneDragLeave"
+                                @drop.prevent.stop="onContainerDropZoneDrop(index + 1, $event)"
+                            >
+                                <span v-if="containerDropTargetIndex === index + 1" class="text-xs font-medium text-primary">Hier einfügen</span>
+                                <span v-else class="sr-only">Komponente hier einfügen</span>
+                            </div>
+                            <div
+                                class="section-child relative flex min-h-[2rem] min-w-0 flex-1 flex-row"
+                                :class="{ 'w-full': isGridOrFlexContainer() }"
+                            >
+                                <div
+                                    class="block-drag-handle absolute left-0 top-0 z-10 flex h-full min-w-5 cursor-grab items-center justify-center bg-muted/50 text-muted-foreground active:cursor-grabbing"
+                                    aria-hidden
+                                    @click.stop
+                                >
+                                    <GripVertical class="h-3.5 w-3.5" />
+                                </div>
+                                <div class="min-w-0 pl-5">
+                                    <LayoutBlock
+                                        :entry="child"
+                                        :design-mode="designMode"
+                                        :selected-module-id="selectedModuleId"
+                                        :insert-at-parent="insertAtParent"
+                                        embedding-provides-drag-handle
+                                        @select="(id: string, add?: boolean) => onSelect(id, add)"
+                                        @reorder="emit('reorder')"
+                                        @drag-start="emit('dragStart')"
+                                    />
+                                </div>
+                                <ResizeHandle
+                                    v-if="entry.type === 'section' && isRow() && getNextChild(index)"
+                                    :left-entry="child"
+                                    :right-entry="getNextChild(index)!"
+                                    class="shrink-0"
+                                    @resize="emit('reorder')"
+                                />
+                            </div>
+                        </div>
+                    </template>
+                </draggable>
+                <div
+                    v-if="insertAtParent"
+                    class="drop-zone shrink-0 min-h-6 rounded border-2 border-dashed transition-all duration-150 flex items-center justify-center"
+                    :class="[
+                        containerDropTargetIndex === containerList.length
+                            ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                            : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                        layoutIsDragging?.value && 'pointer-events-none',
+                    ]"
+                    @dragover.prevent.stop="onContainerDropZoneDragOver(containerList.length, $event)"
+                    @dragleave="onContainerDropZoneDragLeave"
+                    @drop.prevent.stop="onContainerDropZoneDrop(containerList.length, $event)"
+                >
+                    <span v-if="containerDropTargetIndex === containerList.length" class="text-xs font-medium text-primary">Hier einfügen</span>
+                    <span v-else class="sr-only">Komponente am Ende einfügen</span>
+                </div>
+                </component>
+            </template>
+        </template>
+        <template v-else>
+            <template v-if="motionPreset">
+                <motion.div
+                    class="min-w-0 flex-1"
+                    :initial="motionPreset.initial"
+                    :animate="motionPreset.animate"
+                    :transition="motionPreset.transition"
+                >
+                    <DesignBlock
+                        v-if="useDesignBlock"
+                        :entry="entry"
+                        :design-mode="designMode"
+                        class="min-w-0 flex-1"
+                    />
+                    <template v-else>
+                        <component
+                            v-if="getLayoutComponent(entry.type)"
+                            :is="getLayoutComponent(entry.type)"
+                            :data="entry.data ?? {}"
+                            :design-mode="designMode"
+                            class="min-w-0 flex-1"
+                        >
+                        <template v-if="childEntries().length > 0">
+                            <div
+                                v-for="child in childEntries()"
+                                :key="child.id"
+                                class="section-child min-w-0"
+                                :style="getChildFlexStyle(child)"
+                            >
+                                <LayoutBlock
+                                    :entry="child"
+                                    :design-mode="designMode"
+                                    :selected-module-id="selectedModuleId"
+                                    :insert-at-parent="insertAtParent"
+                                    @select="(id: string, add?: boolean) => onSelect(id, add)"
+                                    @reorder="emit('reorder')"
+                                    @drag-start="emit('dragStart')"
+                                />
+                            </div>
+                        </template>
+                        </component>
+                    </template>
+                </motion.div>
+            </template>
+            <template v-else>
+                <DesignBlock
+                    v-if="useDesignBlock"
+                    :entry="entry"
+                    :design-mode="designMode"
+                    class="min-w-0 flex-1"
+                />
+                <template v-else>
+                    <component
+                        v-if="getLayoutComponent(entry.type)"
+                        :is="getLayoutComponent(entry.type)"
+                        :data="entry.data ?? {}"
+                        :design-mode="designMode"
+                        class="min-w-0 flex-1"
+                    >
+                    <template v-if="childEntries().length > 0">
+                        <div
+                            v-for="child in childEntries()"
+                            :key="child.id"
+                            class="section-child min-w-0"
+                            :style="getChildFlexStyle(child)"
+                        >
+                            <LayoutBlock
+                                :entry="child"
+                                :design-mode="designMode"
+                                :selected-module-id="selectedModuleId"
+                                :insert-at-parent="insertAtParent"
+                                @select="(id: string, add?: boolean) => onSelect(id, add)"
+                                @reorder="emit('reorder')"
+                                @drag-start="emit('dragStart')"
+                            />
+                        </div>
+                    </template>
+                </component>
+                </template>
+            </template>
+        </template>
+        </div>
+    </div>
+    <template v-else>
+        <template v-if="motionPreset">
+            <motion.div
+                class="min-w-0"
+                :initial="motionPreset.initial"
+                :animate="motionPreset.animate"
+                :transition="motionPreset.transition"
+            >
+                <component
+                    :is="getLayoutComponent(entry.type)"
+                    v-if="getLayoutComponent(entry.type)"
+                    :data="entry.data ?? {}"
+                    :design-mode="designMode"
+                >
+                    <template v-if="childEntries().length > 0">
+                        <div
+                            v-for="child in childEntries()"
+                            :key="child.id"
+                            class="section-child min-w-0"
+                            :style="getChildFlexStyle(child)"
+                        >
+                            <LayoutBlock :entry="child" />
+                        </div>
+                    </template>
+                </component>
+            </motion.div>
+        </template>
+        <template v-else>
+            <component
+                v-if="getLayoutComponent(entry.type)"
+                :is="getLayoutComponent(entry.type)"
+                :data="entry.data ?? {}"
+                :design-mode="designMode"
+            >
+            <template v-if="childEntries().length > 0">
+                <div
+                    v-for="child in childEntries()"
+                    :key="child.id"
+                    class="section-child min-w-0"
+                    :style="getChildFlexStyle(child)"
+                >
+                    <LayoutBlock :entry="child" />
+                </div>
+            </template>
+        </component>
+        </template>
+    </template>
+</template>

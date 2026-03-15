@@ -1,10 +1,16 @@
+<!-- Admin: Fehlgeschlagene Jobs -->
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -33,113 +39,143 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Fehlgeschlagene Jobs', href: '#' },
 ];
 
-function retry(id: number) {
+function retry(id: number): void {
     router.post(`/admin/failed-jobs/${id}/retry`);
 }
 
-function retryAll() {
+function retryAll(): void {
     if (!confirm('Alle fehlgeschlagenen Jobs erneut in die Queue stellen?')) return;
     router.post('/admin/failed-jobs/retry-all');
 }
 
-function destroy(id: number) {
+function destroy(id: number): void {
     if (!confirm('Diesen fehlgeschlagenen Job endgültig löschen?')) return;
     router.delete(`/admin/failed-jobs/${id}`);
 }
 
-function flush() {
-    if (!confirm('Alle fehlgeschlagenen Jobs endgültig löschen? Dies kann nicht rückgängig gemacht werden.')) return;
+function flush(): void {
+    if (
+        !confirm(
+            'Alle fehlgeschlagenen Jobs endgültig löschen? Dies kann nicht rückgängig gemacht werden.',
+        )
+    )
+        return;
     router.post('/admin/failed-jobs/flush');
 }
 
-const handlePagination = (url: string) => {
-    if (url) window.location.href = url;
-};
+const tableFields = [
+    { key: 'id', label: 'ID', sortable: false },
+    { key: 'uuid', label: 'UUID', sortable: false },
+    { key: 'queue', label: 'Queue', sortable: false },
+    { key: 'connection', label: 'Connection', sortable: false },
+    { key: 'exception_preview', label: 'Fehler (Auszug)', sortable: false },
+    { key: 'failed_at', label: 'Fehlgeschlagen am', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Fehlgeschlagene Jobs" />
 
-        <div class="space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <Heading level="h1">Fehlgeschlagene Jobs</Heading>
-                    <Text class="mt-2" muted>
-                        Queue-Jobs die fehlgeschlagen sind – erneut ausführen oder löschen
-                    </Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">Fehlgeschlagene Jobs</h4>
+                        <p class="text-muted small mb-0">
+                            Queue-Jobs die fehlgeschlagen sind – erneut ausführen oder löschen
+                        </p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <BButton
+                            variant="outline-primary"
+                            :disabled="!failedJobs.data?.length"
+                            @click="retryAll"
+                        >
+                            Alle erneut ausführen
+                        </BButton>
+                        <BButton
+                            variant="danger"
+                            :disabled="!failedJobs.data?.length"
+                            @click="flush"
+                        >
+                            Alle löschen
+                        </BButton>
+                    </div>
                 </div>
-                <div class="flex flex-wrap gap-2">
-                    <Button
-                        variant="outline"
-                        :disabled="!failedJobs.data?.length"
-                        @click="retryAll"
-                    >
-                        Alle erneut ausführen
-                    </Button>
-                    <Button
-                        variant="destructive"
-                        :disabled="!failedJobs.data?.length"
-                        @click="flush"
-                    >
-                        Alle löschen
-                    </Button>
-                </div>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Fehlgeschlagene Jobs</CardTitle>
-                    <CardDescription>Liste der Jobs, die bei der Ausführung einen Fehler verursacht haben</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>ID</TableHead>
-                                <TableHead>UUID</TableHead>
-                                <TableHead>Queue</TableHead>
-                                <TableHead>Connection</TableHead>
-                                <TableHead>Fehler (Auszug)</TableHead>
-                                <TableHead>Fehlgeschlagen am</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="job in failedJobs.data" :key="job.id">
-                                <TableCell class="font-mono text-sm">{{ job.id }}</TableCell>
-                                <TableCell class="font-mono text-xs max-w-[8rem] truncate" :title="job.uuid">
-                                    {{ job.uuid }}
-                                </TableCell>
-                                <TableCell>{{ job.queue }}</TableCell>
-                                <TableCell>{{ job.connection }}</TableCell>
-                                <TableCell class="max-w-md truncate text-muted-foreground" :title="job.exception_preview">
-                                    {{ job.exception_preview || '–' }}
-                                </TableCell>
-                                <TableCell>{{ job.failed_at }}</TableCell>
-                                <TableCell class="text-right">
-                                    <Button variant="outline" size="sm" class="mr-2" @click="retry(job.id)">
-                                        Erneut ausführen
-                                    </Button>
-                                    <Button variant="ghost" size="sm" class="text-destructive" @click="destroy(job.id)">
-                                        Löschen
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="!failedJobs.data?.length">
-                                <TableCell colspan="7" class="py-8 text-center text-muted-foreground">
-                                    Keine fehlgeschlagenen Jobs.
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Pagination
-                        v-if="failedJobs.links && failedJobs.links.length > 3"
-                        :links="failedJobs.links"
-                        @page-click="handlePagination"
-                    />
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Fehlgeschlagene Jobs</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Liste der Jobs, die bei der Ausführung einen Fehler verursacht haben
+                        </p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="failedJobs.data"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine fehlgeschlagenen Jobs"
+                        >
+                            <template #cell(id)="row">
+                                <span class="font-monospace small">{{ row.item.id }}</span>
+                            </template>
+                            <template #cell(uuid)="row">
+                                <span
+                                    class="font-monospace small text-truncate d-inline-block"
+                                    style="max-width: 10rem"
+                                    :title="row.item.uuid"
+                                >
+                                    {{ row.item.uuid }}
+                                </span>
+                            </template>
+                            <template #cell(exception_preview)="row">
+                                <span
+                                    class="text-muted text-truncate d-inline-block"
+                                    style="max-width: 20rem"
+                                    :title="row.item.exception_preview"
+                                >
+                                    {{ row.item.exception_preview || '–' }}
+                                </span>
+                            </template>
+                            <template #cell(actions)="row">
+                                <BButton
+                                    variant="outline-primary"
+                                    size="sm"
+                                    class="me-2"
+                                    @click="retry(row.item.id)"
+                                >
+                                    Erneut ausführen
+                                </BButton>
+                                <BButton variant="outline-danger" size="sm" @click="destroy(row.item.id)">
+                                    Löschen
+                                </BButton>
+                            </template>
+                        </BTable>
+                        <nav
+                            v-if="failedJobs.links && failedJobs.links.length > 3"
+                            class="d-flex justify-content-center p-3"
+                        >
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in failedJobs.links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a v-if="link.url" class="page-link" :href="link.url" v-html="link.label" />
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

@@ -1,11 +1,18 @@
+<!-- Admin: Template-Detail -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Edit, Plus, FileText } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import templates from '@/routes/admin/templates';
 import type { BreadcrumbItem } from '@/types';
@@ -47,126 +54,109 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="template.name" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">{{ template.name }}</Heading>
-                    <Text class="mt-2" muted>
-                        Template-Details
-                    </Text>
+        <BRow>
+            <BCol>
+                <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <h4 class="mb-1">{{ template.name }}</h4>
+                        <p class="text-muted small mb-0">Template-Details</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <Link :href="templates.pages.index({ template: template.id }).url">
+                            <BButton variant="outline-primary">
+                                <Icon icon="file-text" class="me-2" />Seiten verwalten
+                            </BButton>
+                        </Link>
+                        <Link :href="templates.edit({ template: template.id }).url">
+                            <BButton variant="outline-primary">
+                                <Icon icon="pencil" class="me-2" />Bearbeiten
+                            </BButton>
+                        </Link>
+                    </div>
                 </div>
-                <div class="flex gap-2">
-                    <Link :href="templates.pages.index({ template: template.id }).url">
-                        <Button variant="outline">
-                            <FileText class="mr-2 h-4 w-4" />
-                            Seiten verwalten
-                        </Button>
-                    </Link>
-                    <Link :href="templates.edit({ template: template.id }).url">
-                        <Button variant="outline">
-                            <Edit class="mr-2 h-4 w-4" />
-                            Bearbeiten
-                        </Button>
-                    </Link>
-                </div>
-            </div>
 
-            <div class="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Grundinformationen</CardTitle>
-                        <CardDescription>Basis-Details des Templates</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div>
-                            <Text variant="small" muted>Slug:</Text>
-                            <code class="ml-2 rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">
-                                {{ template.slug }}
-                            </code>
-                        </div>
-                        <div>
-                            <Text variant="small" muted>Status:</Text>
-                            <div class="mt-1">
-                                <Badge :variant="template.is_active ? 'success' : 'error'">
+                <BRow>
+                    <BCol md="6">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Grundinformationen</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">Basis-Details des Templates</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <p class="text-muted small mb-1">Slug:</p>
+                                <code class="bg-light rounded px-2 py-1 small">{{ template.slug }}</code>
+                                <p class="text-muted small mb-1 mt-3">Status:</p>
+                                <BBadge :variant="template.is_active ? 'success' : 'danger'">
                                     {{ template.is_active ? 'Aktiv' : 'Inaktiv' }}
-                                </Badge>
-                            </div>
-                        </div>
-                        <div>
-                            <Text variant="small" muted>Preis:</Text>
-                            <Text class="ml-2 font-medium">{{ template.price }} €</Text>
-                        </div>
-                    </CardContent>
-                </Card>
+                                </BBadge>
+                                <p class="text-muted small mb-1 mt-3">Preis:</p>
+                                <p class="fw-medium mb-0">{{ template.price }} €</p>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                    <BCol md="6">
+                        <BCard v-if="template.colors || template.page_data" no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Zusätzliche Daten</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">Erweiterte Template-Informationen</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <div v-if="template.colors">
+                                    <p class="small fw-medium mb-2">Farben</p>
+                                    <pre class="small bg-light p-3 rounded overflow-auto mb-0">{{ JSON.stringify(template.colors, null, 2) }}</pre>
+                                </div>
+                                <div v-if="template.page_data">
+                                    <p class="small fw-medium mb-2">Page Data</p>
+                                    <pre class="small bg-light p-3 rounded overflow-auto mb-0" style="max-height: 16rem">{{ JSON.stringify(template.page_data, null, 2) }}</pre>
+                                </div>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                </BRow>
 
-                <Card v-if="template.colors || template.page_data">
-                    <CardHeader>
-                        <CardTitle>Zusätzliche Daten</CardTitle>
-                        <CardDescription>Erweiterte Template-Informationen</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div v-if="template.colors">
-                            <Text variant="small" class="font-medium mb-2">Farben</Text>
-                            <pre class="text-xs bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-auto">{{
-                                JSON.stringify(template.colors, null, 2)
-                            }}</pre>
-                        </div>
-                        <div v-if="template.page_data">
-                            <Text variant="small" class="font-medium mb-2">Page Data</Text>
-                            <pre class="text-xs bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-auto max-h-64">{{
-                                JSON.stringify(template.page_data, null, 2)
-                            }}</pre>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <div class="flex items-center justify-between">
+                <BCard no-body>
+                    <BCardHeader class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                         <div>
-                            <CardTitle>Seiten</CardTitle>
-                            <CardDescription>Seiten dieses Templates</CardDescription>
+                            <BCardTitle class="mb-0">Seiten</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">Seiten dieses Templates</p>
                         </div>
                         <Link :href="`/admin/templates/${template.id}/pages/create`">
-                            <Button size="sm">
-                                <Plus class="mr-2 h-4 w-4" />
-                                Neue Seite
-                            </Button>
+                            <BButton variant="primary" size="sm">
+                                <Icon icon="plus" class="me-2" />Neue Seite
+                            </BButton>
                         </Link>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div v-if="!template.pages || template.pages.length === 0" class="text-center py-8 text-muted-foreground">
-                        <FileText class="mx-auto h-12 w-12 mb-2 opacity-50" />
-                        <p>Noch keine Seiten vorhanden</p>
-                        <Link :href="templates.pages.create({ template: template.id }).url" class="mt-4 inline-block">
-                            <Button size="sm" variant="outline">
-                                <Plus class="mr-2 h-4 w-4" />
-                                Erste Seite hinzufügen
-                            </Button>
-                        </Link>
-                    </div>
-                    <div v-else class="space-y-2">
-                        <div
-                            v-for="page in template.pages"
-                            :key="page.id"
-                            class="flex items-center justify-between p-3 rounded-lg border border-sidebar-border hover:bg-muted/50"
-                        >
-                            <div class="flex items-center gap-3">
-                                <span class="text-sm text-muted-foreground">#{{ page.order }}</span>
-                                <div>
-                                    <p class="font-medium">{{ page.name }}</p>
-                                    <p class="text-sm text-muted-foreground">{{ page.slug }}</p>
-                                </div>
-                            </div>
-                            <Link :href="templates.pages.show({ template: template.id, page: page.id }).url">
-                                <Button size="sm" variant="ghost">Anzeigen</Button>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div v-if="!template.pages || template.pages.length === 0" class="text-center py-5 text-muted">
+                            <Icon icon="file-text" class="fs-1 opacity-50 mb-2" />
+                            <p class="mb-0">Noch keine Seiten vorhanden</p>
+                            <Link :href="templates.pages.create({ template: template.id }).url" class="mt-3 d-inline-block">
+                                <BButton variant="outline-primary" size="sm">
+                                    <Icon icon="plus" class="me-2" />Erste Seite hinzufügen
+                                </BButton>
                             </Link>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                        <div v-else class="d-flex flex-column gap-2">
+                            <div
+                                v-for="page in template.pages"
+                                :key="page.id"
+                                class="d-flex align-items-center justify-content-between p-3 rounded border"
+                            >
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="small text-muted">#{{ page.order }}</span>
+                                    <div>
+                                        <p class="fw-medium mb-0">{{ page.name }}</p>
+                                        <p class="small text-muted mb-0">{{ page.slug }}</p>
+                                    </div>
+                                </div>
+                                <Link :href="templates.pages.show({ template: template.id, page: page.id }).url">
+                                    <BButton variant="outline-primary" size="sm">Anzeigen</BButton>
+                                </Link>
+                            </div>
+                        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

@@ -1,0 +1,14 @@
+<script setup lang="ts">
+import AdminSearch from '@/components/AdminSearch.vue';
+import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+</script>
+
+<template>
+    <CardHeader class="py-3">
+        <CardTitle>Globale Suche</CardTitle>
+        <CardDescription>Sites, Kunden, Rechnungen, Abos (Mollie-ID) durchsuchen</CardDescription>
+    </CardHeader>
+    <CardContent class="pt-0">
+        <AdminSearch />
+    </CardContent>
+</template>

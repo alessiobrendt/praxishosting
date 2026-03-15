@@ -1,10 +1,16 @@
+<!-- Admin: Abonnements-Übersicht -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BBadge,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -15,7 +21,13 @@ type SiteSubscription = {
     mollie_status: string;
     current_period_ends_at: string | null;
     cancel_at_period_end: boolean;
-    site?: { id: number; name: string; template?: { name: string }; user?: { name: string; email: string } };
+    site?: {
+        id: number;
+        uuid?: string;
+        name: string;
+        template?: { name: string };
+        user?: { name: string; email: string };
+    };
 };
 
 type Props = {
@@ -33,76 +45,84 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Abos', href: '#' },
 ];
 
-const handlePagination = (url: string) => {
-    if (url) window.location.href = url;
-};
+const tableFields = [
+    { key: 'site_name', label: 'Site', sortable: false },
+    { key: 'customer', label: 'Kunde', sortable: false },
+    { key: 'status', label: 'Status', sortable: false },
+    { key: 'current_period_ends_at', label: 'Laufzeitende', sortable: false },
+    { key: 'mollie_subscription_id', label: 'Mollie', sortable: false },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Abos" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Abos</Heading>
-                <Text class="mt-2" muted>
-                    Übersicht aller Site-Abonnements
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Abos</h4>
+                    <p class="text-muted small mb-0">Übersicht aller Site-Abonnements</p>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Abonnements</CardTitle>
-                    <CardDescription>Site, Kunde, Status, Laufzeitende</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Site</TableHead>
-                                <TableHead>Kunde</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Laufzeitende</TableHead>
-                                <TableHead>Mollie</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="sub in subscriptions.data" :key="sub.id">
-                                <TableCell>
-                                    <Link v-if="sub.site" :href="`/sites/${sub.site.uuid}`" class="font-medium text-primary hover:underline">
-                                        {{ sub.site.name }}
-                                    </Link>
-                                    <span v-else>–</span>
-                                </TableCell>
-                                <TableCell>
-                                    <span v-if="sub.site?.user">{{ sub.site.user.name }} ({{ sub.site.user.email }})</span>
-                                    <span v-else>–</span>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge :variant="sub.mollie_status === 'active' ? 'success' : 'warning'">
-                                        {{ sub.mollie_status }}
-                                    </Badge>
-                                    <span v-if="sub.cancel_at_period_end" class="ml-1 text-xs text-amber-600">Läuft aus</span>
-                                </TableCell>
-                                <TableCell>{{ sub.current_period_ends_at ?? '–' }}</TableCell>
-                                <TableCell>
-                                    <code v-if="sub.mollie_subscription_id" class="text-xs">{{ sub.mollie_subscription_id }}</code>
-                                    <span v-else>–</span>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="subscriptions.data.length === 0">
-                                <TableCell colspan="6" class="text-center text-muted">Keine Abos vorhanden.</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Pagination
-                        v-if="subscriptions.links.length > 3"
-                        :links="subscriptions.links"
-                        @page-click="handlePagination"
-                    />
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Abonnements</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Site, Kunde, Status, Laufzeitende</p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="subscriptions.data"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Abos vorhanden"
+                        >
+                            <template #cell(site_name)="row">
+                                <Link
+                                    v-if="row.item.site"
+                                    :href="`/admin/sites/${row.item.site.uuid ?? row.item.site.id}`"
+                                    class="text-primary text-decoration-none fw-medium"
+                                >
+                                    {{ row.item.site.name }}
+                                </Link>
+                                <span v-else>–</span>
+                            </template>
+                            <template #cell(customer)="row">
+                                <span v-if="row.item.site?.user">
+                                    {{ row.item.site.user.name }} ({{ row.item.site.user.email }})
+                                </span>
+                                <span v-else>–</span>
+                            </template>
+                            <template #cell(status)="row">
+                                <BBadge :variant="row.item.mollie_status === 'active' ? 'success' : 'warning'">
+                                    {{ row.item.mollie_status }}
+                                </BBadge>
+                                <span v-if="row.item.cancel_at_period_end" class="ms-1 small text-warning">Läuft aus</span>
+                            </template>
+                            <template #cell(mollie_subscription_id)="row">
+                                <code v-if="row.item.mollie_subscription_id" class="small">{{ row.item.mollie_subscription_id }}</code>
+                                <span v-else>–</span>
+                            </template>
+                        </BTable>
+                        <nav v-if="subscriptions.links.length > 3" class="d-flex justify-content-center p-3">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in subscriptions.links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a v-if="link.url" class="page-link" href="#" @click.prevent="link.url && (window.location.href = link.url)" v-html="link.label" />
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

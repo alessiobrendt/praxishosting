@@ -1,24 +1,28 @@
+<!-- Admin: Gruppe anlegen -->
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { Search } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+import { computed, ref, watch } from 'vue';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Heading } from '@/components/ui/typography';
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormCheckbox,
+    BButton,
+    BNav,
+    BNavItem,
+    BModal,
+    BFormSelect,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
+import InputError from '@/components/InputError.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -77,7 +81,13 @@ const filteredPermissionsByCategory = computed(() => {
     return map;
 });
 
-const defaultTab = computed(() => categories.value[0] ?? 'Sonstiges');
+const activeTab = ref(categories.value[0] ?? 'Sonstiges');
+watch(
+    () => categories.value[0],
+    (first) => {
+        if (first && !categories.value.includes(activeTab.value)) activeTab.value = first;
+    },
+);
 
 function setPermission(id: number, checked: boolean) {
     if (checked) {
@@ -107,182 +117,200 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Gruppen', href: '/admin/groups' },
     { title: 'Gruppe anlegen', href: '#' },
 ];
+
+const copyGroupOptions = computed(() => [
+    { value: '', text: 'Bitte wählen…' },
+    ...props.groupsForCopy.map((g) => ({ value: g.id, text: g.label || g.name })),
+]);
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Gruppe anlegen" />
 
-        <div class="space-y-6">
-            <Heading level="h1">Gruppe anlegen</Heading>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Gruppe anlegen</h4>
+                    <p class="text-muted small mb-0">Key, Name, Label, Farbe und zugewiesene Berechtigungen</p>
+                </div>
 
-            <Card class="w-full">
-                <CardHeader>
-                    <CardTitle>Gruppe</CardTitle>
-                    <CardDescription>Key, Name, Label, Farbe und zugewiesene Berechtigungen</CardDescription>
-                </CardHeader>
-                <form @submit.prevent="form.post('/admin/groups')">
-                    <CardContent class="space-y-4">
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div class="space-y-2">
-                                <Label for="key">Key (eindeutig, z. B. support)</Label>
-                                <Input id="key" v-model="form.key" placeholder="support" :aria-invalid="!!form.errors.key" />
-                                <InputError :message="form.errors.key" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="name">Name</Label>
-                                <Input id="name" v-model="form.name" required :aria-invalid="!!form.errors.name" />
-                                <InputError :message="form.errors.name" />
-                            </div>
-                        </div>
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div class="space-y-2">
-                                <Label for="label">Label (Anzeige z. B. im Header)</Label>
-                                <Input id="label" v-model="form.label" required :aria-invalid="!!form.errors.label" />
-                                <InputError :message="form.errors.label" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="color">Farbe (für Badge)</Label>
-                                <div class="flex gap-2">
-                                    <input
-                                        id="color"
-                                        :value="form.color || '#3b82f6'"
-                                        type="color"
-                                        class="h-10 w-14 cursor-pointer rounded border border-gray-300 bg-white p-1 dark:border-gray-600 dark:bg-gray-800"
-                                        :class="{ 'opacity-50': !form.color }"
-                                        @input="form.color = ($event.target as HTMLInputElement).value"
-                                    />
-                                    <Input
-                                        v-model="form.color"
-                                        type="text"
-                                        placeholder="#3b82f6"
-                                        maxlength="7"
-                                        class="font-mono"
-                                        :aria-invalid="!!form.errors.color"
-                                    />
-                                </div>
-                                <InputError :message="form.errors.color" />
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Berechtigungen</Label>
-                            <div class="relative mb-2">
-                                <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                <Input
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Gruppe</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Key, Name, Label, Farbe und zugewiesene Berechtigungen</p>
+                    </BCardHeader>
+                    <BForm @submit.prevent="form.post('/admin/groups')">
+                        <BCardBody>
+                            <BRow>
+                                <BCol md="6" class="mb-3">
+                                    <BFormGroup label="Key (eindeutig, z. B. support)" label-for="key">
+                                        <BFormInput
+                                            id="key"
+                                            v-model="form.key"
+                                            placeholder="support"
+                                            :aria-invalid="!!form.errors.key"
+                                        />
+                                        <InputError :message="form.errors.key" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol md="6" class="mb-3">
+                                    <BFormGroup label="Name" label-for="name">
+                                        <BFormInput
+                                            id="name"
+                                            v-model="form.name"
+                                            required
+                                            :aria-invalid="!!form.errors.name"
+                                        />
+                                        <InputError :message="form.errors.name" />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+                            <BRow>
+                                <BCol md="6" class="mb-3">
+                                    <BFormGroup label="Label (Anzeige z. B. im Header)" label-for="label">
+                                        <BFormInput
+                                            id="label"
+                                            v-model="form.label"
+                                            required
+                                            :aria-invalid="!!form.errors.label"
+                                        />
+                                        <InputError :message="form.errors.label" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol md="6" class="mb-3">
+                                    <BFormGroup label="Farbe (für Badge)" label-for="color">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input
+                                                id="color"
+                                                :value="form.color || '#3b82f6'"
+                                                type="color"
+                                                class="form-control form-control-color p-1"
+                                                style="width: 3rem; height: 2.25rem"
+                                                @input="form.color = ($event.target as HTMLInputElement).value"
+                                            />
+                                            <BFormInput
+                                                v-model="form.color"
+                                                type="text"
+                                                placeholder="#3b82f6"
+                                                maxlength="7"
+                                                class="font-monospace"
+                                                :aria-invalid="!!form.errors.color"
+                                            />
+                                        </div>
+                                        <InputError :message="form.errors.color" />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+                            <BFormGroup label="Berechtigungen" class="mb-2">
+                                <BFormInput
                                     v-model="permissionSearch"
                                     type="search"
                                     placeholder="In allen Kategorien durchsuchen (Key, Name, Label)…"
-                                    class="pl-9"
+                                    class="mb-2"
                                 />
-                            </div>
-                            <div class="mb-3 flex flex-wrap items-center gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    @click.prevent="selectAllPermissions"
-                                >
-                                    Alle Berechtigungen anwählen
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    @click.prevent="copyFromModalOpen = true"
-                                >
-                                    Berechtigungen von anderer Rolle übernehmen
-                                </Button>
-                                <Dialog v-model:open="copyFromModalOpen">
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Berechtigungen von Rolle übernehmen</DialogTitle>
-                                            <DialogDescription>
-                                                Wählen Sie eine Gruppe. Deren Berechtigungen ersetzen die aktuell ausgewählten.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div v-if="groupsForCopy.length" class="space-y-4 py-4">
-                                            <div class="space-y-2">
-                                                <Label for="copy-from-group">Gruppe</Label>
-                                                <select
-                                                    id="copy-from-group"
-                                                    v-model="selectedGroupIdForCopy"
-                                                    class="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
-                                                >
-                                                    <option value="">Bitte wählen…</option>
-                                                    <option v-for="g in groupsForCopy" :key="g.id" :value="g.id">
-                                                        {{ g.label || g.name }}
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <DialogFooter>
-                                                <Button type="button" variant="outline" @click="copyFromModalOpen = false">
-                                                    Abbrechen
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    :disabled="selectedGroupIdForCopy === ''"
-                                                    @click="copyFromGroup"
-                                                >
-                                                    Übernehmen
-                                                </Button>
-                                            </DialogFooter>
-                                        </div>
-                                        <p v-else class="py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            Keine anderen Gruppen vorhanden.
-                                        </p>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <Tabs :default-tab="defaultTab" class="w-full">
-                                <TabsList class="mb-2 w-full flex-wrap gap-1">
-                                    <TabsTrigger
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    <BButton type="button" variant="outline-secondary" size="sm" @click="selectAllPermissions">
+                                        Alle Berechtigungen anwählen
+                                    </BButton>
+                                    <BButton
+                                        type="button"
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        @click="copyFromModalOpen = true"
+                                    >
+                                        Berechtigungen von anderer Rolle übernehmen
+                                    </BButton>
+                                </div>
+                                <BNav tabs class="mb-2 flex-wrap">
+                                    <BNavItem
                                         v-for="cat in categories"
                                         :key="cat"
-                                        :value="cat"
-                                        class="text-xs"
+                                        :active="activeTab === cat"
+                                        @click="activeTab = cat"
                                     >
                                         {{ cat }}
-                                    </TabsTrigger>
-                                </TabsList>
-                                <div class="max-h-64 overflow-y-auto rounded-md border p-3">
-                                    <TabsContent
+                                    </BNavItem>
+                                </BNav>
+                                <div class="border rounded p-3 overflow-auto" style="max-height: 16rem">
+                                    <div
                                         v-for="cat in categories"
+                                        v-show="activeTab === cat"
                                         :key="cat"
-                                        :value="cat"
-                                        class="mt-0"
+                                        class="small"
                                     >
-                                        <div v-if="filteredPermissionsByCategory.get(cat)?.length" class="space-y-2">
+                                        <div
+                                            v-if="filteredPermissionsByCategory.get(cat)?.length"
+                                            class="d-flex flex-column gap-2"
+                                        >
                                             <div
                                                 v-for="p in filteredPermissionsByCategory.get(cat)"
                                                 :key="p.id"
-                                                class="flex items-center gap-2"
+                                                class="form-check"
                                             >
-                                                <Checkbox
-                                                    :id="`perm-${p.id}`"
-                                                    :model-value="form.permission_ids.includes(p.id)"
-                                                    @update:model-value="(v: boolean) => setPermission(p.id, v)"
-                                                />
-                                                <label :for="`perm-${p.id}`" class="cursor-pointer text-sm">
-                                                    <code>{{ p.key }}</code> — {{ p.name }}
-                                                </label>
+                                                <BFormCheckbox
+                                                :id="`perm-${p.id}`"
+                                                :model-value="form.permission_ids.includes(p.id)"
+                                                @update:model-value="(v: boolean) => setPermission(p.id, v)"
+                                                >
+                                                    <code class="small">{{ p.key }}</code> — {{ p.name }}
+                                                </BFormCheckbox>
                                             </div>
                                         </div>
-                                        <p v-else class="text-sm text-gray-500 dark:text-gray-400">
+                                        <p v-else class="text-muted small mb-0">
                                             Keine Berechtigungen in dieser Kategorie
                                             {{ permissionSearch ? ' (Filter aktiv)' : '' }}.
                                         </p>
-                                    </TabsContent>
+                                    </div>
                                 </div>
-                            </Tabs>
-                            <InputError :message="form.errors.permission_ids" />
+                                <InputError :message="form.errors.permission_ids" />
+                            </BFormGroup>
+                        </BCardBody>
+                        <BCardFooter class="d-flex gap-2">
+                            <BButton type="submit" variant="primary" :disabled="form.processing">
+                                <Icon icon="plus" class="me-2" />
+                                Anlegen
+                            </BButton>
+                            <Link href="/admin/groups">
+                                <BButton type="button" variant="outline-secondary">Abbrechen</BButton>
+                            </Link>
+                        </BCardFooter>
+                    </BForm>
+                </BCard>
+
+                <BModal
+                    v-model="copyFromModalOpen"
+                    title="Berechtigungen von Rolle übernehmen"
+                    hide-footer
+                    @hidden="selectedGroupIdForCopy = ''"
+                >
+                    <p class="text-muted small mb-3">
+                        Wählen Sie eine Gruppe. Deren Berechtigungen ersetzen die aktuell ausgewählten.
+                    </p>
+                    <div v-if="groupsForCopy.length">
+                        <BFormGroup label="Gruppe" label-for="copy-from-group">
+                            <BFormSelect
+                                id="copy-from-group"
+                                v-model="selectedGroupIdForCopy"
+                                :options="copyGroupOptions"
+                            />
+                        </BFormGroup>
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <BButton variant="outline-secondary" @click="copyFromModalOpen = false">
+                                Abbrechen
+                            </BButton>
+                            <BButton
+                                variant="primary"
+                                :disabled="selectedGroupIdForCopy === ''"
+                                @click="copyFromGroup"
+                            >
+                                Übernehmen
+                            </BButton>
                         </div>
-                    </CardContent>
-                    <CardFooter>
-                        <Button type="submit" :disabled="form.processing">Anlegen</Button>
-                        <Link href="/admin/groups"><Button type="button" variant="outline">Abbrechen</Button></Link>
-                    </CardFooter>
-                </form>
-            </Card>
-        </div>
+                    </div>
+                    <p v-else class="text-muted small mb-0">Keine anderen Gruppen vorhanden.</p>
+                </BModal>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

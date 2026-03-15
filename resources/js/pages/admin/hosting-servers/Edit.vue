@@ -1,15 +1,26 @@
+<!-- Admin: Hosting-Server bearbeiten -->
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BFormGroup,
+    BFormInput,
+    BFormSelect,
+    BFormTextarea,
+    BFormCheckbox,
+    BButton,
+} from 'bootstrap-vue-next';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Heading, Text } from '@/components/ui/typography';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
+import hostingServersRoutes from '@/routes/admin/hosting-servers/index';
 import type { BreadcrumbItem } from '@/types';
 
 type HostingServer = {
@@ -39,14 +50,14 @@ const props = defineProps<Props>();
 const isActive = ref(props.hostingServer.is_active);
 const useSsl = ref(props.hostingServer.use_ssl ?? true);
 const panelType = ref(props.hostingServer.panel_type ?? 'plesk');
-const config = ref<Record<string, string>>(props.hostingServer.config ?? {});
+const config = ref<Record<string, string>>({ ...(props.hostingServer.config ?? {}) });
 watch(
     () => props.hostingServer,
     (server) => {
         isActive.value = server.is_active;
         useSsl.value = server.use_ssl ?? true;
         panelType.value = server.panel_type ?? 'plesk';
-        config.value = server.config ?? {};
+        config.value = { ...(server.config ?? {}) };
     },
     { deep: true },
 );
@@ -54,9 +65,17 @@ const showPleskFields = computed(() => panelType.value === 'plesk');
 const showPterodactylFields = computed(() => panelType.value === 'pterodactyl');
 const showTeamspeakFields = computed(() => panelType.value === 'teamspeak');
 
+const panelTypeOptions = computed(() =>
+    props.allowedPanelTypes.map((o) => ({ value: o.value, text: o.label })),
+);
+
+function setConfig(key: string, value: string | number | null | undefined) {
+    config.value = { ...config.value, [key]: value != null ? String(value) : '' };
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
-    { title: 'Hosting-Server', href: '/admin/hosting-servers' },
+    { title: 'Hosting-Server', href: hostingServersRoutes.index.url() },
     { title: props.hostingServer.name ?? props.hostingServer.hostname, href: '#' },
 ];
 </script>
@@ -65,290 +84,285 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :key="hostingServer.id" :breadcrumbs="breadcrumbs">
         <Head title="Hosting-Server bearbeiten" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Hosting-Server bearbeiten</Heading>
-                <Text class="mt-2" muted>
-                    {{ hostingServer.hostname }}
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Hosting-Server bearbeiten</h4>
+                    <p class="text-muted small mb-0">{{ hostingServer.hostname }}</p>
+                </div>
 
-            <Card class="max-w-2xl">
-                <CardHeader>
-                    <CardTitle>Server-Details</CardTitle>
-                    <CardDescription>
-                    Panel-Typ, Hostname und API-Zugang. Plesk: REST API. Pterodactyl: Application API. TeamSpeak: Query-Adresse, Benutzer, Passwort und Port-Range.
-                </CardDescription>
-                </CardHeader>
-                <Form
-                    :action="`/admin/hosting-servers/${hostingServer.id}`"
-                    method="post"
-                    class="space-y-6"
-                    v-slot="{ errors }"
-                >
-                    <CardContent class="space-y-4">
-                        <input type="hidden" name="_method" value="PUT" />
-                        <div class="space-y-2">
-                            <Label for="panel_type">Panel-Typ *</Label>
-                            <!-- Native select to test: if this shows correct value, bug is in Select.vue -->
-                            <select
-                                id="panel_type"
-                                name="panel_type"
-                                v-model="panelType"
-                                required
-                                class="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                            >
-                                <option
-                                    v-for="opt in allowedPanelTypes"
-                                    :key="opt.value"
-                                    :value="opt.value"
-                                >
-                                    {{ opt.label }}
-                                </option>
-                            </select>
-                            <InputError :message="errors.panel_type" />
-                        </div>
-                        <template v-if="showPterodactylFields">
-                            <div class="space-y-2">
-                                <Label for="config_base_uri">Panel-URL (Base URI) *</Label>
-                                <Input
-                                    id="config_base_uri"
-                                    name="config[base_uri]"
-                                    :model-value="config.base_uri ?? ''"
-                                    placeholder="https://panel.example.com"
-                                    :aria-invalid="!!errors['config.base_uri']"
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Server-Details</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Panel-Typ, Hostname und API-Zugang. Plesk: REST API. Pterodactyl: Application API. TeamSpeak: Query-Adresse, Benutzer, Passwort und Port-Range.
+                        </p>
+                    </BCardHeader>
+                    <Form
+                        :action="`/admin/hosting-servers/${hostingServer.id}`"
+                        method="post"
+                        v-slot="{ errors }"
+                    >
+                        <BCardBody>
+                            <input type="hidden" name="_method" value="PUT" />
+                            <BFormGroup label="Panel-Typ *" label-for="panel_type">
+                                <BFormSelect
+                                    id="panel_type"
+                                    name="panel_type"
+                                    v-model="panelType"
+                                    :options="panelTypeOptions"
+                                    required
+                                    :aria-invalid="!!errors.panel_type"
                                 />
-                                <InputError :message="errors['config.base_uri']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="config_api_key">Application API Key</Label>
-                                <Input
-                                    id="config_api_key"
-                                    name="config[api_key]"
+                                <InputError :message="errors.panel_type" />
+                            </BFormGroup>
+
+                            <template v-if="showPterodactylFields">
+                                <BFormGroup label="Panel-URL (Base URI) *" label-for="config_base_uri">
+                                    <BFormInput
+                                        id="config_base_uri"
+                                        name="config[base_uri]"
+                                        :model-value="config.base_uri ?? ''"
+                                        @update:model-value="(v) => setConfig('base_uri', v)"
+                                        placeholder="https://panel.example.com"
+                                        :aria-invalid="!!errors['config.base_uri']"
+                                    />
+                                    <InputError :message="errors['config.base_uri']" />
+                                </BFormGroup>
+                                <BFormGroup label="Application API Key" label-for="config_api_key">
+                                    <BFormInput
+                                        id="config_api_key"
+                                        name="config[api_key]"
+                                        type="password"
+                                        :model-value="config.api_key ?? ''"
+                                        @update:model-value="(v) => setConfig('api_key', v)"
+                                        placeholder="Leer lassen um beizubehalten"
+                                        :aria-invalid="!!errors['config.api_key']"
+                                    />
+                                    <InputError :message="errors['config.api_key']" />
+                                </BFormGroup>
+                                <BFormGroup label="Client API Key (optional)" label-for="config_client_api_key">
+                                    <BFormInput
+                                        id="config_client_api_key"
+                                        name="config[client_api_key]"
+                                        type="password"
+                                        :model-value="config.client_api_key ?? ''"
+                                        @update:model-value="(v) => setConfig('client_api_key', v)"
+                                        placeholder="Für eingebettete Panel-Funktionen"
+                                    />
+                                    <InputError :message="errors['config.client_api_key']" />
+                                </BFormGroup>
+                            </template>
+
+                            <template v-if="showTeamspeakFields">
+                                <BFormGroup label="IP-Adresse / Host *" label-for="config_host">
+                                    <BFormInput
+                                        id="config_host"
+                                        name="config[host]"
+                                        :model-value="config.host ?? ''"
+                                        @update:model-value="(v) => setConfig('host', v)"
+                                        placeholder="z. B. 77.90.15.7"
+                                        :aria-invalid="!!errors['config.host']"
+                                    />
+                                    <InputError :message="errors['config.host']" />
+                                </BFormGroup>
+                                <BFormGroup label="Query-Port *" label-for="config_query_port">
+                                    <BFormInput
+                                        id="config_query_port"
+                                        name="config[query_port]"
+                                        type="number"
+                                        min="1"
+                                        max="65535"
+                                        :model-value="config.query_port ?? ''"
+                                        @update:model-value="(v) => setConfig('query_port', v)"
+                                        placeholder="10223"
+                                        :aria-invalid="!!errors['config.query_port']"
+                                    />
+                                    <InputError :message="errors['config.query_port']" />
+                                </BFormGroup>
+                                <BFormGroup label="Benutzername *" label-for="config_username">
+                                    <BFormInput
+                                        id="config_username"
+                                        name="config[username]"
+                                        :model-value="config.username ?? ''"
+                                        @update:model-value="(v) => setConfig('username', v)"
+                                        placeholder="serveradmin"
+                                        :aria-invalid="!!errors['config.username']"
+                                    />
+                                    <InputError :message="errors['config.username']" />
+                                </BFormGroup>
+                                <BFormGroup label="Passwort" label-for="config_password">
+                                    <BFormInput
+                                        id="config_password"
+                                        name="config[password]"
+                                        type="password"
+                                        :model-value="config.password ?? ''"
+                                        @update:model-value="(v) => setConfig('password', v)"
+                                        placeholder="Leer lassen um beizubehalten"
+                                        :aria-invalid="!!errors['config.password']"
+                                    />
+                                    <InputError :message="errors['config.password']" />
+                                </BFormGroup>
+                                <BRow>
+                                    <BCol md="6">
+                                        <BFormGroup label="Port-Range von *" label-for="config_port_range_min">
+                                            <BFormInput
+                                                id="config_port_range_min"
+                                                name="config[port_range_min]"
+                                                type="number"
+                                                min="1"
+                                                max="65535"
+                                                :model-value="config.port_range_min ?? ''"
+                                                @update:model-value="(v) => setConfig('port_range_min', v)"
+                                                placeholder="10072"
+                                                :aria-invalid="!!errors['config.port_range_min']"
+                                            />
+                                            <InputError :message="errors['config.port_range_min']" />
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="6">
+                                        <BFormGroup label="Port-Range bis *" label-for="config_port_range_max">
+                                            <BFormInput
+                                                id="config_port_range_max"
+                                                name="config[port_range_max]"
+                                                type="number"
+                                                min="1"
+                                                max="65535"
+                                                :model-value="config.port_range_max ?? ''"
+                                                @update:model-value="(v) => setConfig('port_range_max', v)"
+                                                placeholder="10221"
+                                                :aria-invalid="!!errors['config.port_range_max']"
+                                            />
+                                            <InputError :message="errors['config.port_range_max']" />
+                                        </BFormGroup>
+                                    </BCol>
+                                </BRow>
+                            </template>
+
+                            <BFormGroup label="Name (optional)" label-for="name">
+                                <BFormInput
+                                    id="name"
+                                    name="name"
+                                    :model-value="hostingServer.name ?? ''"
+                                    placeholder="z. B. Plesk Server 1"
+                                    :aria-invalid="!!errors.name"
+                                />
+                                <InputError :message="errors.name" />
+                            </BFormGroup>
+
+                            <BFormGroup v-if="!showTeamspeakFields" label="Hostname *" label-for="hostname">
+                                <BFormInput
+                                    id="hostname"
+                                    name="hostname"
+                                    :model-value="hostingServer.hostname"
+                                    required
+                                    :aria-invalid="!!errors.hostname"
+                                />
+                                <InputError :message="errors.hostname" />
+                            </BFormGroup>
+                            <BFormGroup v-if="showTeamspeakFields" label="Hostname (optional)" label-for="hostname">
+                                <BFormInput
+                                    id="hostname"
+                                    name="hostname"
+                                    :model-value="hostingServer.hostname"
+                                    placeholder="z. B. TeamSpeak Node 1"
+                                    :aria-invalid="!!errors.hostname"
+                                />
+                                <InputError :message="errors.hostname" />
+                            </BFormGroup>
+
+                            <template v-if="showPleskFields">
+                                <BRow>
+                                    <BCol md="6">
+                                        <BFormGroup label="Port (optional)" label-for="port">
+                                            <BFormInput
+                                                id="port"
+                                                name="port"
+                                                type="number"
+                                                min="1"
+                                                max="65535"
+                                                :model-value="hostingServer.port != null ? String(hostingServer.port) : ''"
+                                                placeholder="leer = Standard (443/80)"
+                                                :aria-invalid="!!errors.port"
+                                            />
+                                            <InputError :message="errors.port" />
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="6">
+                                        <BFormGroup>
+                                            <input type="hidden" name="use_ssl" :value="useSsl ? '1' : '0'" />
+                                            <BFormCheckbox id="use_ssl" v-model="useSsl" switch>
+                                                HTTPS (SSL)
+                                            </BFormCheckbox>
+                                        </BFormGroup>
+                                    </BCol>
+                                </BRow>
+                                <BFormGroup label="API-Benutzername (optional)" label-for="api_username">
+                                    <BFormInput
+                                        id="api_username"
+                                        name="api_username"
+                                        :model-value="hostingServer.api_username ?? ''"
+                                        placeholder="admin"
+                                        :aria-invalid="!!errors.api_username"
+                                    />
+                                    <InputError :message="errors.api_username" />
+                                </BFormGroup>
+                                <BFormGroup label="IP-Adresse" label-for="ip_address">
+                                    <BFormInput
+                                        id="ip_address"
+                                        name="ip_address"
+                                        :model-value="hostingServer.ip_address ?? ''"
+                                        placeholder="z. B. Shared-IP aus dem Reseller-Pool"
+                                        :aria-invalid="!!errors.ip_address"
+                                    />
+                                    <p class="text-muted small mb-0 mt-1">Für Plesk Reseller: Muss eine IP aus Ihrem Reseller-IP-Pool sein (Plesk → IP-Adressen).</p>
+                                    <InputError :message="errors.ip_address" />
+                                </BFormGroup>
+                            </template>
+
+                            <BFormGroup v-if="showPleskFields" label="API-Token / Passwort" label-for="api_token">
+                                <BFormInput
+                                    id="api_token"
+                                    name="api_token"
                                     type="password"
-                                    :model-value="config.api_key ?? ''"
                                     placeholder="Leer lassen um beizubehalten"
-                                    :aria-invalid="!!errors['config.api_key']"
+                                    :aria-invalid="!!errors.api_token"
                                 />
-                                <InputError :message="errors['config.api_key']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="config_client_api_key">Client API Key (optional)</Label>
-                                <Input
-                                    id="config_client_api_key"
-                                    name="config[client_api_key]"
-                                    type="password"
-                                    :model-value="config.client_api_key ?? ''"
-                                    placeholder="Für eingebettete Panel-Funktionen"
+                                <InputError :message="errors.api_token" />
+                            </BFormGroup>
+
+                            <BFormGroup v-if="showPleskFields" label="Bind-Zone (.bind)" label-for="bind_zone_content">
+                                <BFormTextarea
+                                    id="bind_zone_content"
+                                    name="bind_zone_content"
+                                    rows="12"
+                                    :model-value="hostingServer.bind_zone_content ?? ''"
+                                    placeholder="$ORIGIN meinedomain.de.&#10;$TTL 86400&#10;..."
+                                    class="font-monospace small"
+                                    :aria-invalid="!!errors.bind_zone_content"
                                 />
-                                <InputError :message="errors['config.client_api_key']" />
-                            </div>
-                        </template>
-                        <template v-if="showTeamspeakFields">
-                            <div class="space-y-2">
-                                <Label for="config_host">IP-Adresse / Host *</Label>
-                                <Input
-                                    id="config_host"
-                                    name="config[host]"
-                                    :model-value="config.host ?? ''"
-                                    placeholder="z. B. 77.90.15.7"
-                                    :aria-invalid="!!errors['config.host']"
-                                />
-                                <InputError :message="errors['config.host']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="config_query_port">Query-Port *</Label>
-                                <Input
-                                    id="config_query_port"
-                                    name="config[query_port]"
-                                    type="number"
-                                    min="1"
-                                    max="65535"
-                                    :model-value="config.query_port != null ? String(config.query_port) : ''"
-                                    placeholder="10223"
-                                    :aria-invalid="!!errors['config.query_port']"
-                                />
-                                <InputError :message="errors['config.query_port']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="config_username">Benutzername *</Label>
-                                <Input
-                                    id="config_username"
-                                    name="config[username]"
-                                    :model-value="config.username ?? ''"
-                                    placeholder="serveradmin"
-                                    :aria-invalid="!!errors['config.username']"
-                                />
-                                <InputError :message="errors['config.username']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="config_password">Passwort</Label>
-                                <Input
-                                    id="config_password"
-                                    name="config[password]"
-                                    type="password"
-                                    :model-value="config.password ?? ''"
-                                    placeholder="Leer lassen um beizubehalten"
-                                    :aria-invalid="!!errors['config.password']"
-                                />
-                                <InputError :message="errors['config.password']" />
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="space-y-2">
-                                    <Label for="config_port_range_min">Port-Range von *</Label>
-                                    <Input
-                                        id="config_port_range_min"
-                                        name="config[port_range_min]"
-                                        type="number"
-                                        min="1"
-                                        max="65535"
-                                        :model-value="config.port_range_min != null ? String(config.port_range_min) : ''"
-                                        placeholder="10072"
-                                        :aria-invalid="!!errors['config.port_range_min']"
-                                    />
-                                    <InputError :message="errors['config.port_range_min']" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="config_port_range_max">Port-Range bis *</Label>
-                                    <Input
-                                        id="config_port_range_max"
-                                        name="config[port_range_max]"
-                                        type="number"
-                                        min="1"
-                                        max="65535"
-                                        :model-value="config.port_range_max != null ? String(config.port_range_max) : ''"
-                                        placeholder="10221"
-                                        :aria-invalid="!!errors['config.port_range_max']"
-                                    />
-                                    <InputError :message="errors['config.port_range_max']" />
-                                </div>
-                            </div>
-                        </template>
-                        <div class="space-y-2">
-                            <Label for="name">Name (optional)</Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                :model-value="hostingServer.name ?? ''"
-                                placeholder="z. B. Plesk Server 1"
-                            />
-                            <InputError :message="errors.name" />
-                        </div>
-                        <div v-if="!showTeamspeakFields" class="space-y-2">
-                            <Label for="hostname">Hostname *</Label>
-                            <Input
-                                id="hostname"
-                                name="hostname"
-                                required
-                                :model-value="hostingServer.hostname"
-                                :aria-invalid="!!errors.hostname"
-                            />
-                            <InputError :message="errors.hostname" />
-                        </div>
-                        <div v-if="showTeamspeakFields" class="space-y-2">
-                            <Label for="hostname">Hostname (optional)</Label>
-                            <Input
-                                id="hostname"
-                                name="hostname"
-                                :model-value="hostingServer.hostname"
-                                placeholder="z. B. TeamSpeak Node 1"
-                                :aria-invalid="!!errors.hostname"
-                            />
-                            <InputError :message="errors.hostname" />
-                        </div>
-                        <template v-if="showPleskFields">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="space-y-2">
-                                    <Label for="port">Port (optional)</Label>
-                                    <Input
-                                        id="port"
-                                        name="port"
-                                        type="number"
-                                        min="1"
-                                        max="65535"
-                                        :model-value="hostingServer.port != null ? String(hostingServer.port) : ''"
-                                        placeholder="leer = Standard (443/80)"
-                                    />
-                                    <InputError :message="errors.port" />
-                                </div>
-                                <div class="flex items-center space-x-2 pt-8">
-                                    <input type="hidden" name="use_ssl" value="0" />
-                                    <input
-                                        type="checkbox"
-                                        id="use_ssl"
-                                        name="use_ssl"
-                                        value="1"
-                                        :checked="useSsl"
-                                        @change="useSsl = ($event.target as HTMLInputElement).checked"
-                                        class="rounded"
-                                    />
-                                    <Label for="use_ssl">HTTPS (SSL)</Label>
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="api_username">API-Benutzername (optional)</Label>
-                                <Input
-                                    id="api_username"
-                                    name="api_username"
-                                    :model-value="hostingServer.api_username ?? ''"
-                                    placeholder="admin"
-                                />
-                                <InputError :message="errors.api_username" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="ip_address">IP-Adresse</Label>
-                                <Input
-                                    id="ip_address"
-                                    name="ip_address"
-                                    :model-value="hostingServer.ip_address ?? ''"
-                                    placeholder="z. B. Shared-IP aus dem Reseller-Pool"
-                                />
-                                <Text class="text-sm" muted>Für Plesk Reseller: Muss eine IP aus Ihrem Reseller-IP-Pool sein (Plesk → IP-Adressen).</Text>
-                                <InputError :message="errors.ip_address" />
-                            </div>
-                        </template>
-                        <div v-if="showPleskFields" class="space-y-2">
-                            <Label for="api_token">API-Token / Passwort</Label>
-                            <Input
-                                id="api_token"
-                                name="api_token"
-                                type="password"
-                                placeholder="Leer lassen um beizubehalten"
-                            />
-                            <InputError :message="errors.api_token" />
-                        </div>
-                        <div v-if="showPleskFields" class="space-y-2">
-                            <Label for="bind_zone_content">Bind-Zone (.bind)</Label>
-                            <textarea
-                                id="bind_zone_content"
-                                name="bind_zone_content"
-                                rows="12"
-                                class="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                :value="hostingServer.bind_zone_content ?? ''"
-                                placeholder="$ORIGIN meinedomain.de.&#10;$TTL 86400&#10;..."
-                            />
-                            <Text class="text-sm" muted>
-                                Pro Plesk-Server kann eine eigene Zone angegeben werden. Wird bei „Domain verbinden“ für Webspace-Kunden angezeigt (zum Kopieren).
-                            </Text>
-                            <InputError :message="errors.bind_zone_content" />
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <Switch
-                                id="is_active"
-                                v-model="isActive"
-                            />
-                            <Label for="is_active">Aktiv</Label>
-                        </div>
-                        <input type="hidden" name="is_active" :value="isActive ? '1' : '0'" />
-                    </CardContent>
-                    <CardFooter class="flex gap-2">
-                        <Button type="submit">Speichern</Button>
-                        <Link :href="`/admin/hosting-servers/${hostingServer.id}`">
-                            <Button type="button" variant="outline">Abbrechen</Button>
-                        </Link>
-                    </CardFooter>
-                </Form>
-            </Card>
-        </div>
+                                <p class="text-muted small mb-0 mt-1">
+                                    Pro Plesk-Server kann eine eigene Zone angegeben werden. Wird bei „Domain verbinden“ für Webspace-Kunden angezeigt (zum Kopieren).
+                                </p>
+                                <InputError :message="errors.bind_zone_content" />
+                            </BFormGroup>
+
+                            <BFormGroup>
+                                <input type="hidden" name="is_active" :value="isActive ? '1' : '0'" />
+                                <BFormCheckbox id="is_active" v-model="isActive" switch>
+                                    Aktiv
+                                </BFormCheckbox>
+                            </BFormGroup>
+                        </BCardBody>
+                        <BCardFooter class="d-flex gap-2">
+                            <BButton type="submit" variant="primary">Speichern</BButton>
+                            <Link :href="hostingServersRoutes.show.url(hostingServer.id)">
+                                <BButton type="button" variant="outline-secondary">Abbrechen</BButton>
+                            </Link>
+                        </BCardFooter>
+                    </Form>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

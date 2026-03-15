@@ -1,88 +1,60 @@
+<template>
+  <DefaultLayout>
+    <Head title="Template-Galerie" />
+    <PageBreadcrumb title="Website-Templates" subtitle="Dashboard" subtitle-url="/dashboard" />
+
+    <div class="mb-4">
+      <h4 class="mb-1">Website-Templates</h4>
+      <p class="text-muted mb-0">
+        Wählen Sie ein Template für Ihre Webseite
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <div v-for="template in templates" :key="template.id" class="col-sm-6 col-lg-4">
+        <Link :href="`/gallery/preview/${template.id}`" class="text-decoration-none text-body d-block h-100">
+          <BCard no-body class="h-100 overflow-hidden">
+            <div class="ratio ratio-16x9 bg-light d-flex align-items-center justify-content-center overflow-hidden">
+              <img
+                v-if="template.preview_image"
+                :src="template.preview_image"
+                :alt="template.name"
+                class="img-fluid object-fit-cover"
+              />
+              <div v-else class="text-center text-muted py-4">
+                <Icon icon="photo" class="fs-1 opacity-50" />
+                <p class="small mb-0 mt-2">Kein Vorschaubild</p>
+              </div>
+            </div>
+            <BCardBody class="d-flex align-items-center justify-content-between">
+              <h5 class="mb-0">{{ template.name }}</h5>
+              <BBadge variant="primary">{{ template.price }} €</BBadge>
+            </BCardBody>
+          </BCard>
+        </Link>
+      </div>
+    </div>
+
+    <p v-if="templates.length === 0" class="text-center text-muted py-5">
+      Keine Templates verfügbar
+    </p>
+  </DefaultLayout>
+</template>
+
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, Image as ImageIcon } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import { home } from '@/routes';
-import gallery from '@/routes/gallery';
+import { Head, Link } from '@inertiajs/vue3'
+import { BBadge, BCard, BCardBody } from 'bootstrap-vue-next'
+import Icon from '@/components/wrappers/Icon.vue'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue'
 
 type Template = {
-    id: number;
-    name: string;
-    slug: string;
-    preview_image: string | null;
-    price: string;
-};
+  id: number
+  name: string
+  slug: string
+  preview_image: string | null
+  price: string
+}
 
-type Props = {
-    templates: Template[];
-};
-
-defineProps<Props>();
+defineProps<{ templates: Template[] }>()
 </script>
-
-<template>
-    <div class="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
-        <Head title="Template-Galerie" />
-
-        <header class="sticky top-0 z-30 border-b border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/80 shadow-modern">
-            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-                <Link :href="home().url" class="text-xl font-semibold gradient-primary bg-clip-text text-transparent">
-                    PraxisHosting
-                </Link>
-                <nav class="flex gap-4">
-                    <Link :href="home().url">
-                        <Button variant="ghost" size="sm">
-                            <ArrowLeft class="mr-2 h-4 w-4" />
-                            Zurück
-                        </Button>
-                    </Link>
-                </nav>
-            </div>
-        </header>
-
-        <main class="container mx-auto px-6 py-12">
-            <div class="mb-8">
-                <Heading level="h1">Website-Templates</Heading>
-                <Text class="mt-2" muted>
-                    Wählen Sie ein Template für Ihre Webseite
-                </Text>
-            </div>
-
-            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <Link
-                    v-for="template in templates"
-                    :key="template.id"
-                    :href="gallery.preview({ template: template.id }).url"
-                >
-                    <Card hover class="h-full transition-modern">
-                        <div class="aspect-video rounded-t-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
-                            <img
-                                v-if="template.preview_image"
-                                :src="template.preview_image"
-                                :alt="template.name"
-                                class="w-full h-full object-cover transition-modern-slow group-hover:scale-105"
-                            />
-                            <div v-else class="flex flex-col items-center gap-2 text-gray-400">
-                                <ImageIcon class="h-12 w-12" />
-                                <Text variant="small" muted>Kein Vorschaubild</Text>
-                            </div>
-                        </div>
-                        <CardHeader>
-                            <div class="flex items-start justify-between">
-                                <CardTitle class="text-lg">{{ template.name }}</CardTitle>
-                                <Badge variant="default">{{ template.price }} €</Badge>
-                            </div>
-                        </CardHeader>
-                    </Card>
-                </Link>
-            </div>
-
-            <div v-if="templates.length === 0" class="text-center py-12">
-                <Text muted>Keine Templates verfügbar</Text>
-            </div>
-        </main>
-    </div>
-</template>

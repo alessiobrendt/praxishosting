@@ -1,14 +1,20 @@
+<!-- Admin: Aktivitätslog -->
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Pagination } from '@/components/ui/pagination';
-import { Select } from '@/components/ui/select';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import { ref, watch, computed } from 'vue';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+    BFormInput,
+    BFormSelect,
+    BFormGroup,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -57,26 +63,34 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Aktivitätslog', href: '#' },
 ];
 
-const applyFilters = () => {
-    router.get('/admin/activity-log', {
-        action: filterAction.value || undefined,
-        model_type: filterModelType.value || undefined,
-        from: filterFrom.value || undefined,
-        to: filterTo.value || undefined,
-    }, { preserveState: true });
-};
+function applyFilters(): void {
+    router.get(
+        '/admin/activity-log',
+        {
+            action: filterAction.value || undefined,
+            model_type: filterModelType.value || undefined,
+            from: filterFrom.value || undefined,
+            to: filterTo.value || undefined,
+        },
+        { preserveState: true },
+    );
+}
 
-const clearFilters = () => {
+function clearFilters(): void {
     filterAction.value = '';
     filterModelType.value = '';
     filterFrom.value = '';
     filterTo.value = '';
     router.get('/admin/activity-log');
-};
+}
 
-const handlePagination = (url: string) => {
-    if (url) window.location.href = url;
-};
+function actionLabel(action: string): string {
+    return props.actionOptions[action] ?? action;
+}
+
+function modelTypeLabel(modelType: string): string {
+    return props.modelTypeOptions[modelType] ?? modelType;
+}
 
 function detailUrl(entry: ActivityLogEntry): string {
     if (entry.model_type.includes('Site')) {
@@ -85,7 +99,12 @@ function detailUrl(entry: ActivityLogEntry): string {
     if (entry.model_type.includes('User')) {
         return `/admin/customers/${entry.model_id}`;
     }
-    if (entry.model_type.includes('Ticket') && !entry.model_type.includes('Todo') && !entry.model_type.includes('Category') && !entry.model_type.includes('Priority')) {
+    if (
+        entry.model_type.includes('Ticket') &&
+        !entry.model_type.includes('Todo') &&
+        !entry.model_type.includes('Category') &&
+        !entry.model_type.includes('Priority')
+    ) {
         return entry.model_uuid ? `/admin/tickets/${entry.model_uuid}` : `/admin/tickets/${entry.model_id}`;
     }
     if (entry.model_type.includes('Invoice')) {
@@ -109,141 +128,125 @@ function detailUrl(entry: ActivityLogEntry): string {
     return '#';
 }
 
-function actionLabel(action: string): string {
-    return props.actionOptions[action] ?? action;
-}
+const actionSelectOptions = computed(() => [
+    { value: '', text: 'Alle' },
+    ...Object.entries(props.actionOptions).map(([key, label]) => ({ value: key, text: label })),
+]);
+const modelTypeSelectOptions = computed(() => [
+    { value: '', text: 'Alle' },
+    ...Object.entries(props.modelTypeOptions).map(([key, label]) => ({ value: key, text: label })),
+]);
 
-function modelTypeLabel(modelType: string): string {
-    return props.modelTypeOptions[modelType] ?? modelType;
-}
+const tableFields = [
+    { key: 'created_at', label: 'Datum', sortable: false },
+    { key: 'action_display', label: 'Aktion', sortable: false },
+    { key: 'model_type_display', label: 'Typ', sortable: false },
+    { key: 'user_name', label: 'Admin', sortable: false },
+    { key: 'details', label: 'Details', sortable: false },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Aktivitätslog" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Aktivitätslog</Heading>
-                <Text class="mt-2" muted>
-                    Alle Admin-Aktionen: Tickets, Rechnungen, Kunden, Einstellungen und mehr
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Aktivitätslog</h4>
+                    <p class="text-muted small mb-0">
+                        Alle Admin-Aktionen: Tickets, Rechnungen, Kunden, Einstellungen und mehr
+                    </p>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Filter</CardTitle>
-                    <CardDescription>Aktion, Typ, Zeitraum</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form @submit.prevent="applyFilters" class="flex flex-wrap items-end gap-4">
-                        <div class="space-y-2">
-                            <Label for="filter_action">Aktion</Label>
-                            <Select
-                                id="filter_action"
-                                v-model="filterAction"
-                                class="w-48"
-                            >
-                                <option value="">Alle</option>
-                                <option
-                                    v-for="(label, key) in actionOptions"
-                                    :key="key"
-                                    :value="key"
-                                >
-                                    {{ label }}
-                                </option>
-                            </Select>
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="filter_model_type">Typ</Label>
-                            <Select
-                                id="filter_model_type"
-                                v-model="filterModelType"
-                                class="w-32"
-                            >
-                                <option value="">Alle</option>
-                                <option
-                                    v-for="(label, key) in modelTypeOptions"
-                                    :key="key"
-                                    :value="key"
-                                >
-                                    {{ label }}
-                                </option>
-                            </Select>
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="filter_from">Von (Datum)</Label>
-                            <Input
-                                id="filter_from"
-                                v-model="filterFrom"
-                                type="date"
-                                class="w-40"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="filter_to">Bis (Datum)</Label>
-                            <Input
-                                id="filter_to"
-                                v-model="filterTo"
-                                type="date"
-                                class="w-40"
-                            />
-                        </div>
-                        <Button type="submit" size="sm">Filtern</Button>
-                        <Button type="button" variant="outline" size="sm" @click="clearFilters">
-                            Zurücksetzen
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Filter</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Aktion, Typ, Zeitraum</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <form class="d-flex flex-wrap align-items-end gap-3" @submit.prevent="applyFilters">
+                            <BFormGroup label="Aktion" label-for="filter_action" class="mb-0">
+                                <BFormSelect
+                                    id="filter_action"
+                                    v-model="filterAction"
+                                    :options="actionSelectOptions"
+                                    class="form-select-sm w-auto"
+                                />
+                            </BFormGroup>
+                            <BFormGroup label="Typ" label-for="filter_model_type" class="mb-0">
+                                <BFormSelect
+                                    id="filter_model_type"
+                                    v-model="filterModelType"
+                                    :options="modelTypeSelectOptions"
+                                    class="form-select-sm w-auto"
+                                />
+                            </BFormGroup>
+                            <BFormGroup label="Von (Datum)" label-for="filter_from" class="mb-0">
+                                <BFormInput id="filter_from" v-model="filterFrom" type="date" class="form-control-sm" />
+                            </BFormGroup>
+                            <BFormGroup label="Bis (Datum)" label-for="filter_to" class="mb-0">
+                                <BFormInput id="filter_to" v-model="filterTo" type="date" class="form-control-sm" />
+                            </BFormGroup>
+                            <BButton type="submit" size="sm" variant="primary">Filtern</BButton>
+                            <BButton type="button" size="sm" variant="outline-secondary" @click="clearFilters">
+                                Zurücksetzen
+                            </BButton>
+                        </form>
+                    </BCardBody>
+                </BCard>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Einträge</CardTitle>
-                    <CardDescription>Chronologisch, neueste zuerst</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Datum</TableHead>
-                                <TableHead>Aktion</TableHead>
-                                <TableHead>Typ</TableHead>
-                                <TableHead>Admin</TableHead>
-                                <TableHead>Details</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="entry in activityLog.data" :key="entry.id">
-                                <TableCell>{{ entry.created_at }}</TableCell>
-                                <TableCell>{{ actionLabel(entry.action) }}</TableCell>
-                                <TableCell>{{ modelTypeLabel(entry.model_type) }}</TableCell>
-                                <TableCell>{{ entry.user?.name ?? '–' }}</TableCell>
-                                <TableCell>
-                                    <Link
-                                        v-if="detailUrl(entry) !== '#'"
-                                        :href="detailUrl(entry)"
-                                        class="text-primary hover:underline"
-                                    >
-                                        #{{ entry.model_id }} anzeigen
-                                    </Link>
-                                    <span v-else>#{{ entry.model_id }}</span>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="!activityLog.data.length">
-                                <TableCell colspan="5" class="py-8 text-center text-muted-foreground">
-                                    Keine Einträge (oder Filter ohne Treffer).
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Pagination
-                        v-if="activityLog.links.length > 3"
-                        :links="activityLog.links"
-                        @page-click="handlePagination"
-                    />
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Einträge</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Chronologisch, neueste zuerst</p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="activityLog.data"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Einträge (oder Filter ohne Treffer)"
+                        >
+                            <template #cell(action_display)="row">
+                                {{ actionLabel(row.item.action) }}
+                            </template>
+                            <template #cell(model_type_display)="row">
+                                {{ modelTypeLabel(row.item.model_type) }}
+                            </template>
+                            <template #cell(user_name)="row">
+                                {{ row.item.user?.name ?? '–' }}
+                            </template>
+                            <template #cell(details)="row">
+                                <Link
+                                    v-if="detailUrl(row.item) !== '#'"
+                                    :href="detailUrl(row.item)"
+                                    class="text-primary text-decoration-none"
+                                >
+                                    #{{ row.item.model_id }} anzeigen
+                                </Link>
+                                <span v-else>#{{ row.item.model_id }}</span>
+                            </template>
+                        </BTable>
+                        <nav v-if="activityLog.links.length > 3" class="d-flex justify-content-center p-3">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in activityLog.links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a v-if="link.url" class="page-link" :href="link.url" v-html="link.label" />
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

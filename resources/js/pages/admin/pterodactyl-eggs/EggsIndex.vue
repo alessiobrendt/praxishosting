@@ -1,10 +1,17 @@
+<!-- Admin: Pterodactyl Eggs (pro Nest) -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Egg, ChevronRight, ArrowLeft } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import hostingServers from '@/routes/admin/hosting-servers/index';
 import type { BreadcrumbItem } from '@/types';
@@ -41,63 +48,72 @@ const eggShowUrl = (eggId: number) =>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Eggs – ${nest.name}`" />
 
-        <div class="space-y-6">
-            <div class="flex flex-wrap items-center gap-4">
-                <Link :href="nestsUrl()">
-                    <Button variant="outline" size="sm">
-                        <ArrowLeft class="mr-2 h-4 w-4" />
-                        Zurück zu Nests
-                    </Button>
-                </Link>
-                <div>
-                    <Heading level="h1">Eggs – {{ nest.name }}</Heading>
-                    <Text class="mt-2" muted>
-                        {{ hostingServer.name }} – Wählen Sie ein Egg für Konfiguration (Variablen, Subdomain).
-                    </Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+                    <Link :href="nestsUrl()">
+                        <BButton variant="outline-secondary" size="sm">
+                            <Icon icon="arrow-left" class="me-2" />
+                            Zurück zu Nests
+                        </BButton>
+                    </Link>
+                    <div>
+                        <h4 class="mb-1">Eggs – {{ nest.name }}</h4>
+                        <p class="text-muted small mb-0">
+                            {{ hostingServer.name }} – Wählen Sie ein Egg für Konfiguration (Variablen, Subdomain).
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Eggs</CardTitle>
-                    <CardDescription>
-                        Eggs sind konkrete Server-Konfigurationen innerhalb des Nests. Klicken Sie auf ein Egg, um Variablen-Prefill und Subdomain-Einstellungen zu verwalten.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div
-                        v-if="eggs.length === 0"
-                        class="rounded-xl border-2 border-dashed border-gray-200 py-12 text-center text-muted-foreground dark:border-gray-700"
-                    >
-                        Keine Eggs in diesem Nest.
-                    </div>
-                    <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        <Link
-                            v-for="egg in eggs"
-                            :key="egg.id"
-                            :href="eggShowUrl(egg.id)"
-                            class="flex items-center gap-3 rounded-lg border border-gray-200 p-4 transition-modern hover:border-violet-300 hover:bg-violet-50/50 dark:border-gray-700 dark:hover:border-violet-600 dark:hover:bg-violet-950/20"
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Eggs</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Eggs sind konkrete Server-Konfigurationen innerhalb des Nests. Klicken Sie auf ein Egg,
+                            um Variablen-Prefill und Subdomain-Einstellungen zu verwalten.
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div
+                            v-if="eggs.length === 0"
+                            class="rounded border-2 border-dashed border-secondary py-5 text-center text-muted"
                         >
-                            <div
-                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400"
+                            Keine Eggs in diesem Nest.
+                        </div>
+                        <BRow v-else>
+                            <BCol
+                                v-for="egg in eggs"
+                                :key="egg.id"
+                                sm="6"
+                                lg="4"
+                                class="mb-3"
                             >
-                                <Egg class="h-5 w-5" />
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="font-medium text-gray-900 dark:text-white">{{ egg.name }}</p>
-                                <p
-                                    v-if="egg.description"
-                                    class="mt-0.5 truncate text-sm text-muted-foreground"
-                                    :title="egg.description"
+                                <Link
+                                    :href="eggShowUrl(egg.id)"
+                                    class="text-decoration-none d-block rounded border border-secondary p-3 h-100 transition bg-light-hover"
                                 >
-                                    {{ egg.description }}
-                                </p>
-                            </div>
-                            <ChevronRight class="h-5 w-5 shrink-0 text-muted-foreground" />
-                        </Link>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="flex-shrink-0 rounded bg-primary bg-opacity-25 p-2 text-primary">
+                                            <Icon icon="egg" />
+                                        </div>
+                                        <div class="min-w-0 flex-grow-1">
+                                            <p class="fw-medium text-body mb-0">{{ egg.name }}</p>
+                                            <p
+                                                v-if="egg.description"
+                                                class="small text-muted text-truncate mb-0 mt-1"
+                                                :title="egg.description"
+                                            >
+                                                {{ egg.description }}
+                                            </p>
+                                        </div>
+                                        <Icon icon="chevron-right" class="flex-shrink-0 text-muted" />
+                                    </div>
+                                </Link>
+                            </BCol>
+                        </BRow>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

@@ -1,10 +1,9 @@
+<!-- Admin: Hosting-Server Karte (Name, Status, API-Check, Aktionen) -->
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Eye, Edit, Server, Gamepad2, CheckCircle2, XCircle, Loader2, Wifi, Headset } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { BCard, BCardBody, BButton, BBadge } from 'bootstrap-vue-next';
+import Icon from '@/components/wrappers/Icon.vue';
 import hostingServers from '@/routes/admin/hosting-servers/index';
 
 export type HostingServerCardData = {
@@ -26,10 +25,22 @@ const props = defineProps<{
 const panelLabel = computed(() => {
     const t = props.server.panel_type;
     if (t === 'pterodactyl') return 'Pterodactyl';
-    return t === 'plesk' ? 'Plesk' : t ?? '–';
+    return t === 'plesk' ? 'Plesk' : t === 'teamspeak' ? 'TeamSpeak' : '–';
 });
 
-const panelIcon = computed(() => (props.server.panel_type === 'pterodactyl' ? Gamepad2 : props.server.panel_type === 'plesk' ? Server : props.server.panel_type === 'teamspeak' ? Headset : Server));
+const panelIcon = computed(() => {
+    const t = props.server.panel_type;
+    if (t === 'pterodactyl') return 'device-gamepad-2';
+    if (t === 'teamspeak') return 'headset';
+    return 'server';
+});
+
+const panelBadgeVariant = computed(() => {
+    const t = props.server.panel_type;
+    if (t === 'pterodactyl') return 'primary';
+    if (t === 'teamspeak') return 'success';
+    return 'info';
+});
 
 type CheckState = 'idle' | 'loading' | 'ok' | 'error';
 const checkState = ref<CheckState>('idle');
@@ -103,104 +114,86 @@ const runApiCheck = async () => {
 </script>
 
 <template>
-    <Card class="overflow-hidden transition-modern hover:shadow-modern-lg" hover>
-        <CardContent class="p-5">
-            <div class="flex items-start gap-4">
+    <BCard no-body class="h-100 overflow-hidden">
+        <BCardBody class="p-3">
+            <div class="d-flex align-items-start gap-3">
                 <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-                    :class="
-                        server.panel_type === 'pterodactyl'
-                            ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400' : server.panel_type === 'plesk'
-                            ? 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400' : server.panel_type === 'teamspeak'
-                            ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400'
-                            : 'bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400'
-                    "
+                    class="rounded d-flex align-items-center justify-content-center flex-shrink-0 bg-opacity-25 p-2"
+                    :class="{
+                        'bg-primary': server.panel_type === 'pterodactyl',
+                        'bg-info': server.panel_type === 'plesk',
+                        'bg-success': server.panel_type === 'teamspeak',
+                        'bg-secondary': !server.panel_type || !['plesk', 'pterodactyl', 'teamspeak'].includes(server.panel_type),
+                    }"
                 >
-                    <component :is="panelIcon" class="h-6 w-6" />
+                    <Icon :icon="panelIcon" class="fs-4" />
                 </div>
-                <div class="min-w-0 flex-1">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <span class="font-semibold text-gray-900 dark:text-white">
-                            {{ server.name || server.hostname }}
-                        </span>
-                        <Badge :variant="server.is_active ? 'success' : 'error'" size="sm">
+                <div class="min-w-0 flex-grow-1">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="fw-semibold">{{ server.name || server.hostname }}</span>
+                        <BBadge :variant="server.is_active ? 'success' : 'secondary'" class="text-nowrap">
                             {{ server.is_active ? 'Aktiv' : 'Inaktiv' }}
-                        </Badge>
-                        <Badge
-                            size="sm"
-                            :class="
-                                server.panel_type === 'pterodactyl'
-                                    ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300'
-                                    : 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300'
-                            "
-                        >
-                            {{ panelLabel }}
-                        </Badge>
+                        </BBadge>
+                        <BBadge :variant="panelBadgeVariant" class="text-nowrap">{{ panelLabel }}</BBadge>
                     </div>
-                    <code
-                        class="mt-1 block truncate rounded bg-gray-100 px-2 py-1 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    >
+                    <code class="d-block mt-1 small rounded bg-light px-2 py-1 text-break">
                         {{ server.hostname }} {{ server.ip_address ? `(${server.ip_address})` : '' }}
                     </code>
-                
                 </div>
             </div>
 
             <!-- API-Check -->
-            <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-800/50">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <span class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <Wifi class="h-4 w-4 text-muted-foreground" />
+            <div class="mt-3 rounded border bg-light bg-opacity-50 p-2">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <span class="d-flex align-items-center gap-1 small fw-medium">
+                        <Icon icon="wifi" class="text-muted" />
                         API-Status
                     </span>
-                    <Button
-                        variant="outline"
+                    <BButton
+                        variant="outline-primary"
                         size="sm"
                         :disabled="checkState === 'loading'"
                         @click="runApiCheck"
                     >
-                        <Loader2 v-if="checkState === 'loading'" class="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        <span v-if="checkState === 'loading'" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" />
                         {{ checkState === 'loading' ? 'Prüfe…' : 'API prüfen' }}
-                    </Button>
+                    </BButton>
                 </div>
                 <template v-if="displayStatus">
                     <div
                         v-if="displayStatus.status === 'ok'"
-                        class="mt-2 flex items-center gap-2 text-sm text-green-600 dark:text-green-400"
+                        class="mt-2 d-flex align-items-center gap-2 small text-success"
                     >
-                        <CheckCircle2 class="h-4 w-4 shrink-0" />
+                        <Icon icon="circle-check" />
                         <span>{{ displayStatus.message }}</span>
                     </div>
-                    <div
-                        v-else
-                        class="mt-2 flex items-start gap-2 text-sm text-red-600 dark:text-red-400"
-                    >
-                        <XCircle class="mt-0.5 h-4 w-4 shrink-0" />
-                        <span class="break-words">{{ displayStatus.message }}</span>
+                    <div v-else class="mt-2 d-flex align-items-start gap-2 small text-danger">
+                        <Icon icon="circle-x" class="mt-1 flex-shrink-0" />
+                        <span class="break-word">{{ displayStatus.message }}</span>
                     </div>
                 </template>
-                <p v-if="displayCheckedAt" class="mt-1 text-xs text-muted-foreground">
+                <p v-if="displayCheckedAt" class="mt-1 mb-0 small text-muted">
                     {{ displayCheckedAt }}
                 </p>
-                <p v-else-if="!displayStatus && checkState !== 'loading'" class="mt-1 text-xs text-muted-foreground">
+                <p v-else-if="!displayStatus && checkState !== 'loading'" class="mt-1 mb-0 small text-muted">
                     Noch nicht geprüft
                 </p>
             </div>
 
-            <div class="mt-4 flex gap-2">
-                <Link :href="hostingServers.show.url(server.id)" class="flex-1">
-                    <Button variant="outline" size="sm" class="w-full">
-                        <Eye class="mr-1.5 h-4 w-4" />
+            <div class="mt-3 d-flex gap-2">
+                <Link :href="hostingServers.show.url(server.id)" class="flex-grow-1">
+                    <BButton variant="outline-primary" size="sm" class="w-100">
+                        <Icon icon="eye" class="me-1" />
                         Anzeigen
-                    </Button>
+                    </BButton>
                 </Link>
-                <Link :href="hostingServers.edit.url(server.id)" class="flex-1">
-                    <Button size="sm" class="w-full">
-                        <Edit class="mr-1.5 h-4 w-4" />
+                <Link :href="hostingServers.edit.url(server.id)" class="flex-grow-1">
+                    <BButton variant="primary" size="sm" class="w-100">
+                        <Icon icon="pencil" class="me-1" />
                         Bearbeiten
-                    </Button>
+                    </BButton>
                 </Link>
             </div>
-        </CardContent>
-    </Card>
+        </BCardBody>
+    </BCard>
 </template>

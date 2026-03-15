@@ -1,10 +1,17 @@
+<!-- Admin: API-Übersicht -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { BookOpen, Key, ExternalLink } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -25,74 +32,73 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="API Übersicht" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Public API</Heading>
-                <Text class="mt-2" muted>
-                    Die API liefert Daten für Ihre Landing-Page und Konfiguratoren: Unternehmens-Statistiken,
-                    Domain-Preise und Verfügbarkeit, Hosting-Pläne inkl. Konfiguration sowie Pterodactyl Nests und Eggs.
-                </Text>
-            </div>
-
-            <div class="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="flex items-center gap-2">
-                            <BookOpen class="h-5 w-5" />
-                            Dokumentation
-                        </CardTitle>
-                        <CardDescription>
-                            Alle Endpoints mit Methode, URL, Headers und Request/Response-Beispielen
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Link :href="'/admin/api/docs'">
-                            <Button variant="outline" class="w-full sm:w-auto">
-                                <ExternalLink class="mr-2 h-4 w-4" />
-                                Zur API-Dokumentation
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="flex items-center gap-2">
-                            <Key class="h-5 w-5" />
-                            API-Tokens
-                        </CardTitle>
-                        <CardDescription>
-                            Erstellen und verwalten Sie Tokens in den Einstellungen. Jeder Token wird einmalig im Klartext angezeigt.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Link href="/settings/api-tokens">
-                            <Button variant="outline" class="w-full sm:w-auto">
-                                <Key class="mr-2 h-4 w-4" />
-                                API-Tokens verwalten
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Authentifizierung</CardTitle>
-                    <CardDescription>
-                        Alle API-Anfragen müssen den Header
-                        <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-sm"
-                            >Authorization: Bearer &lt;Ihr-Token&gt;</code
-                        >
-                        enthalten. Tokens erstellen Sie unter Einstellungen → API-Tokens.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p class="text-sm text-muted-foreground">
-                        Basis-URL: <code class="rounded bg-muted px-1.5 py-0.5 font-mono break-all">{{ apiBaseUrl }}</code>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Public API</h4>
+                    <p class="text-muted small mb-0">
+                        Die API liefert Daten für Ihre Landing-Page und Konfiguratoren: Unternehmens-Statistiken,
+                        Domain-Preise und Verfügbarkeit, Hosting-Pläne inkl. Konfiguration sowie Pterodactyl Nests und Eggs.
                     </p>
-                </CardContent>
-            </Card>
-        </div>
+                </div>
+
+                <BRow>
+                    <BCol md="6">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0 d-flex align-items-center gap-2">
+                                    <Icon icon="book" />Dokumentation
+                                </BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">
+                                    Alle Endpoints mit Methode, URL, Headers und Request/Response-Beispielen
+                                </p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <Link href="/admin/api/docs">
+                                    <BButton variant="outline-primary">
+                                        <Icon icon="external-link" class="me-2" />Zur API-Dokumentation
+                                    </BButton>
+                                </Link>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                    <BCol md="6">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0 d-flex align-items-center gap-2">
+                                    <Icon icon="key" />API-Tokens
+                                </BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">
+                                    Erstellen und verwalten Sie Tokens in den Einstellungen. Jeder Token wird einmalig im Klartext angezeigt.
+                                </p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <Link href="/settings/api-tokens">
+                                    <BButton variant="outline-primary">
+                                        <Icon icon="key" class="me-2" />API-Tokens verwalten
+                                    </BButton>
+                                </Link>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                </BRow>
+
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Authentifizierung</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Alle API-Anfragen müssen den Header
+                            <code class="rounded bg-light px-1 py-0 font-monospace">Authorization: Bearer &lt;Ihr-Token&gt;</code>
+                            enthalten. Tokens erstellen Sie unter Einstellungen → API-Tokens.
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <p class="small text-muted mb-0">
+                            Basis-URL: <code class="rounded bg-light px-1 py-0 font-monospace text-break">{{ apiBaseUrl }}</code>
+                        </p>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

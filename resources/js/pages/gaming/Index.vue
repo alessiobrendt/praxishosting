@@ -1,90 +1,78 @@
+<template>
+  <DefaultLayout>
+    <Head title="Game Server" />
+    <PageBreadcrumb title="Game Server" subtitle="Dashboard" subtitle-url="/dashboard" />
+
+    <div class="mb-4">
+      <h4 class="mb-1">Game Server mieten</h4>
+      <p class="text-muted mb-0">
+        Pterodactyl Game Server – wählen Sie Ihr Paket
+      </p>
+    </div>
+
+    <BRow class="g-4">
+      <BCol v-for="plan in hostingPlans" :key="plan.id" xs="12" md="6" lg="4">
+        <BCard no-body class="h-100">
+          <BCardBody class="d-flex flex-column">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <div class="rounded bg-primary bg-opacity-10 p-2">
+                <Icon icon="server" class="fs-5 text-primary" />
+              </div>
+              <h5 class="mb-0">{{ plan.name }}</h5>
+            </div>
+            <p class="text-muted small mb-3">{{ planSpec(plan) }}</p>
+            <ul class="list-unstyled small text-muted mb-3">
+              <li>Eigener Game Server (Pterodactyl)</li>
+              <li>Vollständiger Zugang zum Panel</li>
+              <li>Start, Stop, Restart nach Bedarf</li>
+            </ul>
+            <p class="mb-3">
+              <span class="fs-4 fw-semibold">{{ plan.price }} €</span>
+              <span class="text-muted small">/ Monat</span>
+            </p>
+            <div class="mt-auto">
+              <Link :href="`/gaming/checkout?plan=${plan.id}`" class="btn btn-primary w-100">
+                Jetzt buchen
+              </Link>
+            </div>
+          </BCardBody>
+        </BCard>
+      </BCol>
+    </BRow>
+
+    <p v-if="hostingPlans.length === 0" class="text-muted">
+      Derzeit sind keine Game-Server-Pakete verfügbar.
+    </p>
+  </DefaultLayout>
+</template>
+
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { Gamepad2 } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { dashboard } from '@/routes';
-import type { BreadcrumbItem } from '@/types';
+import { Head, Link } from '@inertiajs/vue3'
+import { BCol, BCard, BCardBody, BRow } from 'bootstrap-vue-next'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue'
+import Icon from '@/components/wrappers/Icon.vue'
 
 type HostingPlan = {
-    id: number;
-    name: string;
-    price: string;
-    config?: { memory?: number; disk?: number; cpu?: number };
-};
+  id: number
+  name: string
+  price: string
+  config?: { memory?: number; disk?: number; cpu?: number }
+}
 
-type Props = {
-    hostingPlans: HostingPlan[];
-};
-
-const props = defineProps<Props>();
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: dashboard().url },
-    { title: 'Game Server', href: '/gaming' },
-];
+defineProps<{
+  hostingPlans: HostingPlan[]
+}>()
 
 function planSpec(plan: HostingPlan): string {
-    const c = plan.config ?? {};
-    const mem = c.memory ?? 0;
-    const disk = c.disk ?? 0;
-    const cpu = c.cpu ?? 0;
-    const parts = [];
-    if (mem) parts.push(`${mem} MB RAM`);
-    if (disk) parts.push(`${Math.round(disk / 1024)} GB SSD`);
-    if (cpu) parts.push(`${cpu} % CPU`);
-    return parts.length ? parts.join(' · ') : 'Game Server';
+  const c = plan.config ?? {}
+  const mem = c.memory ?? 0
+  const disk = c.disk ?? 0
+  const cpu = c.cpu ?? 0
+  const parts = []
+  if (mem) parts.push(`${mem} MB RAM`)
+  if (disk) parts.push(`${Math.round(disk / 1024)} GB SSD`)
+  if (cpu) parts.push(`${cpu} % CPU`)
+  return parts.length ? parts.join(' · ') : 'Game Server'
 }
 </script>
-
-<template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Game Server" />
-
-        <div class="space-y-8">
-            <div>
-                <Heading level="h1">Game Server mieten</Heading>
-                <Text class="mt-2" muted>
-                    Pterodactyl Game Server – wählen Sie Ihr Paket
-                </Text>
-            </div>
-
-            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card
-                    v-for="plan in props.hostingPlans"
-                    :key="plan.id"
-                    class="flex flex-col"
-                >
-                    <CardHeader>
-                        <CardTitle class="flex items-center gap-2">
-                            <Gamepad2 class="h-5 w-5" />
-                            {{ plan.name }}
-                        </CardTitle>
-                        <CardDescription>
-                            {{ planSpec(plan) }}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="flex-1 space-y-4">
-                        <ul class="space-y-2 text-sm text-muted-foreground">
-                            <li>Eigener Game Server (Pterodactyl)</li>
-                            <li>Vollständiger Zugang zum Panel</li>
-                            <li>Start, Stop, Restart nach Bedarf</li>
-                        </ul>
-                        <div class="text-2xl font-semibold">{{ plan.price }} € <span class="text-sm font-normal text-muted-foreground">/ Monat</span></div>
-                    </CardContent>
-                    <CardContent class="pt-0">
-                        <Link :href="`/gaming/checkout?plan=${plan.id}`">
-                            <Button class="w-full">Jetzt buchen</Button>
-                        </Link>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <p v-if="props.hostingPlans.length === 0" class="text-muted-foreground">
-                Derzeit sind keine Game-Server-Pakete verfügbar.
-            </p>
-        </div>
-    </AppLayout>
-</template>

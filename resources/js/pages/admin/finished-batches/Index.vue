@@ -1,10 +1,16 @@
+<!-- Admin: Abgeschlossene Batches -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -34,66 +40,72 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Abgeschlossene Batches', href: '#' },
 ];
 
-const handlePagination = (url: string) => {
-    if (url) window.location.href = url;
-};
+const tableFields = [
+    { key: 'name', label: 'Name', sortable: false },
+    { key: 'total_jobs', label: 'Total', sortable: false },
+    { key: 'pending_jobs', label: 'Pending', sortable: false },
+    { key: 'failed_jobs', label: 'Failed', sortable: false },
+    { key: 'finished_at', label: 'Abgeschlossen am', sortable: false },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Abgeschlossene Batches" />
 
-        <div class="space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <Heading level="h1">Abgeschlossene Batches</Heading>
-                    <Text class="mt-2" muted>
-                        Batch-Jobs die erfolgreich abgeschlossen wurden
-                    </Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">Abgeschlossene Batches</h4>
+                        <p class="text-muted small mb-0">Batch-Jobs die erfolgreich abgeschlossen wurden</p>
+                    </div>
+                    <Link href="/admin/jobs-monitor">
+                        <BButton variant="outline-secondary" size="sm">Zurück zum Jobs-Monitor</BButton>
+                    </Link>
                 </div>
-                <Link href="/admin/jobs-monitor">
-                    <Button variant="outline" size="sm">Zurück zum Jobs-Monitor</Button>
-                </Link>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Abgeschlossene Batches</CardTitle>
-                    <CardDescription>Liste der abgeschlossenen Job-Batches (paginiert)</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Total</TableHead>
-                                <TableHead>Pending</TableHead>
-                                <TableHead>Failed</TableHead>
-                                <TableHead>Abgeschlossen am</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="batch in finishedBatches.data" :key="batch.id">
-                                <TableCell class="font-medium">{{ batch.name }}</TableCell>
-                                <TableCell>{{ batch.total_jobs }}</TableCell>
-                                <TableCell>{{ batch.pending_jobs }}</TableCell>
-                                <TableCell>{{ batch.failed_jobs }}</TableCell>
-                                <TableCell>{{ batch.finished_at ?? '–' }}</TableCell>
-                            </TableRow>
-                            <TableRow v-if="!finishedBatches.data?.length">
-                                <TableCell colspan="5" class="py-8 text-center text-muted-foreground">
-                                    Keine abgeschlossenen Batches.
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Pagination
-                        v-if="finishedBatches.links && finishedBatches.links.length > 3"
-                        :links="finishedBatches.links"
-                        @navigate="handlePagination"
-                    />
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Abgeschlossene Batches</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Liste der abgeschlossenen Job-Batches (paginiert)</p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="finishedBatches.data"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine abgeschlossenen Batches"
+                        >
+                            <template #cell(name)="row">
+                                <span class="fw-medium">{{ row.item.name }}</span>
+                            </template>
+                            <template #cell(finished_at)="row">
+                                {{ row.item.finished_at ?? '–' }}
+                            </template>
+                        </BTable>
+                        <nav
+                            v-if="finishedBatches.links && finishedBatches.links.length > 3"
+                            class="d-flex justify-content-center p-3"
+                        >
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in finishedBatches.links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a v-if="link.url" class="page-link" :href="link.url" v-html="link.label" />
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

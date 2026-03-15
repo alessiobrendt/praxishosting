@@ -1,10 +1,14 @@
 import { createInertiaApp } from '@inertiajs/vue3';
 import * as Sentry from '@sentry/vue';
+import { createBootstrap } from 'bootstrap-vue-next';
 import { loader as monacoLoader } from '@guolao/vue-monaco-editor';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { createPinia } from 'pinia';
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import '../css/app.css';
+import '../scss/app.scss';
 import AppRoot from './components/AppRoot.vue';
 import { initializeTheme } from './composables/useAppearance';
 
@@ -41,7 +45,8 @@ createInertiaApp({
             replaysOnErrorSampleRate: 1.0,
         });
 
-        app.use(plugin).mount(el);
+        const pinia = createPinia().use(piniaPluginPersistedstate);
+        app.use(plugin).use(pinia).use(createBootstrap()).mount(el);
     },
     progress: {
         color: '#4B5563',

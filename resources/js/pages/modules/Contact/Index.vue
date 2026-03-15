@@ -1,84 +1,67 @@
+<template>
+  <DefaultLayout>
+    <Head title="Kontaktformular" />
+    <PageBreadcrumb title="Kontaktformular" subtitle="Dashboard" subtitle-url="/dashboard" />
+
+    <div class="mb-4">
+      <h4 class="mb-1">Kontaktformular</h4>
+      <p class="text-muted mb-0">Eingegangene Kontaktanfragen einsehen</p>
+    </div>
+
+    <BCard no-body>
+      <BCardHeader>
+        <h5 class="mb-0">Sites mit Kontaktformular-Modul</h5>
+        <p class="text-muted small mb-0">Sites, auf denen das Kontaktformular aktiv ist</p>
+      </BCardHeader>
+      <BCardBody>
+        <BTable v-if="sites.length > 0" :items="sites" :fields="contactFields" responsive stacked="sm">
+          <template #cell(name)="{ item }">
+            <span class="fw-medium">{{ item.name }}</span>
+          </template>
+          <template #cell(module_label)="{ item }">
+            {{ item.module_label ?? '–' }}
+          </template>
+          <template #cell(submissions_count)="{ item }">
+            {{ item.submissions_count }}
+          </template>
+          <template #cell(actions)="{ item }">
+            <Link :href="`/modules/contact/submissions/${item.uuid}`" class="btn btn-sm btn-outline-primary">
+              <Icon icon="message-square" class="me-1" />
+              Anfragen anzeigen
+            </Link>
+          </template>
+        </BTable>
+        <p v-else class="text-muted mb-0 py-4 text-center">
+          Keine Sites mit aktivem Kontaktformular-Modul. Fügen Sie das Kontaktformular im Page Designer hinzu.
+        </p>
+      </BCardBody>
+    </BCard>
+  </DefaultLayout>
+</template>
+
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { MessageSquare } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { dashboard } from '@/routes';
-import modules from '@/routes/modules';
-import type { BreadcrumbItem } from '@/types';
+import { Head, Link } from '@inertiajs/vue3'
+import { BCard, BCardBody, BCardHeader, BTable } from 'bootstrap-vue-next'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue'
+import Icon from '@/components/wrappers/Icon.vue'
 
 type Site = {
-    uuid: string;
-    name: string;
-    slug: string;
-    submissions_count: number;
-    module_label: string | null;
-};
+  uuid: string
+  name: string
+  slug: string
+  submissions_count: number
+  module_label: string | null
+}
 
-type Props = {
-    sites: Site[];
-};
+defineProps<{
+  sites: Site[]
+}>()
 
-defineProps<Props>();
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: dashboard().url },
-    { title: 'Module', href: '#' },
-    { title: 'Kontaktformular', href: '#' },
-];
+const contactFields = [
+  { key: 'name', label: 'Site' },
+  { key: 'module_label', label: 'Name' },
+  { key: 'submissions_count', label: 'Eingänge' },
+  { key: 'actions', label: 'Aktionen', thClass: 'text-end' },
+]
 </script>
-
-<template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Kontaktformular" />
-
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Kontaktformular</Heading>
-                <Text class="mt-2" muted>Eingegangene Kontaktanfragen einsehen</Text>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Sites mit Kontaktformular-Modul</CardTitle>
-                    <CardDescription>Sites, auf denen das Kontaktformular aktiv ist</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table v-if="sites.length > 0">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Site</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Eingänge</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="site in sites" :key="site.uuid">
-                                <TableCell>
-                                    <span class="font-medium">{{ site.name }}</span>
-                                </TableCell>
-                                <TableCell>{{ site.module_label ?? '-' }}</TableCell>
-                                <TableCell>{{ site.submissions_count }}</TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="modules.contact.submissions({ site: site.uuid }).url">
-                                        <Button variant="outline" size="sm">
-                                            <MessageSquare class="mr-1 h-4 w-4" />
-                                            Anfragen anzeigen
-                                        </Button>
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <p v-else class="py-8 text-center text-muted-foreground">
-                        Keine Sites mit aktivem Kontaktformular-Modul. Fügen Sie das Kontaktformular im Page Designer hinzu.
-                    </p>
-                </CardContent>
-            </Card>
-        </div>
-    </AppLayout>
-</template>

@@ -1,0 +1,108 @@
+<template>
+  <div class="auth-box p-0 w-100">
+    <BRow class="w-100 g-0">
+      <BCol md="auto">
+        <BCard no-body class="auth-box-form border-0 mb-0">
+          <div class="position-absolute top-0 end-0" style="width: 180px">
+            <img src="/images/auth-card-bg.svg" class="auth-card-bg-img" alt="auth-card-bg" />
+          </div>
+          <BCardBody class="min-vh-100 position-relative d-flex flex-column justify-content-center">
+            <div class="auth-brand mb-0 text-center">
+              <AuthLogo />
+            </div>
+
+            <div class="mt-auto">
+              <div class="text-center">
+                <h4 class="fw-bold text-dark">Great to see you here 👋</h4>
+                <p class="text-muted w-lg-75 mx-auto">You’re just one step away - sign in to continue.</p>
+              </div>
+
+              <BRow class="text-muted g-2">
+                <BCol lg="6">
+                  <button class="btn btn-default w-100">
+                    Sign in with<svg xmlns="http://www.w3.org/2000/svg" class="ms-1" width="13.68px" height="14px" viewBox="0 0 256 262">
+                      <path fill="#4285f4" d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622l38.755 30.023l2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"></path>
+                      <path fill="#34a853" d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055c-34.523 0-63.824-22.773-74.269-54.25l-1.531.13l-40.298 31.187l-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1"></path>
+                      <path fill="#fbbc05" d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82c0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602z"></path>
+                      <path fill="#eb4335" d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0C79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"></path>
+                    </svg>
+                  </button>
+                </BCol>
+                <BCol lg="6">
+                  <button class="btn btn-default w-100">
+                    Sign in with<svg xmlns="http://www.w3.org/2000/svg" class="ms-1" width="14px" height="14px" viewBox="0 0 64 64">
+                      <path
+                        fill="currentColor"
+                        d="M32 0C14 0 0 14 0 32c0 21 19 30 22 30c2 0 2-1 2-2v-5c-7 2-10-2-11-5c0 0 0-1-2-3c-1-1-5-3-1-3c3 0 5 4 5 4c3 4 7 3 9 2c0-2 2-4 2-4c-8-1-14-4-14-15q0-6 3-9s-2-4 0-9c0 0 5 0 9 4c3-2 13-2 16 0c4-4 9-4 9-4c2 7 0 9 0 9q3 3 3 9c0 11-7 14-14 15c1 1 2 3 2 6v8c0 1 0 2 2 2c3 0 22-9 22-30C64 14 50 0 32 0"
+                      ></path>
+                    </svg>
+                  </button>
+                </BCol>
+              </BRow>
+              <p class="text-center text-muted my-3 auth-line">
+                <span> Continue with Email </span>
+              </p>
+
+              <form class="mt-4">
+                <div class="mb-3">
+                  <label for="userEmail" class="form-label">
+                    Email address
+                    <span class="text-danger">*</span>
+                  </label>
+                  <div class="app-search">
+                    <BFormInput type="email" placeholder="you@example.com" required />
+                    <Icon icon="mail" class="app-search-icon text-muted" />
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="userPassword" class="form-label">
+                    Password
+                    <span class="text-danger">*</span>
+                  </label>
+                  <div class="app-search">
+                    <BFormInput type="password" placeholder="••••••••" required />
+                    <Icon icon="lock-password" class="app-search-icon text-muted" />
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <BFormCheckbox name="keep"> Keep me signed in </BFormCheckbox>
+
+                  <RouterLink to="/auth/split/reset-pass" class="text-decoration-underline link-offset-3 text-muted"> Forgot Password? </RouterLink>
+                </div>
+
+                <div class="d-grid">
+                  <BButton variant="primary" type="submit" class="fw-bold py-2">Sign In</BButton>
+                </div>
+              </form>
+            </div>
+
+            <p class="text-muted text-center mt-4 mb-0">
+              New here?
+              <RouterLink to="/auth/split/sign-up" class="text-decoration-underline link-offset-3 fw-semibold"> Create an account </RouterLink>
+            </p>
+
+            <p class="text-center text-muted mt-auto mb-0">
+              © {{ currentYear }} {{ META_DATA.name }} — by
+              <span class="fw-bold">{{ META_DATA.author }}</span>
+            </p>
+          </BCardBody>
+        </BCard>
+      </BCol>
+      <BCol>
+        <div class="h-100 position-relative card-side-img rounded-0 overflow-hidden" style="background-image: url(/images/auth.jpg)">
+          <div class="p-4 card-img-overlay auth-overlay d-flex align-items-end justify-content-center" />
+        </div>
+      </BCol>
+    </BRow>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { BCard, BCol, BRow } from 'bootstrap-vue-next'
+import AuthLogo from '~/components/AuthLogo.vue'
+import Icon from '~/components/wrappers/Icon.vue'
+import { currentYear, META_DATA } from '~/config/constants'
+
+</script>

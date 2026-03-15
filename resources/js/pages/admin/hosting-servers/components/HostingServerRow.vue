@@ -1,9 +1,8 @@
+<!-- Admin: Hosting-Server Tabellenzeile (für BTable) -->
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Eye, Edit } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { TableCell, TableRow } from '@/components/ui/table';
+import { BButton, BBadge } from 'bootstrap-vue-next';
+import Icon from '@/components/wrappers/Icon.vue';
 import hostingServers from '@/routes/admin/hosting-servers/index';
 
 export type HostingServerRowData = {
@@ -21,40 +20,36 @@ defineProps<{
 
 const panelTypeLabel = (type: string | undefined): string => {
     if (type === 'pterodactyl') return 'Pterodactyl';
-    return type === 'plesk' ? 'Plesk' : type ?? '–';
+    return type === 'plesk' ? 'Plesk' : type === 'teamspeak' ? 'TeamSpeak' : type ?? '–';
 };
 </script>
 
 <template>
-    <TableRow>
-        <TableCell class="font-medium">{{ server.name ?? '–' }}</TableCell>
-        <TableCell>
-            <code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">
-                {{ server.hostname }}
-            </code>
-        </TableCell>
-        <TableCell class="text-muted-foreground">
-            {{ panelTypeLabel(server.panel_type) }}
-        </TableCell>
-        <TableCell>{{ server.ip_address ?? '–' }}</TableCell>
-        <TableCell>
-            <Badge :variant="server.is_active ? 'success' : 'error'">
+    <tr>
+        <td class="fw-medium">{{ server.name ?? '–' }}</td>
+        <td>
+            <code class="rounded bg-light px-2 py-1 small">{{ server.hostname }}</code>
+        </td>
+        <td class="text-muted">{{ panelTypeLabel(server.panel_type) }}</td>
+        <td>{{ server.ip_address ?? '–' }}</td>
+        <td>
+            <BBadge :variant="server.is_active ? 'success' : 'secondary'">
                 {{ server.is_active ? 'Aktiv' : 'Inaktiv' }}
-            </Badge>
-        </TableCell>
-        <TableCell class="text-right">
-            <div class="flex items-center justify-end gap-2">
+            </BBadge>
+        </td>
+        <td class="text-end">
+            <div class="d-flex align-items-center justify-content-end gap-1">
                 <Link :href="hostingServers.show.url(server.id)">
-                    <Button variant="ghost" size="sm" aria-label="Anzeigen">
-                        <Eye class="h-4 w-4" />
-                    </Button>
+                    <BButton variant="outline-primary" size="sm" aria-label="Anzeigen">
+                        <Icon icon="eye" />
+                    </BButton>
                 </Link>
                 <Link :href="hostingServers.edit.url(server.id)">
-                    <Button variant="ghost" size="sm" aria-label="Bearbeiten">
-                        <Edit class="h-4 w-4" />
-                    </Button>
+                    <BButton variant="outline-primary" size="sm" aria-label="Bearbeiten">
+                        <Icon icon="pencil" />
+                    </BButton>
                 </Link>
             </div>
-        </TableCell>
-    </TableRow>
+        </td>
+    </tr>
 </template>

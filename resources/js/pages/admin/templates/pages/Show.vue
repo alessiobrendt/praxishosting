@@ -1,10 +1,17 @@
+<!-- Admin: Template-Seite (Detail) -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, Edit } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import templates from '@/routes/admin/templates';
 import type { BreadcrumbItem } from '@/types';
@@ -43,71 +50,60 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="page.name" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">{{ page.name }}</Heading>
-                    <p class="mt-2 text-muted-foreground">
-                        Seite für Template: {{ template.name }}
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    <Link :href="templates.pages.index({ template: template.id }).url">
-                        <Button variant="outline">
-                            <ArrowLeft class="mr-2 h-4 w-4" />
-                            Zurück
-                        </Button>
-                    </Link>
-                    <div class="flex gap-2">
+        <BRow>
+            <BCol>
+                <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <h4 class="mb-1">{{ page.name }}</h4>
+                        <p class="text-muted small mb-0">Seite für Template: {{ template.name }}</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <Link :href="templates.pages.index({ template: template.id }).url">
+                            <BButton variant="outline-secondary">
+                                <Icon icon="arrow-left" class="me-2" />Zurück
+                            </BButton>
+                        </Link>
                         <Link :href="`/admin/templates/${template.id}/pages/${page.id}/data`">
-                            <Button variant="outline">
-                                <Edit class="mr-2 h-4 w-4" />
-                                Daten bearbeiten
-                            </Button>
+                            <BButton variant="outline-primary">
+                                <Icon icon="pencil" class="me-2" />Daten bearbeiten
+                            </BButton>
                         </Link>
                         <Link :href="templates.pages.edit({ template: template.id, page: page.id }).url">
-                            <Button variant="outline">
-                                Einstellungen
-                            </Button>
+                            <BButton variant="outline-primary">Einstellungen</BButton>
                         </Link>
                     </div>
                 </div>
-            </div>
 
-            <div class="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Grundinformationen</CardTitle>
-                        <CardDescription>Basis-Details der Seite</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div>
-                            <p class="text-sm text-muted-foreground">Name:</p>
-                            <p class="font-medium">{{ page.name }}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-muted-foreground">Slug:</p>
-                            <code class="text-sm">{{ page.slug }}</code>
-                        </div>
-                        <div>
-                            <p class="text-sm text-muted-foreground">Reihenfolge:</p>
-                            <p class="font-medium">#{{ page.order }}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card v-if="page.data">
-                    <CardHeader>
-                        <CardTitle>Seiten-Daten</CardTitle>
-                        <CardDescription>JSON-Daten dieser Seite</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <pre class="text-xs bg-muted p-3 rounded overflow-auto max-h-96">{{
-                            JSON.stringify(page.data, null, 2)
-                        }}</pre>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
+                <BRow>
+                    <BCol md="6">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Grundinformationen</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">Basis-Details der Seite</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <p class="text-muted small mb-1">Name:</p>
+                                <p class="fw-medium mb-0">{{ page.name }}</p>
+                                <p class="text-muted small mb-1 mt-3">Slug:</p>
+                                <code class="small">{{ page.slug }}</code>
+                                <p class="text-muted small mb-1 mt-3">Reihenfolge:</p>
+                                <p class="fw-medium mb-0">#{{ page.order }}</p>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                    <BCol md="6">
+                        <BCard v-if="page.data" no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Seiten-Daten</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">JSON-Daten dieser Seite</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <pre class="small bg-light p-3 rounded overflow-auto mb-0" style="max-height: 24rem">{{ JSON.stringify(page.data, null, 2) }}</pre>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                </BRow>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

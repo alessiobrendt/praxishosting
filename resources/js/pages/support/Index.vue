@@ -1,16 +1,100 @@
+<template>
+    <DefaultLayout>
+        <Head title="Meine Tickets" />
+        <PageBreadcrumb
+            title="Support Tickets"
+            subtitle="Dashboard"
+            subtitle-url="/dashboard"
+        />
+
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">Support Tickets</h4>
+                        <p class="text-muted small mb-0">Deine Support-Anfragen und Nachrichtenverlauf</p>
+                    </div>
+                    <Link :href="supportCreate.url">
+                        <BButton variant="primary">
+                            <Icon icon="plus" class="me-2" />
+                            Ticket erstellen
+                        </BButton>
+                    </Link>
+                </div>
+
+                <BCard no-body>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="tickets.data"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Tickets."
+                        >
+                            <template #cell(ticket_category)="row">
+                                {{ row.item.ticket_category?.name ?? '–' }}
+                            </template>
+                            <template #cell(ticket_priority)="row">
+                                <BBadge
+                                    v-if="row.item.ticket_priority"
+                                    :style="row.item.ticket_priority.color ? { backgroundColor: row.item.ticket_priority.color, color: '#fff', border: 'none' } : undefined"
+                                >
+                                    {{ row.item.ticket_priority.name }}
+                                </BBadge>
+                                <span v-else>–</span>
+                            </template>
+                            <template #cell(site)="row">
+                                {{ row.item.site?.name ?? '–' }}
+                            </template>
+                            <template #cell(status)="row">
+                                {{ statusLabels[row.item.status] ?? row.item.status }}
+                            </template>
+                            <template #cell(created_at)="row">
+                                {{ new Date(row.item.created_at).toLocaleDateString('de-DE') }}
+                            </template>
+                            <template #cell(actions)="row">
+                                <Link :href="supportShow(row.item.uuid).url">
+                                    <BButton variant="outline-primary" size="sm">
+                                        <Icon icon="message-circle" />
+                                    </BButton>
+                                </Link>
+                            </template>
+                        </BTable>
+                        <nav v-if="tickets.links.length > 3" class="d-flex justify-content-center p-3">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in tickets.links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a
+                                        v-if="link.url"
+                                        class="page-link"
+                                        :href="link.url"
+                                        v-html="link.label"
+                                    />
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
+    </DefaultLayout>
+</template>
+
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Plus, MessageCircle } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
-import AppLayout from '@/layouts/AppLayout.vue';
+import { BRow, BCol, BCard, BCardBody, BTable, BButton, BBadge } from 'bootstrap-vue-next';
+import DefaultLayout from '@/layouts/DefaultLayout.vue';
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
-import { index as _supportIndex, create as supportCreate, show as supportShow } from '@/routes/support';
-import type { BreadcrumbItem } from '@/types';
+import { index as supportIndex, create as supportCreate, show as supportShow } from '@/routes/support';
 
 type Site = { id: number; name: string; slug: string } | null;
 type TicketCategory = { id: number; name: string; slug: string };
@@ -18,6 +102,7 @@ type TicketPriority = { id: number; name: string; slug: string; color: string | 
 
 type Ticket = {
     id: number;
+    uuid: string;
     subject: string;
     status: string;
     created_at: string;
@@ -26,16 +111,11 @@ type Ticket = {
     site?: Site;
 };
 
-type Props = {
+const props = defineProps<{
     tickets: { data: Ticket[]; links: { url: string | null; label: string; active: boolean }[] };
-};
+}>();
 
-defineProps<Props>();
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Start', href: dashboard().url },
-    { title: 'Support Tickets', href: '#' },
-];
+const tickets = props.tickets;
 
 const statusLabels: Record<string, string> = {
     open: 'Offen',
@@ -45,74 +125,13 @@ const statusLabels: Record<string, string> = {
     closed: 'Geschlossen',
 };
 
-const handlePagination = (url: string) => {
-    if (url) window.location.href = url;
-};
+const tableFields = [
+    { key: 'subject', label: 'Betreff' },
+    { key: 'ticket_category', label: 'Kategorie' },
+    { key: 'ticket_priority', label: 'Priorität' },
+    { key: 'site', label: 'Produkt/Site' },
+    { key: 'status', label: 'Status' },
+    { key: 'created_at', label: 'Erstellt' },
+    { key: 'actions', label: '', tdClass: 'text-end' },
+];
 </script>
-
-<template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Meine Tickets" />
-
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">Support Tickets</Heading>
-                    <Text class="mt-2" muted>Deine Support-Anfragen und Nachrichtenverlauf</Text>
-                </div>
-                <Link :href="supportCreate().url">
-                    <Button><Plus class="mr-2 h-4 w-4" />Ticket erstellen</Button>
-                </Link>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Tickets</CardTitle>
-                    <CardDescription>Ihre Support-Anfragen</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Betreff</TableHead>
-                                <TableHead>Kategorie</TableHead>
-                                <TableHead>Priorität</TableHead>
-                                <TableHead>Produkt/Site</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Erstellt</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="t in tickets.data" :key="t.id">
-                                <TableCell>{{ t.subject }}</TableCell>
-                                <TableCell>{{ t.ticket_category?.name ?? '–' }}</TableCell>
-                                <TableCell>
-                                    <Badge
-                                        v-if="t.ticket_priority"
-                                        :style="t.ticket_priority.color ? { backgroundColor: t.ticket_priority.color, color: '#fff', border: 'none' } : undefined"
-                                    >
-                                        {{ t.ticket_priority.name }}
-                                    </Badge>
-                                    <span v-else>–</span>
-                                </TableCell>
-                                <TableCell>{{ t.site?.name ?? '–' }}</TableCell>
-                                <TableCell>{{ statusLabels[t.status] ?? t.status }}</TableCell>
-                                <TableCell>{{ new Date(t.created_at).toLocaleDateString('de-DE') }}</TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="supportShow(t.uuid).url">
-                                        <Button variant="ghost" size="sm"><MessageCircle class="h-4 w-4" /></Button>
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="tickets.data.length === 0">
-                                <TableCell colspan="7" class="text-center text-muted">Keine Tickets.</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Pagination v-if="tickets.links.length > 3" :links="tickets.links" @page-click="handlePagination" />
-                </CardContent>
-            </Card>
-        </div>
-    </AppLayout>
-</template>

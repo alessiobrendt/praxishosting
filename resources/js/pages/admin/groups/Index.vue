@@ -1,12 +1,20 @@
+<!-- Admin: Gruppen -->
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Edit, Plus, Trash2 } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -22,7 +30,9 @@ type Group = {
 
 type Props = { groups: Group[] };
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const tableItems = computed(() => (props.groups ?? []).filter((g): g is Group => g != null));
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -30,84 +40,108 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Gruppen', href: '#' },
 ];
 
-const destroy = (id: number) => {
+function destroy(id: number): void {
     if (confirm('Gruppe wirklich löschen? Benutzer-Zuweisungen gehen verloren.')) {
         router.delete(`/admin/groups/${id}`);
     }
-};
+}
+
+const tableFields = [
+    { key: 'key', label: 'Key', sortable: false },
+    { key: 'name', label: 'Name', sortable: false },
+    { key: 'label', label: 'Label', sortable: false },
+    { key: 'permissions_display', label: 'Berechtigungen', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Gruppen" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">Gruppen</Heading>
-                    <Text class="mt-2" muted>Gruppen mit Berechtigungen verwalten. Benutzer können mehreren Gruppen angehören.</Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">Gruppen</h4>
+                        <p class="text-muted small mb-0">
+                            Gruppen mit Berechtigungen verwalten. Benutzer können mehreren Gruppen angehören.
+                        </p>
+                    </div>
+                    <Link href="/admin/groups/create">
+                        <BButton variant="primary">
+                            <Icon icon="plus" class="me-2" />
+                            Neu
+                        </BButton>
+                    </Link>
                 </div>
-                <Link href="/admin/groups/create">
-                    <Button><Plus class="mr-2 h-4 w-4" />Neu</Button>
-                </Link>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Gruppen</CardTitle>
-                    <CardDescription>Key, Name, Label, Berechtigungen</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Key</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Label</TableHead>
-                                <TableHead>Berechtigungen</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="g in groups" :key="g.id">
-                                <TableCell><code class="text-sm">{{ g.key }}</code></TableCell>
-                                <TableCell>
-                                    <span class="flex items-center gap-2">
-                                        <span
-                                            v-if="g.color"
-                                            class="inline-block h-4 w-4 shrink-0 rounded-full border border-gray-300 dark:border-gray-600"
-                                            :style="{ backgroundColor: g.color }"
-                                            :title="g.color"
-                                        />
-                                        {{ g.name }}
-                                    </span>
-                                </TableCell>
-                                <TableCell>{{ g.label }}</TableCell>
-                                <TableCell>
-                                    <span v-if="g.permissions?.length" class="flex flex-wrap gap-1">
-                                        <Badge v-for="p in (g.permissions ?? []).slice(0, 5)" :key="p.id" variant="secondary" class="text-xs">
-                                            {{ p.key }}
-                                        </Badge>
-                                        <Badge v-if="(g.permissions?.length ?? 0) > 5" variant="outline">+{{ (g.permissions?.length ?? 0) - 5 }}</Badge>
-                                    </span>
-                                    <span v-else class="text-muted-foreground text-sm">—</span>
-                                </TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="`/admin/groups/${g.id}/edit`">
-                                        <Button variant="ghost" size="sm"><Edit class="h-4 w-4" /></Button>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Gruppen</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Key, Name, Label, Berechtigungen</p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="tableItems"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Gruppen"
+                        >
+                            <template #cell(key)="row">
+                                <code class="small">{{ row.item.key }}</code>
+                            </template>
+                            <template #cell(name)="row">
+                                <span v-if="row.item" class="d-inline-flex align-items-center gap-2">
+                                    <span
+                                        v-if="row.item.color"
+                                        class="rounded-circle border d-inline-block flex-shrink-0"
+                                        style="width: 1rem; height: 1rem; border-color: var(--bs-gray-300) !important"
+                                        :style="{ backgroundColor: row.item.color }"
+                                        :title="row.item.color"
+                                    />
+                                    {{ row.item.name }}
+                                </span>
+                                <span v-else class="text-muted">–</span>
+                            </template>
+                            <template #cell(permissions_display)="row">
+                                <span v-if="row.item.permissions?.length" class="d-flex flex-wrap gap-1">
+                                    <BBadge
+                                        v-for="p in (row.item?.permissions ?? []).slice(0, 5)"
+                                        :key="p.id"
+                                        variant="secondary"
+                                        class="small"
+                                    >
+                                        {{ p.key }}
+                                    </BBadge>
+                                    <BBadge
+                                        v-if="(row.item?.permissions?.length ?? 0) > 5"
+                                        variant="outline-secondary"
+                                    >
+                                        +{{ (row.item.permissions?.length ?? 0) - 5 }}
+                                    </BBadge>
+                                </span>
+                                <span v-else class="text-muted small">—</span>
+                            </template>
+                            <template #cell(actions)="row">
+                                <template v-if="row.item">
+                                    <Link :href="`/admin/groups/${row.item.id}/edit`" class="me-1">
+                                        <BButton variant="outline-primary" size="sm">
+                                            <Icon icon="pencil" />
+                                        </BButton>
                                     </Link>
-                                    <Button variant="ghost" size="sm" class="text-destructive" @click="destroy(g.id)">
-                                        <Trash2 class="h-4 w-4" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="groups.length === 0">
-                                <TableCell colspan="5" class="text-center text-muted">Keine Gruppen.</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </div>
+                                    <BButton variant="outline-danger" size="sm" @click="destroy(row.item.id)">
+                                        <Icon icon="trash" />
+                                    </BButton>
+                                </template>
+                            </template>
+                        </BTable>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

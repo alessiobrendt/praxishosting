@@ -1,12 +1,19 @@
+<!-- Admin: Game-Server-Account (Detail) -->
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
-import { CreditCard, ExternalLink, Server } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -21,6 +28,7 @@ type GameserverCloudSubscription = {
 
 type GameServerAccount = {
     id: number;
+    uuid: string;
     name: string;
     identifier: string | null;
     status: string;
@@ -75,149 +83,160 @@ const csrfToken = () => (page.props.csrfToken as string) ?? '';
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Game-Server: ${gameServerAccount.name}`" />
 
-        <div class="space-y-6">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <Server class="h-8 w-8" />
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                     <div>
-                        <Heading level="h1">{{ gameServerAccount.name }}</Heading>
-                        <Text class="mt-2" muted>
+                        <h4 class="mb-1">{{ gameServerAccount.name }}</h4>
+                        <p class="text-muted small mb-0">
                             Pterodactyl-Game-Server – Kunde: {{ gameServerAccount.user.name }}
-                        </Text>
+                        </p>
                     </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <Badge variant="secondary">{{ gameServerAccount.status }}</Badge>
-                    <Form
-                        v-if="gameServerAccount.status === 'pending'"
-                        :action="`/admin/gaming-accounts/${gameServerAccount.id}/retry-provisioning`"
-                        method="post"
-                        class="inline"
-                        v-slot="{ processing }"
-                    >
-                        <input type="hidden" name="_token" :value="csrfToken()" />
-                        <Button type="submit" variant="default" :disabled="processing">
-                            {{ processing ? 'Wird ausgeführt…' : 'Installation neu anstoßen' }}
-                        </Button>
-                    </Form>
-                    <Link :href="`/admin/gaming-accounts/${gameServerAccount.id}/edit`">
-                        <Button variant="outline">Bearbeiten</Button>
-                    </Link>
-                </div>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Zugang</CardTitle>
-                    <CardDescription>Kunde kann sich damit im Pterodactyl-Panel anmelden</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Kunde</Text>
-                            <p class="font-medium">{{ gameServerAccount.user.name }}</p>
-                            <p class="text-sm text-muted-foreground">{{ gameServerAccount.user.email }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Server-Name</Text>
-                            <p class="font-medium">{{ gameServerAccount.name }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Identifier</Text>
-                            <code v-if="gameServerAccount.identifier" class="rounded bg-muted px-2 py-1 text-sm">{{ gameServerAccount.identifier }}</code>
-                            <span v-else class="text-muted-foreground">–</span>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Plan / Server</Text>
-                            <p class="font-medium">{{ planLabel }}</p>
-                            <p class="text-sm text-muted-foreground">{{ gameServerAccount.hosting_server?.name ?? gameServerAccount.hosting_server?.hostname ?? '–' }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Abo-Ende</Text>
-                            <p class="font-medium">{{ formatDate(periodEndDate) }}</p>
-                        </div>
-                        <div v-if="!isCloudAccount">
-                            <Text class="text-sm font-medium text-muted-foreground">Verlängerung</Text>
-                            <p class="font-medium">{{ renewalLabel }}</p>
-                        </div>
-                        <div v-else>
-                            <Text class="text-sm font-medium text-muted-foreground">Typ</Text>
-                            <p class="font-medium">Gameserver Cloud (Abo-Verwaltung beim Kunden)</p>
-                        </div>
-                        <div v-if="gameServerAccount.monthly_amount != null">
-                            <Text class="text-sm font-medium text-muted-foreground">Monatspreis</Text>
-                            <p class="font-medium">{{ gameServerAccount.monthly_amount?.toFixed(2) }} €</p>
-                        </div>
-                    </div>
-                    <div v-if="Object.keys(gameServerAccount.option_values ?? {}).length" class="pt-2">
-                        <Text class="text-sm font-medium text-muted-foreground">Optionen (RAM, Disk, …)</Text>
-                        <pre class="mt-1 rounded bg-muted p-2 text-xs">{{ JSON.stringify(gameServerAccount.option_values, null, 2) }}</pre>
-                    </div>
-                    <div class="flex flex-wrap gap-2 pt-4">
-                        <Link v-if="loginUrl" :href="loginUrl" target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" as="span">
-                                <ExternalLink class="mr-2 h-4 w-4" />
-                                Im Pterodactyl-Panel öffnen
-                            </Button>
-                        </Link>
-                        <Link :href="`/admin/gaming-accounts/${gameServerAccount.id}/edit`">
-                            <Button variant="default">Bearbeiten (Upgrades)</Button>
-                        </Link>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card v-if="!isCloudAccount && gameServerAccount.mollie_subscription_id">
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <CreditCard class="h-5 w-5" />
-                        Mollie-Abo
-                    </CardTitle>
-                    <CardDescription>Subscription bei Mollie – Abo kündigen zum Periodenende</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-3">
-                    <div>
-                        <Text class="text-sm font-medium text-muted-foreground">Subscription-ID</Text>
-                        <p class="font-mono text-sm">{{ gameServerAccount.mollie_subscription_id }}</p>
-                    </div>
-                    <div v-if="gameServerAccount.cancel_at_period_end" class="text-amber-600 dark:text-amber-400 text-sm">
-                        Wird zum Periodenende gekündigt.
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <a
-                            href="https://www.mollie.com/dashboard/customers"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex"
-                        >
-                            <Button variant="outline" size="sm" as="span">
-                                <ExternalLink class="mr-2 h-4 w-4" />
-                                Bei Mollie anzeigen
-                            </Button>
-                        </a>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <BBadge variant="secondary">{{ gameServerAccount.status }}</BBadge>
                         <Form
-                            v-if="!gameServerAccount.cancel_at_period_end"
-                            :action="`/admin/gaming-accounts/${gameServerAccount.id}/subscription/cancel`"
+                            v-if="gameServerAccount.status === 'pending'"
+                            :action="`/admin/gaming-accounts/${gameServerAccount.uuid}/retry-provisioning`"
                             method="post"
-                            class="inline"
+                            class="d-inline"
+                            v-slot="{ processing }"
                         >
                             <input type="hidden" name="_token" :value="csrfToken()" />
-                            <Button type="submit" variant="outline" size="sm">
-                                Abo kündigen
-                            </Button>
+                            <BButton type="submit" variant="primary" :disabled="processing">
+                                {{ processing ? 'Wird ausgeführt…' : 'Installation neu anstoßen' }}
+                            </BButton>
                         </Form>
+                        <Link :href="`/admin/gaming-accounts/${gameServerAccount.uuid}/edit`">
+                            <BButton variant="outline-primary">Bearbeiten</BButton>
+                        </Link>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
 
-            <div class="flex flex-wrap gap-2">
-                <Link href="/admin/gaming-accounts">
-                    <Button variant="outline">Game-Server-Accounts</Button>
-                </Link>
-                <Link v-if="isCloudAccount" href="/admin/gameserver-cloud-accounts">
-                    <Button variant="outline">Gameserver-Cloud-Accounts</Button>
-                </Link>
-            </div>
-        </div>
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Zugang</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Kunde kann sich damit im Pterodactyl-Panel anmelden</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BRow>
+                            <BCol sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Kunde</p>
+                                <p class="fw-medium mb-0">{{ gameServerAccount.user.name }}</p>
+                                <p class="small text-muted mb-0">{{ gameServerAccount.user.email }}</p>
+                            </BCol>
+                            <BCol sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Server-Name</p>
+                                <p class="fw-medium mb-0">{{ gameServerAccount.name }}</p>
+                            </BCol>
+                            <BCol sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Identifier</p>
+                                <code
+                                    v-if="gameServerAccount.identifier"
+                                    class="small bg-light px-2 py-1 rounded"
+                                >
+                                    {{ gameServerAccount.identifier }}
+                                </code>
+                                <span v-else class="text-muted">–</span>
+                            </BCol>
+                            <BCol sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Plan / Server</p>
+                                <p class="fw-medium mb-0">{{ planLabel }}</p>
+                                <p class="small text-muted mb-0">
+                                    {{ gameServerAccount.hosting_server?.name ?? gameServerAccount.hosting_server?.hostname ?? '–' }}
+                                </p>
+                            </BCol>
+                            <BCol sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Abo-Ende</p>
+                                <p class="fw-medium mb-0">{{ formatDate(periodEndDate) }}</p>
+                            </BCol>
+                            <BCol v-if="!isCloudAccount" sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Verlängerung</p>
+                                <p class="fw-medium mb-0">{{ renewalLabel }}</p>
+                            </BCol>
+                            <BCol v-else sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Typ</p>
+                                <p class="fw-medium mb-0">Gameserver Cloud (Abo-Verwaltung beim Kunden)</p>
+                            </BCol>
+                            <BCol v-if="gameServerAccount.monthly_amount != null" sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Monatspreis</p>
+                                <p class="fw-medium mb-0">{{ gameServerAccount.monthly_amount?.toFixed(2) }} €</p>
+                            </BCol>
+                        </BRow>
+                        <div v-if="Object.keys(gameServerAccount.option_values ?? {}).length" class="pt-2">
+                            <p class="text-muted small mb-1">Optionen (RAM, Disk, …)</p>
+                            <pre class="rounded bg-light p-2 small mb-0">{{ JSON.stringify(gameServerAccount.option_values, null, 2) }}</pre>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 pt-3">
+                            <Link v-if="loginUrl" :href="loginUrl" target="_blank" rel="noopener noreferrer">
+                                <BButton variant="outline-primary" size="sm">
+                                    <Icon icon="external-link" class="me-1" />
+                                    Im Pterodactyl-Panel öffnen
+                                </BButton>
+                            </Link>
+                            <Link :href="`/admin/gaming-accounts/${gameServerAccount.uuid}/edit`">
+                                <BButton variant="primary" size="sm">Bearbeiten (Upgrades)</BButton>
+                            </Link>
+                        </div>
+                    </BCardBody>
+                </BCard>
+
+                <BCard v-if="!isCloudAccount && gameServerAccount.mollie_subscription_id" no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0 d-flex align-items-center gap-2">
+                            <Icon icon="credit-card" />
+                            Mollie-Abo
+                        </BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Subscription bei Mollie – Abo kündigen zum Periodenende
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div class="mb-3">
+                            <p class="text-muted small mb-1">Subscription-ID</p>
+                            <p class="font-monospace small mb-0">{{ gameServerAccount.mollie_subscription_id }}</p>
+                        </div>
+                        <div
+                            v-if="gameServerAccount.cancel_at_period_end"
+                            class="small text-warning mb-3"
+                        >
+                            Wird zum Periodenende gekündigt.
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a
+                                href="https://www.mollie.com/dashboard/customers"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="text-decoration-none"
+                            >
+                                <BButton variant="outline-secondary" size="sm">
+                                    <Icon icon="external-link" class="me-1" />
+                                    Bei Mollie anzeigen
+                                </BButton>
+                            </a>
+                            <Form
+                                v-if="!gameServerAccount.cancel_at_period_end"
+                                :action="`/admin/gaming-accounts/${gameServerAccount.uuid}/subscription/cancel`"
+                                method="post"
+                                class="d-inline"
+                            >
+                                <input type="hidden" name="_token" :value="csrfToken()" />
+                                <BButton type="submit" variant="outline-secondary" size="sm">
+                                    Abo kündigen
+                                </BButton>
+                            </Form>
+                        </div>
+                    </BCardBody>
+                </BCard>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <Link href="/admin/gaming-accounts">
+                        <BButton variant="outline-secondary">Game-Server-Accounts</BButton>
+                    </Link>
+                    <Link v-if="isCloudAccount" href="/admin/gameserver-cloud-accounts">
+                        <BButton variant="outline-secondary">Gameserver-Cloud-Accounts</BButton>
+                    </Link>
+                </div>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

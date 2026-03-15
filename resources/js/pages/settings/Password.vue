@@ -1,126 +1,101 @@
-<script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Heading, Text } from '@/components/ui/typography';
-import AppLayout from '@/layouts/AppLayout.vue';
-import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { edit } from '@/routes/user-password';
-import { type BreadcrumbItem } from '@/types';
-
-const breadcrumbItems: BreadcrumbItem[] = [
-    {
-        title: 'Einstellungen',
-        href: edit().url,
-    },
-];
-</script>
-
 <template>
-    <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Passwort-Einstellungen" />
+  <DefaultLayout>
+    <Head title="Passwort-Einstellungen" />
+    <PageBreadcrumb title="Passwort" subtitle="Einstellungen" subtitle-url="/settings/profile" />
 
-        <SettingsLayout>
-            <div class="space-y-6">
-                <div>
-                    <Heading level="h1">Passwort aktualisieren</Heading>
-                    <Text class="mt-2" muted>
-                        Stellen Sie sicher, dass Ihr Konto ein langes, zufälliges Passwort verwendet, um sicher zu bleiben
-                    </Text>
-                </div>
+    <SettingsLayout>
+      <div class="mb-4">
+        <h4 class="mb-1">Passwort aktualisieren</h4>
+        <p class="text-muted mb-0">
+          Stellen Sie sicher, dass Ihr Konto ein langes, zufälliges Passwort verwendet, um sicher zu bleiben.
+        </p>
+      </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Passwort ändern</CardTitle>
-                        <CardDescription>Geben Sie Ihr aktuelles und neues Passwort ein</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Form
-                            v-bind="PasswordController.update.form()"
-                            :options="{
-                                preserveScroll: true,
-                            }"
-                            reset-on-success
-                            :reset-on-error="[
-                                'password',
-                                'password_confirmation',
-                                'current_password',
-                            ]"
-                            class="space-y-6"
-                            v-slot="{ errors, processing, recentlySuccessful }"
-                        >
-                            <div class="space-y-2">
-                                <Label for="current_password">Aktuelles Passwort</Label>
-                                <Input
-                                    id="current_password"
-                                    name="current_password"
-                                    type="password"
-                                    autocomplete="current-password"
-                                    placeholder="Aktuelles Passwort"
-                                    :aria-invalid="!!errors.current_password"
-                                />
-                                <InputError :message="errors.current_password" />
-                            </div>
-
-                            <div class="space-y-2">
-                                <Label for="password">Neues Passwort</Label>
-                                <Input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    autocomplete="new-password"
-                                    placeholder="Neues Passwort"
-                                    :aria-invalid="!!errors.password"
-                                />
-                                <InputError :message="errors.password" />
-                            </div>
-
-                            <div class="space-y-2">
-                                <Label for="password_confirmation">Passwort bestätigen</Label>
-                                <Input
-                                    id="password_confirmation"
-                                    name="password_confirmation"
-                                    type="password"
-                                    autocomplete="new-password"
-                                    placeholder="Passwort bestätigen"
-                                    :aria-invalid="!!errors.password_confirmation"
-                                />
-                                <InputError :message="errors.password_confirmation" />
-                            </div>
-
-                            <CardFooter class="px-0 pb-0">
-                                <div class="flex items-center gap-4">
-                                    <Button
-                                        :disabled="processing"
-                                        data-test="update-password-button"
-                                    >
-                                        Passwort speichern
-                                    </Button>
-
-                                    <Transition
-                                        enter-active-class="transition ease-in-out"
-                                        enter-from-class="opacity-0"
-                                        leave-active-class="transition ease-in-out"
-                                        leave-to-class="opacity-0"
-                                    >
-                                        <Text
-                                            v-show="recentlySuccessful"
-                                            variant="small"
-                                            class="text-primary"
-                                        >
-                                            Gespeichert.
-                                        </Text>
-                                    </Transition>
-                                </div>
-                            </CardFooter>
-                        </Form>
-                    </CardContent>
-                </Card>
-            </div>
-        </SettingsLayout>
-    </AppLayout>
+      <BCard no-body class="mb-4">
+        <BCardHeader>
+          <h5 class="mb-0">Passwort ändern</h5>
+          <p class="text-muted small mb-0">Geben Sie Ihr aktuelles und neues Passwort ein</p>
+        </BCardHeader>
+        <BCardBody>
+          <BForm @submit.prevent="submit">
+            <BRow class="g-3">
+              <BCol md="6">
+                <label class="form-label">Aktuelles Passwort</label>
+                <BFormInput
+                  v-model="form.current_password"
+                  type="password"
+                  name="current_password"
+                  autocomplete="current-password"
+                  placeholder="Aktuelles Passwort"
+                  :class="{ 'is-invalid': form.errors.current_password }"
+                />
+                <div v-if="form.errors.current_password" class="invalid-feedback d-block">{{ form.errors.current_password }}</div>
+              </BCol>
+              <BCol xs="12" />
+              <BCol md="6">
+                <label class="form-label">Neues Passwort</label>
+                <BFormInput
+                  v-model="form.password"
+                  type="password"
+                  name="password"
+                  autocomplete="new-password"
+                  placeholder="Neues Passwort"
+                  :class="{ 'is-invalid': form.errors.password }"
+                />
+                <div v-if="form.errors.password" class="invalid-feedback d-block">{{ form.errors.password }}</div>
+              </BCol>
+              <BCol md="6">
+                <label class="form-label">Passwort bestätigen</label>
+                <BFormInput
+                  v-model="form.password_confirmation"
+                  type="password"
+                  name="password_confirmation"
+                  autocomplete="new-password"
+                  placeholder="Passwort bestätigen"
+                  :class="{ 'is-invalid': form.errors.password_confirmation }"
+                />
+                <div v-if="form.errors.password_confirmation" class="invalid-feedback d-block">{{ form.errors.password_confirmation }}</div>
+              </BCol>
+              <BCol xs="12" class="d-flex align-items-center gap-3">
+                <BButton type="submit" variant="primary" :disabled="form.processing" data-test="update-password-button">
+                  Passwort speichern
+                </BButton>
+                <span v-if="form.recentlySuccessful" class="text-success small">Gespeichert.</span>
+              </BCol>
+            </BRow>
+          </BForm>
+        </BCardBody>
+      </BCard>
+    </SettingsLayout>
+  </DefaultLayout>
 </template>
+
+<script setup lang="ts">
+import { Head, useForm } from '@inertiajs/vue3'
+import {
+  BButton,
+  BCard,
+  BCardBody,
+  BCardHeader,
+  BCol,
+  BForm,
+  BFormInput,
+  BRow,
+} from 'bootstrap-vue-next'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import SettingsLayout from '@/layouts/settings/Layout.vue'
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue'
+
+const form = useForm({
+  current_password: '',
+  password: '',
+  password_confirmation: '',
+})
+
+function submit() {
+  form.put('/settings/password', {
+    preserveScroll: true,
+    onSuccess: () => form.reset('password', 'password_confirmation', 'current_password'),
+  })
+}
+</script>

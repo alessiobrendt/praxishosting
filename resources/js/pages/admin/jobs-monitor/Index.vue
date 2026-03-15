@@ -1,8 +1,15 @@
+<!-- Admin: Jobs-Monitor -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -26,58 +33,72 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Jobs-Monitor" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Jobs-Monitor</Heading>
-                <Text class="mt-2" muted>
-                    Übersicht Queue-Statistiken: fehlgeschlagen, wartend, abgeschlossen
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Jobs-Monitor</h4>
+                    <p class="text-muted small mb-0">
+                        Übersicht Queue-Statistiken: fehlgeschlagen, wartend, abgeschlossen
+                    </p>
+                </div>
 
-            <div class="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Fehlgeschlagene Jobs</CardTitle>
-                        <CardDescription>Jobs die bei der Ausführung fehlgeschlagen sind</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ failedJobsCount }}</span>
-                        <div class="mt-3">
-                            <Link href="/admin/failed-jobs">
-                                <Button variant="outline" size="sm">Zur Übersicht</Button>
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Wartende Jobs</CardTitle>
-                        <CardDescription>Jobs die noch in der Queue auf Abarbeitung warten</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ waitingJobsCount }}</span>
-                        <div class="mt-3">
-                            <Link href="/admin/waiting-jobs">
-                                <Button variant="outline" size="sm">Zur Übersicht</Button>
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Abgeschlossene Batches</CardTitle>
-                        <CardDescription>Batch-Jobs die erfolgreich abgeschlossen wurden</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-2xl font-bold">{{ finishedBatchesCount }}</span>
-                        <div class="mt-3">
-                            <Link href="/admin/finished-batches">
-                                <Button variant="outline" size="sm">Zur Übersicht</Button>
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
+                <BRow>
+                    <BCol md="4" class="mb-4">
+                        <BCard no-body class="h-100">
+                            <BCardHeader class="py-3">
+                                <BCardTitle class="small fw-medium mb-0">Fehlgeschlagene Jobs</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">
+                                    Jobs die bei der Ausführung fehlgeschlagen sind
+                                </p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <span class="fs-2 fw-bold">{{ failedJobsCount }}</span>
+                                <div class="mt-3">
+                                    <Link href="/admin/failed-jobs">
+                                        <BButton variant="outline-primary" size="sm">Zur Übersicht</BButton>
+                                    </Link>
+                                </div>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                    <BCol md="4" class="mb-4">
+                        <BCard no-body class="h-100">
+                            <BCardHeader class="py-3">
+                                <BCardTitle class="small fw-medium mb-0">Wartende Jobs</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">
+                                    Jobs die noch in der Queue auf Abarbeitung warten
+                                </p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <span class="fs-2 fw-bold">{{ waitingJobsCount }}</span>
+                                <div class="mt-3">
+                                    <Link href="/admin/waiting-jobs">
+                                        <BButton variant="outline-primary" size="sm">Zur Übersicht</BButton>
+                                    </Link>
+                                </div>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                    <BCol md="4" class="mb-4">
+                        <BCard no-body class="h-100">
+                            <BCardHeader class="py-3">
+                                <BCardTitle class="small fw-medium mb-0">Abgeschlossene Batches</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">
+                                    Batch-Jobs die erfolgreich abgeschlossen wurden
+                                </p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <span class="fs-2 fw-bold">{{ finishedBatchesCount }}</span>
+                                <div class="mt-3">
+                                    <Link href="/admin/finished-batches">
+                                        <BButton variant="outline-primary" size="sm">Zur Übersicht</BButton>
+                                    </Link>
+                                </div>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                </BRow>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

@@ -1,6 +1,5 @@
+<!-- Admin: Hosting-Server Seitenkopf (Titel, Beschreibung, Aktion) -->
 <script setup lang="ts">
-import { Heading, Text } from '@/components/ui/typography';
-
 defineProps<{
     title: string;
     description?: string;
@@ -8,12 +7,10 @@ defineProps<{
 </script>
 
 <template>
-    <div class="flex items-center justify-between">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <div>
-            <Heading level="h1">{{ title }}</Heading>
-            <Text v-if="description" class="mt-2" muted>
-                {{ description }}
-            </Text>
+            <h4 class="mb-1">{{ title }}</h4>
+            <p v-if="description" class="text-muted small mb-0">{{ description }}</p>
         </div>
         <slot name="action" />
     </div>

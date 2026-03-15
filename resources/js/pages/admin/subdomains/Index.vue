@@ -1,18 +1,19 @@
+<!-- Admin: Subdomains (Cloudflare SRV) -->
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Trash2 } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
-    Table,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableHead,
-    TableCell,
-} from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+    BAlert,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -36,7 +37,7 @@ type Props = {
     cloudflareConfigured: boolean;
 };
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
 const page = usePage();
 const flash = (page.props.flash as { success?: string; error?: string }) ?? {};
@@ -46,114 +47,101 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Subdomains', href: '/admin/subdomains' },
 ];
 
-function confirmDelete(record: SrvRecord) {
+function confirmDelete(record: SrvRecord): void {
     const msg = record.game_server_account
         ? `Dieser Eintrag ist dem Server „${record.game_server_account.name}" zugeordnet. Wirklich aus Cloudflare löschen?`
         : 'SRV-Eintrag wirklich aus Cloudflare löschen?';
     if (!confirm(msg)) return;
     router.delete(`/admin/subdomains/${record.record_id}`, { preserveScroll: true });
 }
+
+const tableFields = [
+    { key: 'name', label: 'SRV-Name / Subdomain', sortable: false },
+    { key: 'target_port', label: 'Target : Port', sortable: false },
+    { key: 'assigned', label: 'Zugewiesen an', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Subdomains (Cloudflare SRV)" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Subdomains (Cloudflare SRV)</Heading>
-                <Text class="mt-2" muted>
-                    SRV-Einträge der konfigurierten Cloudflare-Zone. Zuweisung zu Game-Servern und Löschen leerer
-                    Einträge.
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Subdomains (Cloudflare SRV)</h4>
+                    <p class="text-muted small mb-0">
+                        SRV-Einträge der konfigurierten Cloudflare-Zone. Zuweisung zu Game-Servern und Löschen leerer
+                        Einträge.
+                    </p>
+                </div>
 
-            <div
-                v-if="flash.success"
-                class="rounded-md border border-green-500/50 bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-400"
-            >
-                {{ flash.success }}
-            </div>
-            <div
-                v-if="flash.error"
-                class="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
-                {{ flash.error }}
-            </div>
+                <BAlert v-if="flash.success" variant="success" show dismissible class="mb-3">
+                    {{ flash.success }}
+                </BAlert>
+                <BAlert v-if="flash.error" variant="danger" show dismissible class="mb-3">
+                    {{ flash.error }}
+                </BAlert>
 
-            <Card v-if="!cloudflareConfigured">
-                <CardContent class="py-8 text-center text-muted-foreground">
-                    Cloudflare ist nicht konfiguriert (CLOUDFLARE_ZONE_ID, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_DOMAIN
-                    in .env).
-                </CardContent>
-            </Card>
+                <BCard v-if="!cloudflareConfigured" no-body>
+                    <BCardBody class="py-5 text-center text-muted">
+                        Cloudflare ist nicht konfiguriert (CLOUDFLARE_ZONE_ID, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_DOMAIN
+                        in .env).
+                    </BCardBody>
+                </BCard>
 
-            <Card v-else>
-                <CardHeader>
-                    <CardTitle>SRV-Einträge</CardTitle>
-                    <CardDescription>
-                        Zone: {{ zoneDomain || '–' }}. Einträge aus der Cloudflare-API; „Nicht zugewiesen" = kein
-                        zugeordneter Game-Server in der App.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>SRV-Name / Subdomain</TableHead>
-                                <TableHead>Target : Port</TableHead>
-                                <TableHead>Zugewiesen an</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow
-                                v-for="record in props.srvRecords"
-                                :key="record.record_id"
-                            >
-                                <TableCell>
-                                    <code class="rounded bg-muted px-2 py-1 text-sm">{{ record.name }}</code>
-                                </TableCell>
-                                <TableCell>
-                                    <span v-if="record.target || record.port">
-                                        {{ record.target }}:{{ record.port }}
-                                    </span>
-                                    <span v-else class="text-muted-foreground">–</span>
-                                </TableCell>
-                                <TableCell>
-                                    <Link
-                                        v-if="record.game_server_account"
-                                        :href="record.game_server_account.url"
-                                        class="font-medium text-primary hover:underline"
-                                    >
-                                        {{ record.game_server_account.name }}
-                                    </Link>
-                                    <span v-else class="text-muted-foreground">Nicht zugewiesen</span>
-                                </TableCell>
-                                <TableCell class="text-right">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        class="text-destructive hover:text-destructive"
-                                        @click="confirmDelete(record)"
-                                    >
-                                        <Trash2 class="h-4 w-4" />
-                                        Löschen
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="cloudflareConfigured && props.srvRecords.length === 0">
-                                <TableCell
-                                    colspan="4"
-                                    class="text-center text-muted-foreground"
+                <BCard v-else no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">SRV-Einträge</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Zone: {{ zoneDomain || '–' }}. Einträge aus der Cloudflare-API; „Nicht zugewiesen" = kein
+                            zugeordneter Game-Server in der App.
+                        </p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="srvRecords"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine SRV-Einträge gefunden"
+                        >
+                            <template #cell(name)="row">
+                                <code class="bg-light rounded px-2 py-1 small">{{ row.item.name }}</code>
+                            </template>
+                            <template #cell(target_port)="row">
+                                <span v-if="row.item.target || row.item.port">
+                                    {{ row.item.target }}:{{ row.item.port }}
+                                </span>
+                                <span v-else class="text-muted">–</span>
+                            </template>
+                            <template #cell(assigned)="row">
+                                <Link
+                                    v-if="row.item.game_server_account"
+                                    :href="row.item.game_server_account.url"
+                                    class="text-primary text-decoration-none fw-medium"
                                 >
-                                    Keine SRV-Einträge gefunden.
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </div>
+                                    {{ row.item.game_server_account.name }}
+                                </Link>
+                                <span v-else class="text-muted">Nicht zugewiesen</span>
+                            </template>
+                            <template #cell(actions)="row">
+                                <BButton
+                                    variant="outline-danger"
+                                    size="sm"
+                                    @click="confirmDelete(row.item)"
+                                >
+                                    <Icon icon="trash" class="me-1" />
+                                    Löschen
+                                </BButton>
+                            </template>
+                        </BTable>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

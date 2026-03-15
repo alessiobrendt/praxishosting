@@ -1,15 +1,23 @@
+<!-- Admin: Rabattcode anlegen -->
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Heading } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormSelect,
+    BFormCheckbox,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import InputError from '@/components/InputError.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -39,71 +47,122 @@ watch(
     },
     { immediate: true },
 );
+
+const typeOptions = [
+    { value: 'percent', text: 'Prozent' },
+    { value: 'fixed', text: 'Fester Betrag' },
+];
+
+const appliesToOptions = [
+    { value: 'first_period', text: 'Nur erster Abrechnungszeitraum (erster Monat günstiger)' },
+    { value: 'entire_duration', text: 'Gesamte Laufzeit (dauerhaft rabattiert)' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Rabattcode anlegen" />
 
-        <div class="space-y-6">
-            <Heading level="h1">Rabattcode anlegen</Heading>
+        <BRow>
+            <BCol cols="12" lg="8" xl="6">
+                <div class="mb-3">
+                    <h4 class="mb-1">Rabattcode anlegen</h4>
+                    <p class="text-muted small mb-0">Code, Typ (Prozent/Festbetrag), Wert und Gültigkeit</p>
+                </div>
 
-            <Card class="max-w-xl">
-                <CardHeader>
-                    <CardTitle>Rabattcode</CardTitle>
-                    <CardDescription>Code, Typ (percent/fixed), Wert, Gültigkeit</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <div class="space-y-2">
-                        <Label for="code">Code</Label>
-                        <Input id="code" v-model="form.code" required :aria-invalid="!!form.errors.code" />
-                        <InputError :message="form.errors.code" />
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <Label for="type">Typ</Label>
-                            <Select id="type" v-model="form.type">
-                                <option value="percent">Prozent</option>
-                                <option value="fixed">Fester Betrag</option>
-                            </Select>
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="value">Wert</Label>
-                            <Input id="value" v-model="form.value" type="number" step="0.01" min="0" :aria-invalid="!!form.errors.value" />
-                            <InputError :message="form.errors.value" />
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <Label for="applies_to">Rabatt gilt für</Label>
-                        <Select id="applies_to" v-model="form.applies_to">
-                            <option value="first_period">Nur erster Abrechnungszeitraum (erster Monat günstiger)</option>
-                            <option value="entire_duration">Gesamte Laufzeit (dauerhaft rabattiert)</option>
-                        </Select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <Label for="valid_from">Gültig von</Label>
-                            <Input id="valid_from" v-model="form.valid_from" type="datetime-local" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="valid_until">Gültig bis</Label>
-                            <Input id="valid_until" v-model="form.valid_until" type="datetime-local" />
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <Label for="max_redemptions">Max. Einlösungen (optional)</Label>
-                        <Input id="max_redemptions" v-model="form.max_redemptions" type="number" min="1" />
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <Switch id="is_active" v-model="form.is_active" />
-                        <Label for="is_active">Aktiv</Label>
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button type="button" @click="form.post('/admin/discount-codes')" :disabled="form.processing">Anlegen</Button>
-                    <Link href="/admin/discount-codes"><Button variant="outline">Abbrechen</Button></Link>
-                </CardFooter>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Rabattcode</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Code, Typ (percent/fixed), Wert, Gültigkeit</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BForm @submit.prevent="form.post('/admin/discount-codes')">
+                            <BFormGroup label="Code" label-for="code">
+                                <BFormInput
+                                    id="code"
+                                    v-model="form.code"
+                                    type="text"
+                                    required
+                                    :aria-invalid="!!form.errors.code"
+                                />
+                                <InputError :message="form.errors.code" />
+                            </BFormGroup>
+                            <BRow>
+                                <BCol md="6">
+                                    <BFormGroup label="Typ" label-for="type">
+                                        <BFormSelect id="type" v-model="form.type" :options="typeOptions" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol md="6">
+                                    <BFormGroup label="Wert" label-for="value">
+                                        <BFormInput
+                                            id="value"
+                                            v-model="form.value"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            :aria-invalid="!!form.errors.value"
+                                        />
+                                        <InputError :message="form.errors.value" />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+                            <BFormGroup label="Rabatt gilt für" label-for="applies_to">
+                                <BFormSelect
+                                    id="applies_to"
+                                    v-model="form.applies_to"
+                                    :options="appliesToOptions"
+                                />
+                            </BFormGroup>
+                            <BRow>
+                                <BCol md="6">
+                                    <BFormGroup label="Gültig von" label-for="valid_from">
+                                        <BFormInput
+                                            id="valid_from"
+                                            v-model="form.valid_from"
+                                            type="datetime-local"
+                                        />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol md="6">
+                                    <BFormGroup label="Gültig bis" label-for="valid_until">
+                                        <BFormInput
+                                            id="valid_until"
+                                            v-model="form.valid_until"
+                                            type="datetime-local"
+                                        />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+                            <BFormGroup label="Max. Einlösungen (optional)" label-for="max_redemptions">
+                                <BFormInput
+                                    id="max_redemptions"
+                                    v-model="form.max_redemptions"
+                                    type="number"
+                                    min="1"
+                                />
+                            </BFormGroup>
+                            <BFormGroup>
+                                <BFormCheckbox id="is_active" v-model="form.is_active">
+                                    Aktiv
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <div class="d-flex gap-2 pt-3">
+                                <BButton
+                                    type="submit"
+                                    variant="primary"
+                                    :disabled="form.processing"
+                                >
+                                    Anlegen
+                                </BButton>
+                                <Link href="/admin/discount-codes">
+                                    <BButton type="button" variant="outline-secondary">Abbrechen</BButton>
+                                </Link>
+                            </div>
+                        </BForm>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

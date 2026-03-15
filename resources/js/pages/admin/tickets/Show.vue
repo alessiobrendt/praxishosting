@@ -1,41 +1,28 @@
+<!-- Admin: Support-Ticket (Detail) -->
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import {
-    ArrowLeft,
-    Info,
-    Zap,
-    FileText,
-    Image,
-    Lock,
-    Tag,
-    AlertCircle,
-    User,
-    Globe,
-    GitMerge,
-    Pencil,
-    Maximize2,
-    Minimize2,
-} from 'lucide-vue-next';
 import { ref, computed, onMounted, nextTick } from 'vue';
-import InputError from '@/components/InputError.vue';
-import TicketReplyEditor from '@/components/TicketReplyEditor.vue';
-import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Text } from '@/components/ui/typography';
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BNav,
+    BNavItem,
+    BModal,
+    BForm,
+    BFormGroup,
+    BFormSelect,
+    BFormCheckbox,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
+import InputError from '@/components/InputError.vue';
+import Icon from '@/components/wrappers/Icon.vue';
+import TicketReplyEditor from '@/components/TicketReplyEditor.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { sanitizeHtml, isHtml } from '@/lib/sanitize';
 import { dashboard } from '@/routes';
@@ -167,15 +154,39 @@ const templateReplacements = computed(() => {
     };
 });
 
-function activityIcon(actionType: string) {
+const statusOptions = computed(() =>
+    Object.entries(statusLabels).map(([value, text]) => ({ value, text })),
+);
+const categoryOptions = computed(() =>
+    props.categories.map((c) => ({ value: String(c.id), text: c.name })),
+);
+const priorityOptions = computed(() => [
+    { value: '', text: '–' },
+    ...props.priorities.map((p) => ({ value: String(p.id), text: p.name })),
+]);
+const assignedOptions = computed(() => [
+    { value: '', text: '–' },
+    ...props.admins.map((a) => ({ value: String(a.id), text: a.name })),
+]);
+const siteOptions = computed(() => [
+    { value: '', text: '–' },
+    ...props.customerSites.map((s) => ({ value: s.uuid, text: s.name })),
+]);
+const mergeTargetOptions = computed(() =>
+    props.recentTickets
+        .filter((rt) => rt.uuid !== props.ticket.uuid)
+        .map((rt) => ({ value: rt.uuid, text: `#${rt.id} – ${rt.subject}` })),
+);
+
+function activityIcon(actionType: string): string {
     switch (actionType) {
-        case 'status_change': return Lock;
-        case 'category_change': return Tag;
-        case 'priority_change': return AlertCircle;
-        case 'assigned_change': return User;
-        case 'site_change': return Globe;
-        case 'merged': return GitMerge;
-        default: return Pencil;
+        case 'status_change': return 'lock';
+        case 'category_change': return 'tag';
+        case 'priority_change': return 'alert-circle';
+        case 'assigned_change': return 'user';
+        case 'site_change': return 'world';
+        case 'merged': return 'git-merge';
+        default: return 'pencil';
     }
 }
 
@@ -219,17 +230,17 @@ function activityCardClasses(actionType: string): string {
     }
 }
 
-function ticketAssignedToId(): string | number {
+function ticketAssignedToId(): string {
     const v = props.ticket.assigned_to;
     if (v == null) return '';
-    if (typeof v === 'object' && v !== null && 'id' in v) return (v as { id: number }).id;
-    return v as number;
+    if (typeof v === 'object' && v !== null && 'id' in v) return String((v as { id: number }).id);
+    return String(v as number);
 }
 
 const updateForm = useForm({
     status: props.ticket.status,
-    ticket_category_id: props.ticket.ticket_category_id,
-    ticket_priority_id: props.ticket.ticket_priority_id ?? '',
+    ticket_category_id: String(props.ticket.ticket_category_id),
+    ticket_priority_id: props.ticket.ticket_priority_id != null ? String(props.ticket.ticket_priority_id) : '',
     assigned_to: ticketAssignedToId(),
     site_uuid: props.ticket.site?.uuid ?? '',
     tag_ids: (props.ticket.tags ?? []).map((t) => t.id),
@@ -270,6 +281,7 @@ const noteForm = useForm({ body: '', is_internal: true });
 const noteDialogOpen = ref(false);
 const mergeForm = useForm({ target_ticket_uuid: '' as string });
 const mergeDialogOpen = ref(false);
+const sidebarTab = ref<'info' | 'edit' | 'actions'>('info');
 
 function focusReply(asInternal: boolean) {
     messageForm.is_internal = asInternal;
@@ -307,226 +319,161 @@ onMounted(() => {
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Ticket #${ticket.id}: ${ticket.subject}`" />
 
-        <div class="page space-y-4">
-            <!-- Page header (wie Support) -->
-            <div class="page-header mb-3">
-                <div class="flex flex-wrap items-center gap-4">
-                    <div class="min-w-0 flex-1">
-                        <h2 class="page-title flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-gray-100">
-                            <Link
-                                :href="adminTickets.index().url"
-                                class="rounded p-1 transition-modern hover:bg-gray-100 dark:hover:bg-gray-800"
-                                aria-label="Zurück"
-                            >
-                                <ArrowLeft class="h-5 w-5" />
-                            </Link>
-                            <span class="truncate">Ticket #{{ ticket.id }} » {{ ticket.subject }}</span>
-                        </h2>
-                    </div>
-                    <div class="shrink-0">
-                        <Link :href="adminTickets.index().url">
-                            <Button variant="outline" size="sm">Zurück zur Liste</Button>
-                        </Link>
-                    </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
+                    <Link
+                        :href="adminTickets.index().url"
+                        class="text-body rounded p-1 d-inline-flex"
+                        aria-label="Zurück"
+                    >
+                        <Icon icon="arrow-left" class="flex-shrink-0" />
+                    </Link>
+                    <h4 class="mb-0 flex-grow-1 text-truncate">Ticket #{{ ticket.id }} » {{ ticket.subject }}</h4>
+                    <Link :href="adminTickets.index().url">
+                        <BButton variant="outline-primary" size="sm">Zurück zur Liste</BButton>
+                    </Link>
                 </div>
-            </div>
+                <p class="text-muted small mb-3">Support-Ticket-Detail: Verlauf, Antworten und Einstellungen</p>
+            </BCol>
+        </BRow>
 
-            <div class="grid grid-cols-1 gap-6 xl:grid-cols-12">
-                <!-- Left sidebar: Card im Support-Design, 3 Tabs -->
-                <aside class="xl:col-span-3 xl:mb-4">
-                    <div class="rounded-xl border border-gray-200 bg-white shadow-modern dark:border-gray-800 dark:bg-gray-900">
-                        <Tabs default-tab="info" class="w-full">
-                            <div class="flex flex-col space-y-1.5 border-b border-gray-200 bg-gray-50/50 p-6 py-3 dark:border-gray-800 dark:bg-gray-800/30">
-                                <TabsList class="grid w-full grid-cols-3">
-                                    <TabsTrigger value="info" class="gap-1.5">
-                                        <Info class="h-4 w-4" />
-                                        <span class="sr-only">Informationen</span>
-                                    </TabsTrigger>
-                                    <TabsTrigger value="edit" class="gap-1.5">
-                                        <Pencil class="h-4 w-4" />
-                                        <span class="sr-only">Bearbeiten</span>
-                                    </TabsTrigger>
-                                    <TabsTrigger value="actions" class="gap-1.5">
-                                        <Zap class="h-4 w-4" />
-                                        <span class="sr-only">Aktionen</span>
-                                    </TabsTrigger>
-                                </TabsList>
+        <BRow>
+            <!-- Sidebar: Infos, Bearbeiten, Aktionen -->
+            <BCol cols="12" xl="3" class="mb-4">
+                <BCard no-body>
+                    <BCardHeader class="py-3">
+                        <BNav tabs class="card-header-tabs mb-0 flex-wrap">
+                            <BNavItem :active="sidebarTab === 'info'" @click="sidebarTab = 'info'">
+                                <Icon icon="info" class="me-1" /> Informationen
+                            </BNavItem>
+                            <BNavItem :active="sidebarTab === 'edit'" @click="sidebarTab = 'edit'">
+                                <Icon icon="pencil" class="me-1" /> Bearbeiten
+                            </BNavItem>
+                            <BNavItem :active="sidebarTab === 'actions'" @click="sidebarTab = 'actions'">
+                                <Icon icon="bolt" class="me-1" /> Aktionen
+                            </BNavItem>
+                        </BNav>
+                    </BCardHeader>
+                    <BCardBody class="py-4">
+                        <!-- Tab: Informationen (read-only) -->
+                        <div v-show="sidebarTab === 'info'" class="space-y-3">
+                            <div>
+                                <p class="mb-1 fw-semibold small">Betroffener Dienst</p>
+                                <ul v-if="affectedServices?.length" class="list-inside list-disc small text-muted mb-0 ps-2">
+                                    <li v-for="(svc, idx) in affectedServices" :key="`${svc.type}-${svc.id}-${idx}`">
+                                        <Link v-if="svc.url" :href="svc.url">{{ svc.label }}</Link>
+                                        <span v-else>{{ svc.label }}</span>
+                                    </li>
+                                </ul>
+                                <span v-else class="small">{{ serviceName }}</span>
                             </div>
-                            <div class="p-6 space-y-4 py-4">
-                                <!-- Tab 1: Nur Informationen (read-only) -->
-                                <TabsContent value="info" class="mt-0 space-y-4">
-                                    <div>
-                                        <p class="mb-1 font-semibold">Betroffener Dienst</p>
-                                        <ul
-                                            v-if="affectedServices?.length"
-                                            class="list-inside list-disc space-y-0.5 text-sm text-muted-foreground"
-                                        >
-                                            <li
-                                                v-for="(svc, idx) in affectedServices"
-                                                :key="`${svc.type}-${svc.id}-${idx}`"
-                                            >
-                                                <Link
-                                                    v-if="svc.url"
-                                                    :href="svc.url"
-                                                    class="font-medium text-primary underline hover:no-underline"
-                                                >
-                                                    {{ svc.label }}
-                                                </Link>
-                                                <span v-else>{{ svc.label }}</span>
-                                            </li>
-                                        </ul>
-                                        <span v-else class="text-sm">{{ serviceName }}</span>
-                                    </div>
-                                    <div>
-                                        <p class="mb-1 font-semibold">Kategorie</p>
-                                        <span class="text-sm">{{ ticket.ticket_category?.name ?? '–' }}</span>
-                                    </div>
-                                    <div>
-                                        <p class="mb-1 font-semibold">Priorität</p>
-                                        <span class="text-sm">{{ ticket.ticket_priority?.name ?? '–' }}</span>
-                                    </div>
-                                    <div>
-                                        <p class="mb-1 font-semibold">Erstellt am</p>
-                                        <span class="text-sm">{{ formatDateTime(ticket.created_at) }}</span>
-                                    </div>
-                                    <div>
-                                        <p class="mb-1 font-semibold">Zugewiesen an</p>
-                                        <span class="text-sm">{{ assignedToName }}</span>
-                                    </div>
-                                    <div>
-                                        <p class="mb-1 font-semibold">Status</p>
-                                        <span class="text-sm">{{ statusLabels[ticket.status] ?? ticket.status }}</span>
-                                    </div>
-                                    <div>
-                                        <p class="mb-1 font-semibold">Interner Status</p>
-                                        <span class="text-sm">{{ statusLabels[ticket.status] ?? ticket.status }}</span>
-                                    </div>
-                                    <div>
-                                        <p class="mb-1 font-semibold">Kunde</p>
-                                        <div class="space-y-0.5 text-sm">
-                                            <span v-if="ticket.user">
-                                                <Link
-                                                    :href="adminCustomers.show(ticket.user_id).url"
-                                                    class="font-medium text-primary underline hover:no-underline"
-                                                >
-                                                    {{ ticket.user.name }}
-                                                </Link>
-                                            </span>
-                                            <span v-else>–</span>
-                                            <span v-if="ticket.user?.email" class="block text-muted-foreground">{{ ticket.user.email }}</span>
-                                            <span v-if="affectedServices?.length" class="block">
-                                                Produkt/Site: {{ serviceName }}
-                                            </span>
-                                            <span v-else-if="ticket.site" class="block">
-                                                Produkt/Site:
-                                                <Link
-                                                    :href="adminSites.show(ticket.site.uuid).url"
-                                                    class="font-medium text-primary underline hover:no-underline"
-                                                >
-                                                    {{ ticket.site.name }}
-                                                </Link>
-                                            </span>
-                                        </div>
-                                    </div>
-                              
-                                    <div v-if="recentTickets.length">
-                                                <p class="mb-1 font-semibold">Letzte Tickets</p>
-                                                <ul class="space-y-1 text-sm">
-                                                    <li v-for="t in recentTickets" :key="t.id">
-                                                        <Link
-                                                            :href="adminTickets.show(t.id).url"
-                                                            class="block truncate rounded-md px-2 py-1.5 hover:bg-muted"
-                                                        >
-                                                            #{{ t.id }} – {{ t.subject.length > 35 ? t.subject.slice(0, 35) + '…' : t.subject }}
-                                                        </Link>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                </TabsContent>
-                                <!-- Tab 2: Bearbeiten (Formular) -->
-                                <TabsContent value="edit" class="mt-0">
-                                    <form @submit.prevent="submitTicketUpdate">
-                                        <div class="space-y-4">
-                                            <div class="space-y-2">
-                                                <Label>Status</Label>
-                                                <Select v-model="updateForm.status" name="status">
-                                                    <option v-for="(label, key) in statusLabels" :key="key" :value="key">{{ label }}</option>
-                                                </Select>
-                                            </div>
-                                            <div class="space-y-2">
-                                                <Label>Kategorie</Label>
-                                                <Select v-model="updateForm.ticket_category_id" name="ticket_category_id">
-                                                    <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-                                                </Select>
-                                            </div>
-                                            <div class="space-y-2">
-                                                <Label>Priorität</Label>
-                                                <Select v-model="updateForm.ticket_priority_id" name="ticket_priority_id">
-                                                    <option value="">–</option>
-                                                    <option v-for="p in priorities" :key="p.id" :value="p.id">{{ p.name }}</option>
-                                                </Select>
-                                            </div>
-                                            <div class="space-y-2">
-                                                <Label>Zugewiesen an</Label>
-                                                <Select v-model="updateForm.assigned_to" name="assigned_to">
-                                                    <option value="">–</option>
-                                                    <option v-for="a in admins" :key="a.id" :value="a.id">{{ a.name }}</option>
-                                                </Select>
-                                            </div>
-                                            <div v-if="customerSites.length" class="space-y-2">
-                                                <Label>Produkt/Site</Label>
-                                                <Select v-model="updateForm.site_uuid" name="site_uuid">
-                                                    <option value="">–</option>
-                                                    <option v-for="s in customerSites" :key="s.uuid" :value="s.uuid">{{ s.name }}</option>
-                                                </Select>
-                                            </div>
-                                            <div v-if="allTags.length" class="space-y-2">
-                                                <Label>Tags</Label>
-                                                <select
-                                                    v-model="updateForm.tag_ids"
-                                                    name="tag_ids[]"
-                                                    multiple
-                                                    class="flex h-auto min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                                >
-                                                    <option v-for="tag in allTags" :key="tag.id" :value="tag.id">
-                                                        {{ tag.name }}
-                                                    </option>
-                                                </select>
-                                                <Text variant="small" class="text-muted-foreground">Strg+Klick für Mehrfachauswahl</Text>
-                                            </div>
-                                        </div>
-                                        <div class="mt-4 flex flex-col gap-4 border-t border-gray-200 pt-4 dark:border-gray-800">
-                                            <Button type="submit" :disabled="updateSubmitting">Aktualisieren</Button>
-                                        </div>
-                                    </form>
-                                </TabsContent>
-                                <!-- Tab 3: Aktionen -->
-                                <TabsContent value="actions" class="mt-0">
-                                    <div class="flex flex-col gap-3">
-                                        <Button type="button" @click="focusReply(false)">Antworten</Button>
-                                        <Button type="button" variant="outline" @click="noteDialogOpen = true">Notiz hinzufügen</Button>
-                                        <Button
-                                            v-if="ticket.status !== 'closed'"
-                                            type="button"
-                                            variant="outline"
-                                            :disabled="closeForm.processing"
-                                            @click="submitClose()"
-                                        >
-                                            Schließen
-                                        </Button>
-                                        <Button type="button" variant="outline" @click="mergeDialogOpen = true">Merge</Button>
-                                    </div>
-                                </TabsContent>
+                            <div>
+                                <p class="mb-1 fw-semibold small">Kategorie</p>
+                                <span class="small">{{ ticket.ticket_category?.name ?? '–' }}</span>
                             </div>
-                        </Tabs>
-                    </div>
-                </aside>
+                            <div>
+                                <p class="mb-1 fw-semibold small">Priorität</p>
+                                <span class="small">{{ ticket.ticket_priority?.name ?? '–' }}</span>
+                            </div>
+                            <div>
+                                <p class="mb-1 fw-semibold small">Erstellt am</p>
+                                <span class="small">{{ formatDateTime(ticket.created_at) }}</span>
+                            </div>
+                            <div>
+                                <p class="mb-1 fw-semibold small">Zugewiesen an</p>
+                                <span class="small">{{ assignedToName }}</span>
+                            </div>
+                            <div>
+                                <p class="mb-1 fw-semibold small">Status</p>
+                                <span class="small">{{ statusLabels[ticket.status] ?? ticket.status }}</span>
+                            </div>
+                            <div>
+                                <p class="mb-1 fw-semibold small">Kunde</p>
+                                <div class="small">
+                                    <span v-if="ticket.user">
+                                        <Link :href="adminCustomers.show(ticket.user_id).url">{{ ticket.user.name }}</Link>
+                                    </span>
+                                    <span v-else>–</span>
+                                    <span v-if="ticket.user?.email" class="d-block text-muted">{{ ticket.user.email }}</span>
+                                    <span v-if="affectedServices?.length" class="d-block">Produkt/Site: {{ serviceName }}</span>
+                                    <span v-else-if="ticket.site" class="d-block">
+                                        Produkt/Site: <Link :href="adminSites.show(ticket.site.uuid).url">{{ ticket.site.name }}</Link>
+                                    </span>
+                                </div>
+                            </div>
+                            <div v-if="recentTickets.length">
+                                <p class="mb-1 fw-semibold small">Letzte Tickets</p>
+                                <ul class="list-unstyled small mb-0">
+                                    <li v-for="t in recentTickets" :key="t.id">
+                                        <Link :href="adminTickets.show(t.id).url" class="d-block rounded px-2 py-1 text-truncate text-body text-decoration-none hover-bg-light">
+                                            #{{ t.id }} – {{ t.subject.length > 35 ? t.subject.slice(0, 35) + '…' : t.subject }}
+                                        </Link>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
 
-                <!-- Main: Timeline + Reply (wie Support rechts) -->
-                <div class="xl:col-span-9">
-                    <div v-if="lastMessageFromCustomer" class="mb-4 flex flex-wrap gap-2">
-                        <Badge variant="default" class="bg-blue-600 text-white hover:bg-blue-700">Kunde hat geantwortet</Badge>
-                    </div>
+                        <!-- Tab: Bearbeiten -->
+                        <div v-show="sidebarTab === 'edit'">
+                            <BForm @submit.prevent="submitTicketUpdate">
+                                <BFormGroup label="Status" label-for="status">
+                                    <BFormSelect id="status" v-model="updateForm.status" :options="statusOptions" />
+                                </BFormGroup>
+                                <BFormGroup label="Kategorie" label-for="ticket_category_id">
+                                    <BFormSelect id="ticket_category_id" v-model="updateForm.ticket_category_id" :options="categoryOptions" />
+                                </BFormGroup>
+                                <BFormGroup label="Priorität" label-for="ticket_priority_id">
+                                    <BFormSelect id="ticket_priority_id" v-model="updateForm.ticket_priority_id" :options="priorityOptions" />
+                                </BFormGroup>
+                                <BFormGroup label="Zugewiesen an" label-for="assigned_to">
+                                    <BFormSelect id="assigned_to" v-model="updateForm.assigned_to" :options="assignedOptions" />
+                                </BFormGroup>
+                                <BFormGroup v-if="customerSites.length" label="Produkt/Site" label-for="site_uuid">
+                                    <BFormSelect id="site_uuid" v-model="updateForm.site_uuid" :options="siteOptions" />
+                                </BFormGroup>
+                                <BFormGroup v-if="allTags.length" label="Tags" label-for="tag_ids">
+                                    <select
+                                        id="tag_ids"
+                                        v-model="updateForm.tag_ids"
+                                        name="tag_ids[]"
+                                        multiple
+                                        class="form-select form-control"
+                                        style="min-height: 80px"
+                                    >
+                                        <option v-for="tag in allTags" :key="tag.id" :value="tag.id">{{ tag.name }}</option>
+                                    </select>
+                                    <p class="text-muted small mb-0 mt-1">Strg+Klick für Mehrfachauswahl</p>
+                                </BFormGroup>
+                                <div class="mt-3 pt-3 border-top">
+                                    <BButton type="submit" variant="primary" :disabled="updateSubmitting">Aktualisieren</BButton>
+                                </div>
+                            </BForm>
+                        </div>
+
+                        <!-- Tab: Aktionen -->
+                        <div v-show="sidebarTab === 'actions'" class="d-flex flex-column gap-2">
+                            <BButton variant="primary" @click="focusReply(false)">Antworten</BButton>
+                            <BButton variant="outline-secondary" @click="noteDialogOpen = true">Notiz hinzufügen</BButton>
+                            <BButton
+                                v-if="ticket.status !== 'closed'"
+                                variant="outline-secondary"
+                                :disabled="closeForm.processing"
+                                @click="submitClose()"
+                            >
+                                Schließen
+                            </BButton>
+                            <BButton variant="outline-secondary" @click="mergeDialogOpen = true">Merge</BButton>
+                        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+
+            <!-- Hauptbereich: Timeline + Antwort -->
+            <BCol cols="12" xl="9">
+                <div v-if="lastMessageFromCustomer" class="mb-3">
+                    <BBadge variant="primary">Kunde hat geantwortet</BBadge>
+                </div>
 
                     <!-- Timeline -->
                     <div ref="ticketMessagesRef" class="ticket_messages relative space-y-6">
@@ -541,79 +488,68 @@ onMounted(() => {
                                 class="absolute inset-0 h-12 w-12 rounded-2xl bg-gray-50 dark:bg-gray-950"
                                 aria-hidden="true"
                             />
-                            <div v-if="item.type === 'message'" class="relative flex h-12 w-12 overflow-hidden rounded-2xl">
-                                <Avatar
-                                    :name="(item.data as Message).user?.name"
-                                    :src="(item.data as Message).user?.avatar"
-                                    size="lg"
-                                    class="h-12 w-12 rounded-2xl"
-                                />
+                            <div v-if="item.type === 'message'" class="relative d-flex align-items-center justify-content-center h-12 w-12 rounded-3 bg-light overflow-hidden">
+                                <template v-if="(item.data as Message).user?.avatar">
+                                    <img :src="(item.data as Message).user!.avatar" :alt="(item.data as Message).user?.name" class="w-100 h-100 object-fit-cover" />
+                                </template>
+                                <span v-else class="rounded-3 bg-primary text-white d-flex align-items-center justify-content-center small fw-semibold w-100 h-100">
+                                    {{ ((item.data as Message).user?.name ?? '?').charAt(0).toUpperCase() }}
+                                </span>
                             </div>
                             <div
                                 v-else
                                 :class="activityIconClasses((item.data as ActivityLog).action_type)"
                             >
-                                <component
-                                    :is="activityIcon((item.data as ActivityLog).action_type)"
-                                    class="h-6 w-6"
-                                />
+                                <Icon :icon="activityIcon((item.data as ActivityLog).action_type)" class="fs-5" />
                             </div>
                         </div>
                         <!-- Content -->
-                        <div class="min-w-0 flex-1">
-                            <Card
+                        <div class="min-w-0 flex-grow-1">
+                            <BCard
                                 v-if="item.type === 'message'"
+                                no-body
                                 class="overflow-hidden shadow-none"
-                                :class="(item.data as Message).is_internal ? 'border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800' : ''"
+                                :class="(item.data as Message).is_internal ? 'border-warning bg-warning bg-opacity-10' : ''"
                             >
-                                <CardHeader class="flex flex-row items-center justify-between space-y-0 border-b py-3">
-                                    <h4 class="text-base font-medium">
+                                <BCardHeader class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom py-3">
+                                    <span class="fw-medium">
                                         {{ (item.data as Message).user?.name }}
-                                        <Badge v-if="(item.data as Message).sent_via_admin" class="ml-2 bg-orange-100 text-orange-800 hover:bg-orange-100 dark:bg-orange-900/50 dark:text-orange-200">Mitarbeiter</Badge>
-                                        <Badge v-if="(item.data as Message).is_internal" variant="default" class="ml-2">Intern</Badge>
-                                    </h4>
-                                    <span class="text-sm text-gray-500 dark:text-gray-400">
-                                        {{ formatMessageDate((item.data as Message).created_at) }}
+                                        <BBadge v-if="(item.data as Message).sent_via_admin" variant="warning" class="ms-2">Mitarbeiter</BBadge>
+                                        <BBadge v-if="(item.data as Message).is_internal" variant="secondary" class="ms-2">Intern</BBadge>
                                     </span>
-                                </CardHeader>
-                                <CardContent class="py-3 [&>p]:mb-0.5">
+                                    <span class="small text-muted">{{ formatMessageDate((item.data as Message).created_at) }}</span>
+                                </BCardHeader>
+                                <BCardBody class="py-3">
                                     <div
                                         v-if="isHtml((item.data as Message).body)"
-                                        class="ticket-message-body prose prose-sm max-w-none dark:prose-invert text-sm [&_p]:mb-1 [&_p:last-child]:mb-0 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:dark:border-gray-600 [&_blockquote]:pl-4 [&_blockquote]:pr-2 [&_blockquote]:py-1.5 [&_blockquote]:my-2 [&_blockquote]:text-gray-700 [&_blockquote]:dark:text-gray-300 [&_blockquote]:bg-gray-50 [&_blockquote]:dark:bg-gray-800/50 [&_blockquote]:rounded-r [&_blockquote]:not-italic [&_pre]:my-2 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:bg-gray-100 [&_pre]:dark:bg-gray-800 [&_pre]:p-3 [&_pre]:border [&_pre]:border-gray-200 [&_pre]:dark:border-gray-700 [&_pre]:text-sm [&_pre]:font-mono [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:rounded-none [&_code]:font-mono [&_code]:text-sm [&_code]:bg-gray-100 [&_code]:dark:bg-gray-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded"
+                                        class="ticket-message-body small"
                                         v-html="sanitizeHtml((item.data as Message).body ?? '')"
                                     />
-                                    <div v-else class="whitespace-pre-wrap text-sm">{{ (item.data as Message).body }}</div>
-                                    <div
-                                        v-if="(item.data as Message).attachments?.length"
-                                        class="mt-3 flex flex-wrap gap-2"
-                                    >
+                                    <div v-else class="small text-break whitespace-pre-wrap">{{ (item.data as Message).body }}</div>
+                                    <div v-if="(item.data as Message).attachments?.length" class="mt-3 d-flex flex-wrap gap-2">
                                         <a
                                             v-for="att in (item.data as Message).attachments"
                                             :key="att.id"
                                             :href="att.download_url"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                            class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 text-decoration-none"
                                         >
-                                            <FileText
-                                                v-if="!/\.(jpe?g|png|webp)$/i.test(att.name)"
-                                                class="h-4 w-4 shrink-0"
-                                            />
-                                            <Image v-else class="h-4 w-4 shrink-0" />
-                                            <span class="truncate max-w-[200px]">{{ att.name }}</span>
+                                            <Icon :icon="!/\.(jpe?g|png|webp)$/i.test(att.name) ? 'file-text' : 'photo'" />
+                                            <span class="text-truncate" style="max-width: 200px">{{ att.name }}</span>
                                         </a>
                                     </div>
-                                </CardContent>
-                            </Card>
-                            <Card v-else :class="activityCardClasses((item.data as ActivityLog).action_type)">
-                                <CardContent class="flex flex-row items-center justify-between gap-2 py-3">
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">{{ (item.data as ActivityLog).description }}</p>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                                </BCardBody>
+                            </BCard>
+                            <BCard v-else no-body :class="activityCardClasses((item.data as ActivityLog).action_type)">
+                                <BCardBody class="d-flex flex-wrap align-items-center justify-content-between gap-2 py-3">
+                                    <p class="small mb-0 text-body">{{ (item.data as ActivityLog).description }}</p>
+                                    <span class="small text-muted">
                                         {{ formatMessageDate((item.data as ActivityLog).created_at) }}
                                         <template v-if="(item.data as ActivityLog).user"> · {{ (item.data as ActivityLog).user?.name }}</template>
                                     </span>
-                                </CardContent>
-                            </Card>
+                                </BCardBody>
+                            </BCard>
                         </div>
                     </div>
                 </div>
@@ -626,10 +562,8 @@ onMounted(() => {
                                     class="absolute inset-0 h-12 w-12 rounded-2xl bg-gray-50 dark:bg-gray-950"
                                     aria-hidden="true"
                                 />
-                                <div
-                                    class="relative flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-dashed border-orange-300 bg-orange-50 text-orange-600 dark:border-orange-700 dark:bg-orange-950/40 dark:text-orange-400"
-                                >
-                                    <Pencil class="h-6 w-6" />
+                                <div class="relative d-flex align-items-center justify-content-center h-12 w-12 rounded-3 border border-2 border-warning border-dashed bg-warning bg-opacity-10 text-warning">
+                                    <Icon icon="pencil" class="fs-4" />
                                 </div>
                             </div>
                             <div class="min-w-0 flex-1">
@@ -640,145 +574,103 @@ onMounted(() => {
                                             : ''
                                     "
                                 >
-                                    <Card
-                                        :class="
-                                            replyCardFullscreen
-                                                ? 'flex h-full min-h-0 flex-col border-t-4 border-t-orange-500'
-                                                : 'border-t-4 border-t-orange-500'
-                                        "
+                                    <BCard
+                                        no-body
+                                        :class="replyCardFullscreen ? 'd-flex flex-column h-100 min-h-0 border-top border-warning border-3' : 'border-top border-warning border-3'"
                                     >
-                                        <CardHeader class="flex shrink-0 flex-row items-center justify-between space-y-0 border-b py-3">
-                                            <CardTitle class="text-base">Antwort / Notiz</CardTitle>
-                                            <Button
+                                        <BCardHeader class="d-flex align-items-center justify-content-between border-bottom py-3">
+                                            <BCardTitle class="mb-0">Antwort / Notiz</BCardTitle>
+                                            <BButton
                                                 type="button"
-                                                variant="ghost"
-                                                size="icon"
+                                                variant="link"
+                                                size="sm"
                                                 :aria-label="replyCardFullscreen ? 'Vollbild beenden' : 'Vollbild'"
                                                 @click="replyCardFullscreen = !replyCardFullscreen"
                                             >
-                                                <Minimize2 v-if="replyCardFullscreen" class="h-4 w-4" />
-                                                <Maximize2 v-else class="h-4 w-4" />
-                                            </Button>
-                                        </CardHeader>
-                                    <form
-                                        ref="replyFormRef"
-                                        class="flex min-h-0 flex-1 flex-col"
-                                        @submit.prevent="messageForm.post(adminTickets.messages.store(ticket.uuid).url)"
-                                    >
-                                        <CardContent class="flex min-h-0 flex-1 flex-col space-y-4 overflow-auto pt-4">
-                                            <div
-                                                class="space-y-2"
-                                                :class="{ 'flex min-h-0 flex-1 flex-col': replyCardFullscreen }"
-                                            >
-                                                <div :class="{ 'min-h-0 flex-1': replyCardFullscreen }">
-                                                    <TicketReplyEditor
-                                                        v-model="messageForm.body"
-                                                        placeholder="Antwort..."
-                                                        :aria-invalid="!!messageForm.errors.body"
-                                                        :min-height="replyCardFullscreen ? '100%' : undefined"
-                                                        show-templates
-                                                        :templates="ticketMessageTemplates"
-                                                        :template-replacements="templateReplacements"
-                                                    />
+                                                <Icon :icon="replyCardFullscreen ? 'minimize' : 'maximize'" />
+                                            </BButton>
+                                        </BCardHeader>
+                                        <form
+                                            ref="replyFormRef"
+                                            class="d-flex flex-column min-h-0 flex-grow-1"
+                                            @submit.prevent="messageForm.post(adminTickets.messages.store(ticket.uuid).url)"
+                                        >
+                                            <BCardBody class="d-flex flex-column min-h-0 flex-grow-1 overflow-auto pt-4">
+                                                <div class="mb-3" :class="{ 'd-flex flex-column flex-grow-1 min-h-0': replyCardFullscreen }">
+                                                    <div :class="{ 'min-h-0 flex-grow-1': replyCardFullscreen }">
+                                                        <TicketReplyEditor
+                                                            v-model="messageForm.body"
+                                                            placeholder="Antwort..."
+                                                            :aria-invalid="!!messageForm.errors.body"
+                                                            :min-height="replyCardFullscreen ? '100%' : undefined"
+                                                            show-templates
+                                                            :templates="ticketMessageTemplates"
+                                                            :template-replacements="templateReplacements"
+                                                        />
+                                                    </div>
+                                                    <InputError :message="messageForm.errors.body" />
                                                 </div>
-                                                <InputError :message="messageForm.errors.body" />
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                <input
-                                                    id="is_internal"
-                                                    v-model="messageForm.is_internal"
-                                                    type="checkbox"
-                                                    class="h-4 w-4 rounded border-gray-300"
-                                                />
-                                                <Label for="is_internal">Nur intern (Kunde sieht diese Nachricht nicht)</Label>
-                                            </div>
-                                        </CardContent>
-                                        <CardFooter class="shrink-0 flex flex-row justify-end gap-2 border-t py-3">
-                                            <Button
-                                                type="submit"
-                                                :disabled="messageForm.processing"
-                                                class="bg-orange-600 hover:bg-orange-700 dark:bg-orange-600 dark:hover:bg-orange-700"
-                                            >
-                                                Antwort senden
-                                            </Button>
-                                        </CardFooter>
-                                    </form>
-                                </Card>
+                                                <BFormCheckbox id="is_internal" v-model="messageForm.is_internal" class="mb-0">
+                                                    Nur intern (Kunde sieht diese Nachricht nicht)
+                                                </BFormCheckbox>
+                                            </BCardBody>
+                                            <BCardFooter class="d-flex justify-content-end gap-2 border-top py-3">
+                                                <BButton type="submit" variant="warning" :disabled="messageForm.processing">
+                                                    Antwort senden
+                                                </BButton>
+                                            </BCardFooter>
+                                        </form>
+                                    </BCard>
                                 </div>
                             </div>
                         </div>
-                    </div>
                 </div>
-            </div>
+            </BCol>
+        </BRow>
 
-            <!-- Dialogs (aus Sidebar geöffnet) -->
-            <Dialog v-model:open="noteDialogOpen">
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Interne Notiz hinzufügen</DialogTitle>
-                        <DialogDescription>
-                            Diese Notiz ist nur für Mitarbeiter sichtbar. Der Kunde sieht sie nicht.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form class="space-y-4" @submit.prevent="submitNote()">
-                        <div class="space-y-2">
-                            <Label for="note_body">Notiz</Label>
-                            <textarea
-                                id="note_body"
-                                v-model="noteForm.body"
-                                class="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                placeholder="Interne Notiz..."
-                                required
-                                :aria-invalid="!!noteForm.errors.body"
-                            />
-                            <InputError :message="noteForm.errors.body" />
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" @click="noteDialogOpen = false">Abbrechen</Button>
-                            <Button type="submit" :disabled="noteForm.processing">Notiz speichern</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-            <Dialog v-model:open="mergeDialogOpen">
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Ticket zusammenführen</DialogTitle>
-                        <DialogDescription>
-                            Dieses Ticket (#{{ ticket.id }}) wird in ein Ziel-Ticket verschoben. Alle Nachrichten werden dem Ziel-Ticket zugeordnet; dieses Ticket wird geschlossen.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form
-                        class="space-y-4"
-                        @submit.prevent="mergeForm.post(adminTickets.merge(ticket.uuid).url)"
-                    >
-                        <div class="space-y-2">
-                            <Label for="target_ticket_uuid">Ziel-Ticket</Label>
-                            <Select
-                                id="target_ticket_uuid"
-                                v-model="mergeForm.target_ticket_uuid"
-                                required
-                                :aria-invalid="!!mergeForm.errors.target_ticket_uuid"
-                            >
-                                <option value="">Bitte wählen …</option>
-                                <option
-                                    v-for="rt in recentTickets"
-                                    :key="rt.uuid"
-                                    :value="rt.uuid"
-                                >
-                                    #{{ rt.id }} – {{ rt.subject }}
-                                </option>
-                            </Select>
-                            <InputError :message="mergeForm.errors.target_ticket_uuid" />
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" @click="mergeDialogOpen = false">Abbrechen</Button>
-                            <Button type="submit" :disabled="mergeForm.processing">Zusammenführen</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-        </div>
+        <!-- Modals -->
+        <BModal v-model="noteDialogOpen" title="Interne Notiz hinzufügen" hide-footer>
+            <p class="text-muted small mb-3">Diese Notiz ist nur für Mitarbeiter sichtbar. Der Kunde sieht sie nicht.</p>
+            <BForm @submit.prevent="submitNote()">
+                <BFormGroup label="Notiz" label-for="note_body">
+                    <textarea
+                        id="note_body"
+                        v-model="noteForm.body"
+                        class="form-control"
+                        rows="4"
+                        placeholder="Interne Notiz..."
+                        required
+                        :aria-invalid="!!noteForm.errors.body"
+                    />
+                    <InputError :message="noteForm.errors.body" />
+                </BFormGroup>
+                <div class="d-flex justify-content-end gap-2">
+                    <BButton variant="outline-secondary" @click="noteDialogOpen = false">Abbrechen</BButton>
+                    <BButton type="submit" variant="primary" :disabled="noteForm.processing">Notiz speichern</BButton>
+                </div>
+            </BForm>
+        </BModal>
+        <BModal v-model="mergeDialogOpen" title="Ticket zusammenführen" hide-footer>
+            <p class="text-muted small mb-3">
+                Dieses Ticket (#{{ ticket.id }}) wird in ein Ziel-Ticket verschoben. Alle Nachrichten werden dem Ziel-Ticket zugeordnet; dieses Ticket wird geschlossen.
+            </p>
+            <BForm @submit.prevent="mergeForm.post(adminTickets.merge(ticket.uuid).url)">
+                <BFormGroup label="Ziel-Ticket" label-for="target_ticket_uuid">
+                    <BFormSelect
+                        id="target_ticket_uuid"
+                        v-model="mergeForm.target_ticket_uuid"
+                        :options="[{ value: '', text: 'Bitte wählen …' }, ...mergeTargetOptions]"
+                        required
+                        :aria-invalid="!!mergeForm.errors.target_ticket_uuid"
+                    />
+                    <InputError :message="mergeForm.errors.target_ticket_uuid" />
+                </BFormGroup>
+                <div class="d-flex justify-content-end gap-2">
+                    <BButton variant="outline-secondary" @click="mergeDialogOpen = false">Abbrechen</BButton>
+                    <BButton type="submit" variant="primary" :disabled="mergeForm.processing">Zusammenführen</BButton>
+                </div>
+            </BForm>
+        </BModal>
     </AdminLayout>
 </template>
 

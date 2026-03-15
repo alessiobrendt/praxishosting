@@ -1,83 +1,62 @@
+<template>
+  <DefaultLayout>
+    <Head title="Newsletter" />
+    <PageBreadcrumb title="Newsletter" subtitle="Dashboard" subtitle-url="/dashboard" />
+
+    <div class="mb-4">
+      <h4 class="mb-1">Newsletter</h4>
+      <p class="text-muted mb-0">News schreiben und Abonnenten verwalten</p>
+    </div>
+
+    <BCard no-body>
+      <BCardHeader>
+        <h5 class="mb-0">Sites mit Newsletter-Modul</h5>
+        <p class="text-muted small mb-0">Sites, auf denen das Newsletter-Modul aktiv ist</p>
+      </BCardHeader>
+      <BCardBody>
+        <BTable v-if="sites.length > 0" :items="sites" :fields="newsletterFields" responsive stacked="sm">
+          <template #cell(name)="{ item }">
+            <Link :href="`/modules/newsletter/sites/${item.uuid}`" class="fw-medium text-decoration-none">{{ item.name }}</Link>
+          </template>
+          <template #cell(subscribers_count)="{ item }">
+            {{ item.subscribers_count }}
+          </template>
+          <template #cell(actions)="{ item }">
+            <Link :href="`/modules/newsletter/sites/${item.uuid}`" class="btn btn-sm btn-outline-primary">
+              <Icon icon="edit" class="me-1" />
+              News schreiben
+            </Link>
+          </template>
+        </BTable>
+        <p v-else class="text-muted mb-0 py-4 text-center">
+          Keine Sites mit aktivem Newsletter-Modul. Fügen Sie das Newsletter-Modul im Page Designer hinzu.
+        </p>
+      </BCardBody>
+    </BCard>
+  </DefaultLayout>
+</template>
+
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { FileEdit } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { dashboard } from '@/routes';
-import modules from '@/routes/modules';
-import type { BreadcrumbItem } from '@/types';
+import { Head, Link } from '@inertiajs/vue3'
+import { BCard, BCardBody, BCardHeader, BTable } from 'bootstrap-vue-next'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue'
+import Icon from '@/components/wrappers/Icon.vue'
 
 type Site = {
-    uuid: string;
-    name: string;
-    slug: string;
-    subscribers_count: number;
-};
+  uuid: string
+  name: string
+  slug: string
+  subscribers_count: number
+}
 
-type Props = {
-    sites: Site[];
-};
+defineProps<{
+  sites: Site[]
+}>()
 
-defineProps<Props>();
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: dashboard().url },
-    { title: 'Module', href: '#' },
-    { title: 'Newsletter', href: '#' },
-];
+const newsletterFields = [
+  { key: 'name', label: 'Site' },
+  { key: 'subscribers_count', label: 'Abonnenten' },
+  { key: 'actions', label: 'Aktionen', thClass: 'text-end' },
+]
 </script>
-
-<template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Newsletter" />
-
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Newsletter</Heading>
-                <Text class="mt-2" muted>News schreiben und Abonnenten verwalten</Text>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Sites mit Newsletter-Modul</CardTitle>
-                    <CardDescription>Sites, auf denen das Newsletter-Modul aktiv ist</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table v-if="sites.length > 0">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Site</TableHead>
-                                <TableHead>Abonnenten</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="site in sites" :key="site.uuid">
-                                <TableCell>
-                                    <Link :href="modules.newsletter.site.url({ site: site.uuid })" class="font-medium hover:underline">
-                                        {{ site.name }}
-                                    </Link>
-                                </TableCell>
-                                <TableCell>{{ site.subscribers_count }}</TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="modules.newsletter.site.url({ site: site.uuid })">
-                                        <Button variant="outline" size="sm">
-                                            <FileEdit class="mr-1 h-4 w-4" />
-                                            News schreiben
-                                        </Button>
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <p v-else class="py-8 text-center text-muted-foreground">
-                        Keine Sites mit aktivem Newsletter-Modul. Fügen Sie das Newsletter-Modul im Page Designer hinzu.
-                    </p>
-                </CardContent>
-            </Card>
-        </div>
-    </AppLayout>
-</template>

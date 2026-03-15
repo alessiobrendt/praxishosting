@@ -1,14 +1,21 @@
+<!-- Admin: Template-Seite erstellen -->
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft } from 'lucide-vue-next';
 import TemplatePageController from '@/actions/App/Http/Controllers/Admin/TemplatePageController';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Heading } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BFormGroup,
+    BFormInput,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import templates from '@/routes/admin/templates';
 import type { BreadcrumbItem } from '@/types';
@@ -38,74 +45,72 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Neue Seite: ${template.name}`" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <Heading level="h1">Neue Seite</Heading>
-                <Link :href="`/admin/templates/${template.id}/pages`">
-                    <Button variant="outline">
-                        <ArrowLeft class="mr-2 h-4 w-4" />
-                        Zurück
-                    </Button>
-                </Link>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <h4 class="mb-0">Neue Seite</h4>
+                    <Link :href="`/admin/templates/${template.id}/pages`">
+                        <BButton variant="outline-secondary">
+                            <Icon icon="arrow-left" class="me-2" />Zurück
+                        </BButton>
+                    </Link>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Seiten-Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Form
-                        :key="template.id"
-                        v-bind="
-                            TemplatePageController.store.form({
-                                template: template.id,
-                            })
-                        "
-                        class="space-y-6"
-                        v-slot="{ errors }"
-                    >
-                        <div class="grid gap-2">
-                            <Label for="name">Name</Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                required
-                                placeholder="z. B. Startseite"
-                            />
-                            <InputError :message="errors.name" />
-                        </div>
-                        <div class="grid gap-2">
-                            <Label for="slug">Slug</Label>
-                            <Input
-                                id="slug"
-                                name="slug"
-                                required
-                                placeholder="startseite"
-                            />
-                            <InputError :message="errors.slug" />
-                        </div>
-                        <div class="grid gap-2">
-                            <Label for="order">Reihenfolge</Label>
-                            <Input
-                                id="order"
-                                name="order"
-                                type="number"
-                                :default-value="0"
-                                min="0"
-                            />
-                            <InputError :message="errors.order" />
-                        </div>
-                        <div class="flex gap-2">
-                            <Button type="submit">Seite erstellen</Button>
-                            <Link :href="templates.pages.index({ template: template.id }).url">
-                                <Button type="button" variant="outline"
-                                    >Abbrechen</Button
-                                >
-                            </Link>
-                        </div>
-                    </Form>
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Seiten-Details</BCardTitle>
+                    </BCardHeader>
+                    <BCardBody>
+                        <Form
+                            :key="template.id"
+                            v-bind="
+                                TemplatePageController.store.form({
+                                    template: template.id,
+                                })
+                            "
+                            v-slot="{ errors }"
+                        >
+                            <BFormGroup label="Name" label-for="name">
+                                <BFormInput
+                                    id="name"
+                                    name="name"
+                                    required
+                                    placeholder="z. B. Startseite"
+                                    :aria-invalid="!!errors.name"
+                                />
+                                <InputError :message="errors.name" />
+                            </BFormGroup>
+                            <BFormGroup label="Slug" label-for="slug">
+                                <BFormInput
+                                    id="slug"
+                                    name="slug"
+                                    required
+                                    placeholder="startseite"
+                                    :aria-invalid="!!errors.slug"
+                                />
+                                <InputError :message="errors.slug" />
+                            </BFormGroup>
+                            <BFormGroup label="Reihenfolge" label-for="order">
+                                <BFormInput
+                                    id="order"
+                                    name="order"
+                                    type="number"
+                                    value="0"
+                                    min="0"
+                                    :aria-invalid="!!errors.order"
+                                />
+                                <InputError :message="errors.order" />
+                            </BFormGroup>
+                            <div class="d-flex gap-2 mt-3">
+                                <BButton type="submit" variant="primary">Seite erstellen</BButton>
+                                <Link :href="templates.pages.index({ template: template.id }).url">
+                                    <BButton type="button" variant="outline-secondary">Abbrechen</BButton>
+                                </Link>
+                            </div>
+                        </Form>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

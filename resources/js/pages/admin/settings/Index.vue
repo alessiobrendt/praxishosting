@@ -1,20 +1,30 @@
+<!-- Admin: System-Einstellungen -->
 <script setup lang="ts">
+import { ref, computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Edit, Plus, Trash2, Globe, Building2, Mail } from 'lucide-vue-next';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormTextarea,
+    BFormSelect,
+    BFormCheckbox,
+    BButton,
+    BBadge,
+    BTable,
+    BNav,
+    BNavItem,
+} from 'bootstrap-vue-next';
 import InputError from '@/components/InputError.vue';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Pagination } from '@/components/ui/pagination';
-import { Select } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Heading, Text } from '@/components/ui/typography';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { countriesSortedByName } from '@/lib/countries';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -96,7 +106,7 @@ type Props = {
 const props = defineProps<Props>();
 
 const validTabs = ['allgemein', 'sicherheit', 'rechnung', 'mahnung', 'domains', 'mail', 'support', 'vorlagen', 'marken'];
-const defaultTab = validTabs.includes(props.initialTab) ? props.initialTab : 'allgemein';
+const activeTab = ref(validTabs.includes(props.initialTab) ? props.initialTab : 'allgemein');
 
 const form = useForm({
     app_name: props.settings.app_name,
@@ -155,6 +165,35 @@ function stripHtml(html: string | null): string {
     return div.textContent?.trim().slice(0, 80) ?? '';
 }
 
+const countryOptions = computed(() => [
+    { value: '', text: 'Bitte wählen' },
+    ...countriesSortedByName.map((c) => ({ value: c.code, text: c.name })),
+]);
+
+const ticketCategoryFields = [
+    { key: 'name', label: 'Name' },
+    { key: 'slug', label: 'Slug' },
+    { key: 'sort_order', label: 'Sortierung' },
+    { key: 'is_active', label: 'Aktiv' },
+    { key: 'actions', label: '', tdClass: 'text-end' },
+];
+
+const ticketPriorityFields = [
+    { key: 'name', label: 'Name' },
+    { key: 'slug', label: 'Slug' },
+    { key: 'color', label: 'Farbe' },
+    { key: 'sort_order', label: 'Sortierung' },
+    { key: 'is_active', label: 'Aktiv' },
+    { key: 'actions', label: '', tdClass: 'text-end' },
+];
+
+const templateFields = [
+    { key: 'name', label: 'Name' },
+    { key: 'body', label: 'Vorschau' },
+    { key: 'sort_order', label: 'Sortierung' },
+    { key: 'actions', label: '', tdClass: 'text-end' },
+];
+
 function paginationClick(url: string) {
     if (url) window.location.href = url;
 }
@@ -198,49 +237,47 @@ function salutationLabel(salutation: string | null): string {
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="System-Einstellungen" />
 
-        <div class="w-full space-y-6">
-            <div>
-                <Heading level="h1">System-Einstellungen</Heading>
-                <Text class="mt-2" muted>
-                    Kulanzfrist, Rechnungssteller, Rechnungstexte (§ 19 UStG), Mail-Absender
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">System-Einstellungen</h4>
+                    <p class="text-muted small mb-0">
+                        Kulanzfrist, Rechnungssteller, Rechnungstexte (§ 19 UStG), Mail-Absender
+                    </p>
+                </div>
 
-            <form @submit.prevent="form.put('/admin/settings')">
-                <Tabs :default-tab="defaultTab" class="w-full">
-                    <TabsList class="mb-4 flex-wrap h-auto gap-1">
-                        <TabsTrigger value="allgemein">Allgemein</TabsTrigger>
-                        <TabsTrigger value="sicherheit">Sicherheit</TabsTrigger>
-                        <TabsTrigger value="rechnung">Rechnung</TabsTrigger>
-                        <TabsTrigger value="mahnung">Mahnung</TabsTrigger>
-                        <TabsTrigger value="domains">Domains</TabsTrigger>
-                        <TabsTrigger value="mail">Mail</TabsTrigger>
-                        <TabsTrigger value="support">Support</TabsTrigger>
-                        <TabsTrigger value="vorlagen">Vorlagen</TabsTrigger>
-                        <TabsTrigger value="marken">Marken</TabsTrigger>
-                    </TabsList>
+                <BForm @submit.prevent="form.put('/admin/settings')">
+                    <BNav tabs class="mb-4 flex-wrap">
+                        <BNavItem :active="activeTab === 'allgemein'" @click="activeTab = 'allgemein'">Allgemein</BNavItem>
+                        <BNavItem :active="activeTab === 'sicherheit'" @click="activeTab = 'sicherheit'">Sicherheit</BNavItem>
+                        <BNavItem :active="activeTab === 'rechnung'" @click="activeTab = 'rechnung'">Rechnung</BNavItem>
+                        <BNavItem :active="activeTab === 'mahnung'" @click="activeTab = 'mahnung'">Mahnung</BNavItem>
+                        <BNavItem :active="activeTab === 'domains'" @click="activeTab = 'domains'">Domains</BNavItem>
+                        <BNavItem :active="activeTab === 'mail'" @click="activeTab = 'mail'">Mail</BNavItem>
+                        <BNavItem :active="activeTab === 'support'" @click="activeTab = 'support'">Support</BNavItem>
+                        <BNavItem :active="activeTab === 'vorlagen'" @click="activeTab = 'vorlagen'">Vorlagen</BNavItem>
+                        <BNavItem :active="activeTab === 'marken'" @click="activeTab = 'marken'">Marken</BNavItem>
+                    </BNav>
 
-                    <TabsContent value="allgemein">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Allgemein</CardTitle>
-                                <CardDescription>Anzeigename der Anwendung, Abo-Logik und Kulanzfrist</CardDescription>
-                            </CardHeader>
-                            <CardContent class="space-y-6">
-                                <div class="space-y-2">
-                                    <Label for="app_name">Anzeigename der Anwendung</Label>
-                                    <Input
+                    <div v-show="activeTab === 'allgemein'">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Allgemein</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">Anzeigename der Anwendung, Abo-Logik und Kulanzfrist</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <BFormGroup label="Anzeigename der Anwendung" label-for="app_name">
+                                    <BFormInput
                                         id="app_name"
                                         v-model="form.app_name"
                                         placeholder="z. B. Praxishosting"
                                         :aria-invalid="!!form.errors.app_name"
                                     />
                                     <InputError :message="form.errors.app_name" />
-                                    <Text class="text-xs muted">Leer = Wert aus Konfiguration (APP_NAME). Wird in Header, E-Mails usw. verwendet.</Text>
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="billing_grace_period_days">Kulanzfrist (Tage)</Label>
-                                    <Input
+                                    <p class="text-muted small mb-0 mt-1">Leer = Wert aus Konfiguration (APP_NAME). Wird in Header, E-Mails usw. verwendet.</p>
+                                </BFormGroup>
+                                <BFormGroup label="Kulanzfrist (Tage)" label-for="billing_grace_period_days">
+                                    <BFormInput
                                         id="billing_grace_period_days"
                                         v-model="form.billing_grace_period_days"
                                         type="number"
@@ -249,25 +286,24 @@ function salutationLabel(salutation: string | null): string {
                                         :aria-invalid="!!form.errors.billing_grace_period_days"
                                     />
                                     <InputError :message="form.errors.billing_grace_period_days" />
-                                    <Text class="text-xs muted">Tage nach Abo-Ende, bis die Site endgültig gelöscht wird (davor: gesperrt).</Text>
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button type="submit" :disabled="form.processing">Speichern</Button>
-                            </CardFooter>
-                        </Card>
-                    </TabsContent>
+                                    <p class="text-muted small mb-0 mt-1">Tage nach Abo-Ende, bis die Site endgültig gelöscht wird (davor: gesperrt).</p>
+                                </BFormGroup>
+                            </BCardBody>
+                            <BCardFooter>
+                                <BButton type="submit" variant="primary" :disabled="form.processing">Speichern</BButton>
+                            </BCardFooter>
+                        </BCard>
+                    </div>
 
-                    <TabsContent value="sicherheit">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Sicherheit</CardTitle>
-                                <CardDescription>PIN-Sperre und Standard für Auto-Sperre nach Inaktivität</CardDescription>
-                            </CardHeader>
-                            <CardContent class="space-y-6">
-                                <div class="space-y-2">
-                                    <Label for="pin_max_attempts">PIN – maximale Versuche</Label>
-                                    <Input
+                    <div v-show="activeTab === 'sicherheit'">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Sicherheit</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">PIN-Sperre und Standard für Auto-Sperre nach Inaktivität</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <BFormGroup label="PIN – maximale Versuche" label-for="pin_max_attempts">
+                                    <BFormInput
                                         id="pin_max_attempts"
                                         v-model="form.pin_max_attempts"
                                         type="number"
@@ -276,11 +312,10 @@ function salutationLabel(salutation: string | null): string {
                                         :aria-invalid="!!form.errors.pin_max_attempts"
                                     />
                                     <InputError :message="form.errors.pin_max_attempts" />
-                                    <Text class="text-xs muted">Anzahl falscher PIN-Eingaben bis zur Sperre.</Text>
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="pin_lockout_minutes">PIN – Sperrdauer (Minuten)</Label>
-                                    <Input
+                                    <p class="text-muted small mb-0 mt-1">Anzahl falscher PIN-Eingaben bis zur Sperre.</p>
+                                </BFormGroup>
+                                <BFormGroup label="PIN – Sperrdauer (Minuten)" label-for="pin_lockout_minutes">
+                                    <BFormInput
                                         id="pin_lockout_minutes"
                                         v-model="form.pin_lockout_minutes"
                                         type="number"
@@ -289,11 +324,10 @@ function salutationLabel(salutation: string | null): string {
                                         :aria-invalid="!!form.errors.pin_lockout_minutes"
                                     />
                                     <InputError :message="form.errors.pin_lockout_minutes" />
-                                    <Text class="text-xs muted">Dauer der Sperre nach zu vielen Fehlversuchen.</Text>
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="inactivity_lock_default_minutes">Inaktivität – Standard (Minuten)</Label>
-                                    <Input
+                                    <p class="text-muted small mb-0 mt-1">Dauer der Sperre nach zu vielen Fehlversuchen.</p>
+                                </BFormGroup>
+                                <BFormGroup label="Inaktivität – Standard (Minuten)" label-for="inactivity_lock_default_minutes">
+                                    <BFormInput
                                         id="inactivity_lock_default_minutes"
                                         v-model="form.inactivity_lock_default_minutes"
                                         type="number"
@@ -302,424 +336,378 @@ function salutationLabel(salutation: string | null): string {
                                         :aria-invalid="!!form.errors.inactivity_lock_default_minutes"
                                     />
                                     <InputError :message="form.errors.inactivity_lock_default_minutes" />
-                                    <Text class="text-xs muted">Standardwert für „Auto-Sperre nach Inaktivität“ (0 = deaktiviert). Nutzer können unter Einstellungen abweichen.</Text>
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button type="submit" :disabled="form.processing">Speichern</Button>
-                            </CardFooter>
-                        </Card>
-                    </TabsContent>
+                                    <p class="text-muted small mb-0 mt-1">Standardwert für „Auto-Sperre nach Inaktivität“ (0 = deaktiviert). Nutzer können unter Einstellungen abweichen.</p>
+                                </BFormGroup>
+                            </BCardBody>
+                            <BCardFooter>
+                                <BButton type="submit" variant="primary" :disabled="form.processing">Speichern</BButton>
+                            </BCardFooter>
+                        </BCard>
+                    </div>
 
-                    <TabsContent value="rechnung">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Rechnung</CardTitle>
-                                <CardDescription>Rechnungssteller und § 19 UStG-Text für PDF/E-Rechnung</CardDescription>
-                            </CardHeader>
-                            <CardContent class="space-y-6">
-                                <div class="space-y-2">
-                                    <Label for="invoice_ustg_19_text">§ 19 UStG-Text (Rechnung)</Label>
-                                    <Textarea
+                    <div v-show="activeTab === 'rechnung'">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Rechnung</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">Rechnungssteller und § 19 UStG-Text für PDF/E-Rechnung</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <BFormGroup label="§ 19 UStG-Text (Rechnung)" label-for="invoice_ustg_19_text">
+                                    <BFormTextarea
                                         id="invoice_ustg_19_text"
                                         v-model="form.invoice_ustg_19_text"
                                         rows="3"
                                         :aria-invalid="!!form.errors.invoice_ustg_19_text"
                                     />
                                     <InputError :message="form.errors.invoice_ustg_19_text" />
-                                </div>
-                                <div class="border-t border-border pt-6 space-y-4">
-                                    <Heading level="h3" class="text-base">Rechnungssteller</Heading>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div class="sm:col-span-2 space-y-2">
-                                            <Label for="invoice_company_logo">Firmenlogo (URL oder Pfad)</Label>
-                                            <Input
+                                </BFormGroup>
+                                <hr class="my-4" />
+                                <h5 class="mb-3">Rechnungssteller</h5>
+                                <BRow>
+                                    <BCol cols="12">
+                                        <BFormGroup label="Firmenlogo (URL oder Pfad)" label-for="invoice_company_logo">
+                                            <BFormInput
                                                 id="invoice_company_logo"
                                                 v-model="form.invoice_company_logo"
                                                 placeholder="https://… oder invoices/logo.png"
                                                 :aria-invalid="!!form.errors.invoice_company_logo"
                                             />
                                             <InputError :message="form.errors.invoice_company_logo" />
-                                            <Text class="text-xs muted">Vollständige URL oder Pfad unter storage/app/public (z. B. invoices/logo.png).</Text>
-                                        </div>
-                                        <div class="sm:col-span-2 space-y-2">
-                                            <Label for="invoice_company_name">Firma / Name</Label>
-                                            <Input
+                                            <p class="text-muted small mb-0 mt-1">Vollständige URL oder Pfad unter storage/app/public (z. B. invoices/logo.png).</p>
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol cols="12">
+                                        <BFormGroup label="Firma / Name" label-for="invoice_company_name">
+                                            <BFormInput
                                                 id="invoice_company_name"
                                                 v-model="form.invoice_company_name"
                                                 :aria-invalid="!!form.errors.invoice_company_name"
                                             />
                                             <InputError :message="form.errors.invoice_company_name" />
-                                        </div>
-                                        <div class="sm:col-span-2 space-y-2">
-                                            <Label for="invoice_company_street">Straße, Hausnummer</Label>
-                                            <Input
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol cols="12">
+                                        <BFormGroup label="Straße, Hausnummer" label-for="invoice_company_street">
+                                            <BFormInput
                                                 id="invoice_company_street"
                                                 v-model="form.invoice_company_street"
                                                 :aria-invalid="!!form.errors.invoice_company_street"
                                             />
                                             <InputError :message="form.errors.invoice_company_street" />
-                                        </div>
-                                        <div class="space-y-2">
-                                            <Label for="invoice_company_postal_code">PLZ</Label>
-                                            <Input
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="6">
+                                        <BFormGroup label="PLZ" label-for="invoice_company_postal_code">
+                                            <BFormInput
                                                 id="invoice_company_postal_code"
                                                 v-model="form.invoice_company_postal_code"
                                                 :aria-invalid="!!form.errors.invoice_company_postal_code"
                                             />
                                             <InputError :message="form.errors.invoice_company_postal_code" />
-                                        </div>
-                                        <div class="space-y-2">
-                                            <Label for="invoice_company_city">Ort</Label>
-                                            <Input
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="6">
+                                        <BFormGroup label="Ort" label-for="invoice_company_city">
+                                            <BFormInput
                                                 id="invoice_company_city"
                                                 v-model="form.invoice_company_city"
                                                 :aria-invalid="!!form.errors.invoice_company_city"
                                             />
                                             <InputError :message="form.errors.invoice_company_city" />
-                                        </div>
-                                        <div class="space-y-2">
-                                            <Label for="invoice_company_country">Land</Label>
-                                            <Select
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="6">
+                                        <BFormGroup label="Land" label-for="invoice_company_country">
+                                            <BFormSelect
                                                 id="invoice_company_country"
                                                 v-model="form.invoice_company_country"
+                                                :options="countryOptions"
                                                 :aria-invalid="!!form.errors.invoice_company_country"
-                                            >
-                                                <option value="">Bitte wählen</option>
-                                                <option
-                                                    v-for="c in countriesSortedByName"
-                                                    :key="c.code"
-                                                    :value="c.code"
-                                                >
-                                                    {{ c.name }}
-                                                </option>
-                                            </Select>
+                                            />
                                             <InputError :message="form.errors.invoice_company_country" />
-                                        </div>
-                                        <div class="space-y-2">
-                                            <Label for="invoice_company_vat_id">USt-IdNr.</Label>
-                                            <Input
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="6">
+                                        <BFormGroup label="USt-IdNr." label-for="invoice_company_vat_id">
+                                            <BFormInput
                                                 id="invoice_company_vat_id"
                                                 v-model="form.invoice_company_vat_id"
                                                 placeholder="DE123456789"
                                                 :aria-invalid="!!form.errors.invoice_company_vat_id"
                                             />
                                             <InputError :message="form.errors.invoice_company_vat_id" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button type="submit" :disabled="form.processing">Speichern</Button>
-                            </CardFooter>
-                        </Card>
-                    </TabsContent>
+                                        </BFormGroup>
+                                    </BCol>
+                                </BRow>
+                            </BCardBody>
+                            <BCardFooter>
+                                <BButton type="submit" variant="primary" :disabled="form.processing">Speichern</BButton>
+                            </BCardFooter>
+                        </BCard>
+                    </div>
 
-                    <TabsContent value="mahnung">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Mahnung</CardTitle>
-                                <CardDescription>Mahngebühren in Euro für 1., 2. und 3. Mahnung</CardDescription>
-                            </CardHeader>
-                            <CardContent class="space-y-6">
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div class="space-y-2">
-                                        <Label for="dunning_fee_level_1">1. Mahnung (€)</Label>
-                                        <Input
-                                            id="dunning_fee_level_1"
-                                            v-model="form.dunning_fee_level_1"
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            :aria-invalid="!!form.errors.dunning_fee_level_1"
-                                        />
-                                        <InputError :message="form.errors.dunning_fee_level_1" />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <Label for="dunning_fee_level_2">2. Mahnung (€)</Label>
-                                        <Input
-                                            id="dunning_fee_level_2"
-                                            v-model="form.dunning_fee_level_2"
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            :aria-invalid="!!form.errors.dunning_fee_level_2"
-                                        />
-                                        <InputError :message="form.errors.dunning_fee_level_2" />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <Label for="dunning_fee_level_3">3. Mahnung (€)</Label>
-                                        <Input
-                                            id="dunning_fee_level_3"
-                                            v-model="form.dunning_fee_level_3"
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            :aria-invalid="!!form.errors.dunning_fee_level_3"
-                                        />
-                                        <InputError :message="form.errors.dunning_fee_level_3" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button type="submit" :disabled="form.processing">Speichern</Button>
-                            </CardFooter>
-                        </Card>
-                    </TabsContent>
+                    <div v-show="activeTab === 'mahnung'">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Mahnung</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">Mahngebühren in Euro für 1., 2. und 3. Mahnung</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <BRow>
+                                    <BCol md="4">
+                                        <BFormGroup label="1. Mahnung (€)" label-for="dunning_fee_level_1">
+                                            <BFormInput
+                                                id="dunning_fee_level_1"
+                                                v-model="form.dunning_fee_level_1"
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                :aria-invalid="!!form.errors.dunning_fee_level_1"
+                                            />
+                                            <InputError :message="form.errors.dunning_fee_level_1" />
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="4">
+                                        <BFormGroup label="2. Mahnung (€)" label-for="dunning_fee_level_2">
+                                            <BFormInput
+                                                id="dunning_fee_level_2"
+                                                v-model="form.dunning_fee_level_2"
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                :aria-invalid="!!form.errors.dunning_fee_level_2"
+                                            />
+                                            <InputError :message="form.errors.dunning_fee_level_2" />
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="4">
+                                        <BFormGroup label="3. Mahnung (€)" label-for="dunning_fee_level_3">
+                                            <BFormInput
+                                                id="dunning_fee_level_3"
+                                                v-model="form.dunning_fee_level_3"
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                :aria-invalid="!!form.errors.dunning_fee_level_3"
+                                            />
+                                            <InputError :message="form.errors.dunning_fee_level_3" />
+                                        </BFormGroup>
+                                    </BCol>
+                                </BRow>
+                            </BCardBody>
+                            <BCardFooter>
+                                <BButton type="submit" variant="primary" :disabled="form.processing">Speichern</BButton>
+                            </BCardFooter>
+                        </BCard>
+                    </div>
 
-                    <TabsContent value="domains">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Domains</CardTitle>
-                                <CardDescription>Basis-Domain für CNAME, Hosts der Haupt-App (Dashboard)</CardDescription>
-                            </CardHeader>
-                            <CardContent class="space-y-6">
-                                <div class="space-y-2">
-                                    <Label for="domains_base_domain">Basis-Domain</Label>
-                                    <Input
+                    <div v-show="activeTab === 'domains'">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Domains</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">Basis-Domain für CNAME, Hosts der Haupt-App (Dashboard)</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <BFormGroup label="Basis-Domain" label-for="domains_base_domain">
+                                    <BFormInput
                                         id="domains_base_domain"
                                         v-model="form.domains_base_domain"
                                         placeholder="z. B. praxishosting.abrendt.de"
                                         :aria-invalid="!!form.errors.domains_base_domain"
                                     />
                                     <InputError :message="form.errors.domains_base_domain" />
-                                    <Text class="text-xs muted">Domain, auf die Custom-Domains per CNAME zeigen. Leer = Wert aus Konfiguration.</Text>
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="main_app_hosts">Haupt-App-Hosts (kommagetrennt)</Label>
-                                    <Input
+                                    <p class="text-muted small mb-0 mt-1">Domain, auf die Custom-Domains per CNAME zeigen. Leer = Wert aus Konfiguration.</p>
+                                </BFormGroup>
+                                <BFormGroup label="Haupt-App-Hosts (kommagetrennt)" label-for="main_app_hosts">
+                                    <BFormInput
                                         id="main_app_hosts"
                                         v-model="form.main_app_hosts"
                                         placeholder="z. B. app.example.com, localhost"
                                         :aria-invalid="!!form.errors.main_app_hosts"
                                     />
                                     <InputError :message="form.errors.main_app_hosts" />
-                                    <Text class="text-xs muted">Hosts, unter denen die Haupt-App (Dashboard, Login) läuft. Alle anderen Hosts = Site-Render. Leer = Wert aus Konfiguration.</Text>
+                                    <p class="text-muted small mb-0 mt-1">Hosts, unter denen die Haupt-App (Dashboard, Login) läuft. Alle anderen Hosts = Site-Render. Leer = Wert aus Konfiguration.</p>
+                                </BFormGroup>
+                            </BCardBody>
+                            <BCardFooter>
+                                <BButton type="submit" variant="primary" :disabled="form.processing">Speichern</BButton>
+                            </BCardFooter>
+                        </BCard>
+                    </div>
+
+                    <div v-show="activeTab === 'support'">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Support / Tickets</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">Support-Ticket-System aktivieren und Limits</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <BFormGroup>
+                                    <BFormCheckbox
+                                        id="support_enabled"
+                                        v-model="form.support_enabled"
+                                        switch
+                                    >
+                                        Support-Tickets aktiviert
+                                    </BFormCheckbox>
+                                    <p class="text-muted small mb-2">Wenn deaktiviert, können Kunden keine neuen Tickets erstellen.</p>
+                                </BFormGroup>
+                                <BFormGroup label="Max. offene Tickets pro Kunde (0 = unbegrenzt)" label-for="support_max_open_tickets_per_user">
+                                    <BFormInput
+                                        id="support_max_open_tickets_per_user"
+                                        v-model="form.support_max_open_tickets_per_user"
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        :aria-invalid="!!form.errors.support_max_open_tickets_per_user"
+                                    />
+                                    <InputError :message="form.errors.support_max_open_tickets_per_user" />
+                                </BFormGroup>
+                            </BCardBody>
+                            <BCardFooter>
+                                <BButton type="submit" variant="primary" :disabled="form.processing">Speichern</BButton>
+                            </BCardFooter>
+                        </BCard>
+                        <BCard no-body class="mb-4">
+                            <BCardHeader class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div>
+                                    <BCardTitle class="mb-0">Ticket-Kategorien</BCardTitle>
+                                    <p class="text-muted small mb-0 mt-1">Kategorien für Support-Tickets</p>
                                 </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button type="submit" :disabled="form.processing">Speichern</Button>
-                            </CardFooter>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="support">
-                        <div class="space-y-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Support / Tickets</CardTitle>
-                                    <CardDescription>Support-Ticket-System aktivieren und Limits</CardDescription>
-                                </CardHeader>
-                                <CardContent class="space-y-6">
-                                    <div class="flex items-center gap-2">
-                                        <Switch
-                                            id="support_enabled"
-                                            :checked="form.support_enabled"
-                                            @update:checked="(v: boolean) => (form.support_enabled = v)"
-                                        />
-                                        <Label for="support_enabled">Support-Tickets aktiviert</Label>
-                                    </div>
-                                    <Text class="text-xs muted">Wenn deaktiviert, können Kunden keine neuen Tickets erstellen.</Text>
-                                    <div class="space-y-2">
-                                        <Label for="support_max_open_tickets_per_user">Max. offene Tickets pro Kunde (0 = unbegrenzt)</Label>
-                                        <Input
-                                            id="support_max_open_tickets_per_user"
-                                            v-model="form.support_max_open_tickets_per_user"
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            :aria-invalid="!!form.errors.support_max_open_tickets_per_user"
-                                        />
-                                        <InputError :message="form.errors.support_max_open_tickets_per_user" />
-                                    </div>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button type="submit" :disabled="form.processing">Speichern</Button>
-                                </CardFooter>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <CardTitle>Ticket-Kategorien</CardTitle>
-                                            <CardDescription>Kategorien für Support-Tickets</CardDescription>
-                                        </div>
-                                        <Link href="/admin/ticket-categories/create">
-                                            <Button size="sm"><Plus class="mr-2 h-4 w-4" />Neu</Button>
+                                <Link href="/admin/ticket-categories/create" class="btn btn-sm btn-outline-primary">
+                                    <Icon name="plus" class="me-2" />Neu
+                                </Link>
+                            </BCardHeader>
+                            <BCardBody>
+                                <BTable :items="ticketCategories.data" :fields="ticketCategoryFields" responsive show-empty empty-text="Keine Kategorien">
+                                    <template #cell(slug)="{ item }">
+                                        <code class="text-sm">{{ item.slug }}</code>
+                                    </template>
+                                    <template #cell(is_active)="{ item }">
+                                        <BBadge :variant="item.is_active ? 'success' : 'secondary'">{{ item.is_active ? 'Ja' : 'Nein' }}</BBadge>
+                                    </template>
+                                    <template #cell(actions)="{ item }">
+                                        <Link :href="`/admin/ticket-categories/${item.id}/edit`" class="btn btn-sm btn-link p-0 me-2">
+                                            <Icon name="edit" />
                                         </Link>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Name</TableHead>
-                                                <TableHead>Slug</TableHead>
-                                                <TableHead>Sortierung</TableHead>
-                                                <TableHead>Aktiv</TableHead>
-                                                <TableHead class="text-right">Aktionen</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            <TableRow v-for="tc in ticketCategories.data" :key="tc.id">
-                                                <TableCell>{{ tc.name }}</TableCell>
-                                                <TableCell><code class="text-sm">{{ tc.slug }}</code></TableCell>
-                                                <TableCell>{{ tc.sort_order }}</TableCell>
-                                                <TableCell><Badge :variant="tc.is_active ? 'success' : 'secondary'">{{ tc.is_active ? 'Ja' : 'Nein' }}</Badge></TableCell>
-                                                <TableCell class="text-right">
-                                                    <Link :href="`/admin/ticket-categories/${tc.id}/edit`">
-                                                        <Button variant="ghost" size="sm"><Edit class="h-4 w-4" /></Button>
-                                                    </Link>
-                                                    <Button variant="ghost" size="sm" class="text-destructive" @click="destroyCategory(tc.id)">
-                                                        <Trash2 class="h-4 w-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                            <TableRow v-if="ticketCategories.data.length === 0">
-                                                <TableCell colspan="5" class="text-center text-muted">Keine Kategorien.</TableCell>
-                                            </TableRow>
-                                        </TableBody>
-                                    </Table>
-                                    <Pagination v-if="ticketCategories.links.length > 3" :links="ticketCategories.links" @page-click="paginationClick" />
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <CardTitle>Ticket-Prioritäten</CardTitle>
-                                            <CardDescription>Prioritäten für Support-Tickets</CardDescription>
-                                        </div>
-                                        <Link href="/admin/ticket-priorities/create">
-                                            <Button size="sm"><Plus class="mr-2 h-4 w-4" />Neu</Button>
-                                        </Link>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Name</TableHead>
-                                                <TableHead>Slug</TableHead>
-                                                <TableHead>Farbe</TableHead>
-                                                <TableHead>Sortierung</TableHead>
-                                                <TableHead>Aktiv</TableHead>
-                                                <TableHead class="text-right">Aktionen</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            <TableRow v-for="tp in ticketPriorities.data" :key="tp.id">
-                                                <TableCell>{{ tp.name }}</TableCell>
-                                                <TableCell><code class="text-sm">{{ tp.slug }}</code></TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        v-if="tp.color"
-                                                        :style="{ backgroundColor: tp.color, color: '#fff', border: 'none' }"
-                                                    >
-                                                        {{ tp.color }}
-                                                    </Badge>
-                                                    <span v-else>–</span>
-                                                </TableCell>
-                                                <TableCell>{{ tp.sort_order }}</TableCell>
-                                                <TableCell><Badge :variant="tp.is_active ? 'success' : 'secondary'">{{ tp.is_active ? 'Ja' : 'Nein' }}</Badge></TableCell>
-                                                <TableCell class="text-right">
-                                                    <Link :href="`/admin/ticket-priorities/${tp.id}/edit`">
-                                                        <Button variant="ghost" size="sm"><Edit class="h-4 w-4" /></Button>
-                                                    </Link>
-                                                    <Button variant="ghost" size="sm" class="text-destructive" @click="destroyPriority(tp.id)">
-                                                        <Trash2 class="h-4 w-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                            <TableRow v-if="ticketPriorities.data.length === 0">
-                                                <TableCell colspan="6" class="text-center text-muted">Keine Prioritäten.</TableCell>
-                                            </TableRow>
-                                        </TableBody>
-                                    </Table>
-                                    <Pagination v-if="ticketPriorities.links.length > 3" :links="ticketPriorities.links" @page-click="paginationClick" />
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </TabsContent>
-
-                    <TabsContent value="vorlagen">
-                        <Card>
-                            <CardHeader>
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <CardTitle>Antwort-Vorlagen</CardTitle>
-                                        <CardDescription>
-                                            Vorlagen für Ticket-Antworten. Platzhalter:
-                                            <span v-pre>{{name}}, {{email}}, {{ticket_id}}, {{betreff}}, {{produkt}}, {{zugewiesen}}, {{datum}}</span>.
-                                        </CardDescription>
-                                    </div>
-                                    <Link href="/admin/ticket-message-templates/create">
-                                        <Button size="sm"><Plus class="mr-2 h-4 w-4" />Neu</Button>
-                                    </Link>
+                                        <BButton variant="link" size="sm" class="text-danger p-0" @click="destroyCategory(item.id)">
+                                            <Icon name="trash-2" />
+                                        </BButton>
+                                    </template>
+                                </BTable>
+                                <nav v-if="ticketCategories.links.length > 3" class="d-flex justify-content-center mt-2">
+                                    <ul class="pagination pagination-sm mb-0">
+                                        <li v-for="(link, i) in ticketCategories.links" :key="i" class="page-item" :class="{ active: link.active, disabled: !link.url }">
+                                            <a class="page-link" href="#" :aria-disabled="!link.url" @click.prevent="link.url && paginationClick(link.url)">
+                                                <span v-html="link.label" />
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </BCardBody>
+                        </BCard>
+                        <BCard no-body class="mb-4">
+                            <BCardHeader class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div>
+                                    <BCardTitle class="mb-0">Ticket-Prioritäten</BCardTitle>
+                                    <p class="text-muted small mb-0 mt-1">Prioritäten für Support-Tickets</p>
                                 </div>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Vorschau</TableHead>
-                                            <TableHead>Sortierung</TableHead>
-                                            <TableHead class="text-right">Aktionen</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow v-for="t in ticketMessageTemplates" :key="t.id">
-                                            <TableCell>{{ t.name }}</TableCell>
-                                            <TableCell class="max-w-[300px] truncate text-muted-foreground text-sm">{{ stripHtml(t.body) || '–' }}</TableCell>
-                                            <TableCell>{{ t.sort_order }}</TableCell>
-                                            <TableCell class="text-right">
-                                                <Link :href="`/admin/ticket-message-templates/${t.id}/edit`">
-                                                    <Button variant="ghost" size="sm"><Edit class="h-4 w-4" /></Button>
-                                                </Link>
-                                                <Button variant="ghost" size="sm" class="text-destructive" @click="destroyTemplate(t.id)">
-                                                    <Trash2 class="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                        <TableRow v-if="ticketMessageTemplates.length === 0">
-                                            <TableCell colspan="4" class="text-center text-muted">Keine Vorlagen.</TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                                <Link href="/admin/ticket-priorities/create" class="btn btn-sm btn-outline-primary">
+                                    <Icon name="plus" class="me-2" />Neu
+                                </Link>
+                            </BCardHeader>
+                            <BCardBody>
+                                <BTable :items="ticketPriorities.data" :fields="ticketPriorityFields" responsive show-empty empty-text="Keine Prioritäten">
+                                    <template #cell(slug)="{ item }">
+                                        <code class="text-sm">{{ item.slug }}</code>
+                                    </template>
+                                    <template #cell(color)="{ item }">
+                                        <BBadge v-if="item.color" :style="{ backgroundColor: item.color, color: '#fff', border: 'none' }">{{ item.color }}</BBadge>
+                                        <span v-else>–</span>
+                                    </template>
+                                    <template #cell(is_active)="{ item }">
+                                        <BBadge :variant="item.is_active ? 'success' : 'secondary'">{{ item.is_active ? 'Ja' : 'Nein' }}</BBadge>
+                                    </template>
+                                    <template #cell(actions)="{ item }">
+                                        <Link :href="`/admin/ticket-priorities/${item.id}/edit`" class="btn btn-sm btn-link p-0 me-2">
+                                            <Icon name="edit" />
+                                        </Link>
+                                        <BButton variant="link" size="sm" class="text-danger p-0" @click="destroyPriority(item.id)">
+                                            <Icon name="trash-2" />
+                                        </BButton>
+                                    </template>
+                                </BTable>
+                                <nav v-if="ticketPriorities.links.length > 3" class="d-flex justify-content-center mt-2">
+                                    <ul class="pagination pagination-sm mb-0">
+                                        <li v-for="(link, i) in ticketPriorities.links" :key="i" class="page-item" :class="{ active: link.active, disabled: !link.url }">
+                                            <a class="page-link" href="#" :aria-disabled="!link.url" @click.prevent="link.url && paginationClick(link.url)">
+                                                <span v-html="link.label" />
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </BCardBody>
+                        </BCard>
+                    </div>
 
-                    <TabsContent value="mail">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Mail</CardTitle>
-                                <CardDescription>Absender für System-E-Mails</CardDescription>
-                            </CardHeader>
-                            <CardContent class="space-y-6">
-                                <div class="space-y-2">
-                                    <Label for="mail_from_name">Mail-Absender Name</Label>
-                                    <Input
+                    <div v-show="activeTab === 'vorlagen'">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div>
+                                    <BCardTitle class="mb-0">Antwort-Vorlagen</BCardTitle>
+                                    <p class="text-muted small mb-0 mt-1">
+                                        Vorlagen für Ticket-Antworten. Platzhalter:
+                                        <span v-pre>{{name}}, {{email}}, {{ticket_id}}, {{betreff}}, {{produkt}}, {{zugewiesen}}, {{datum}}</span>.
+                                    </p>
+                                </div>
+                                <Link href="/admin/ticket-message-templates/create" class="btn btn-sm btn-outline-primary">
+                                    <Icon name="plus" class="me-2" />Neu
+                                </Link>
+                            </BCardHeader>
+                            <BCardBody>
+                                <BTable :items="ticketMessageTemplates" :fields="templateFields" responsive show-empty empty-text="Keine Vorlagen">
+                                    <template #cell(body)="{ item }">
+                                        <span class="text-muted text-truncate d-inline-block" style="max-width: 300px">{{ stripHtml(item.body) || '–' }}</span>
+                                    </template>
+                                    <template #cell(actions)="{ item }">
+                                        <Link :href="`/admin/ticket-message-templates/${item.id}/edit`" class="btn btn-sm btn-link p-0 me-2">
+                                            <Icon name="edit" />
+                                        </Link>
+                                        <BButton variant="link" size="sm" class="text-danger p-0" @click="destroyTemplate(item.id)">
+                                            <Icon name="trash-2" />
+                                        </BButton>
+                                    </template>
+                                </BTable>
+                            </BCardBody>
+                        </BCard>
+                    </div>
+
+                    <div v-show="activeTab === 'mail'">
+                        <BCard no-body class="mb-4">
+                            <BCardHeader>
+                                <BCardTitle class="mb-0">Mail</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">Absender für System-E-Mails</p>
+                            </BCardHeader>
+                            <BCardBody>
+                                <BFormGroup label="Mail-Absender Name" label-for="mail_from_name">
+                                    <BFormInput
                                         id="mail_from_name"
                                         v-model="form.mail_from_name"
                                         :aria-invalid="!!form.errors.mail_from_name"
                                     />
                                     <InputError :message="form.errors.mail_from_name" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="mail_from_address">Mail-Absender E-Mail</Label>
-                                    <Input
+                                </BFormGroup>
+                                <BFormGroup label="Mail-Absender E-Mail" label-for="mail_from_address">
+                                    <BFormInput
                                         id="mail_from_address"
                                         v-model="form.mail_from_address"
                                         type="email"
                                         :aria-invalid="!!form.errors.mail_from_address"
                                     />
                                     <InputError :message="form.errors.mail_from_address" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="mail_reply_to_address">Reply-To Adresse (optional)</Label>
-                                    <Input
+                                </BFormGroup>
+                                <BFormGroup label="Reply-To Adresse (optional)" label-for="mail_reply_to_address">
+                                    <BFormInput
                                         id="mail_reply_to_address"
                                         v-model="form.mail_reply_to_address"
                                         type="email"
@@ -727,120 +715,95 @@ function salutationLabel(salutation: string | null): string {
                                         :aria-invalid="!!form.errors.mail_reply_to_address"
                                     />
                                     <InputError :message="form.errors.mail_reply_to_address" />
-                                    <Text class="text-xs muted">Falls gesetzt, wird bei allen System-E-Mails diese Adresse als Reply-To gesetzt.</Text>
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button type="submit" :disabled="form.processing">Speichern</Button>
-                            </CardFooter>
-                        </Card>
-                    </TabsContent>
+                                    <p class="text-muted small mb-0 mt-1">Falls gesetzt, wird bei allen System-E-Mails diese Adresse als Reply-To gesetzt.</p>
+                                </BFormGroup>
+                            </BCardBody>
+                            <BCardFooter>
+                                <BButton type="submit" variant="primary" :disabled="form.processing">Speichern</BButton>
+                            </BCardFooter>
+                        </BCard>
+                    </div>
 
-                    <TabsContent value="marken">
-                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                            <Link
-                                v-for="brand in brands"
-                                :key="brand.id"
-                                :href="`/admin/brands/${brand.id}/edit`"
-                                class="group block transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-xl"
-                            >
-                                <Card
-                                    class="h-full overflow-hidden border-2 transition-colors group-hover:border-primary/40 group-focus:border-primary"
-                                    :style="{
-                                        borderLeftColor: primaryColor(brand),
-                                        borderLeftWidth: '4px',
-                                    }"
+                    <div v-show="activeTab === 'marken'">
+                        <BRow>
+                            <BCol v-for="brand in brands" :key="brand.id" md="6" class="mb-4">
+                                <Link
+                                    :href="`/admin/brands/${brand.id}/edit`"
+                                    class="text-decoration-none text-body d-block h-100"
                                 >
-                                    <CardContent class="p-0">
-                                        <div class="flex flex-col sm:flex-row sm:items-stretch">
+                                    <BCard
+                                        no-body
+                                        class="h-100 overflow-hidden border-2 transition-colors hover-border-primary"
+                                        :style="{ borderLeftColor: primaryColor(brand), borderLeftWidth: '4px' }"
+                                    >
+                                        <div class="d-flex flex-column flex-sm-row">
                                             <div
-                                                class="flex shrink-0 items-center justify-center px-6 py-8 sm:w-36 sm:flex-col sm:py-6"
-                                                :style="{
-                                                    backgroundColor: `${primaryColor(brand)}12`,
-                                                }"
+                                                class="d-flex shrink-0 align-items-center justify-content-center p-4 flex-sm-column"
+                                                :style="{ backgroundColor: `${primaryColor(brand)}18`, minWidth: '8rem' }"
                                             >
                                                 <img
                                                     v-if="brand.logo_url || brand.logo_collapsed_url"
                                                     :src="brand.logo_url || brand.logo_collapsed_url!"
                                                     :alt="brand.name"
-                                                    class="max-h-16 w-auto object-contain sm:max-h-20"
+                                                    class="img-fluid"
+                                                    style="max-height: 5rem; width: auto"
                                                     loading="lazy"
                                                 />
                                                 <div
                                                     v-else
-                                                    class="flex h-16 w-16 items-center justify-center rounded-xl text-white/80 sm:h-20 sm:w-20"
-                                                    :style="{ backgroundColor: primaryColor(brand) }"
+                                                    class="rounded d-flex align-items-center justify-content-center text-white"
+                                                    :style="{ backgroundColor: primaryColor(brand), width: '4rem', height: '4rem' }"
                                                 >
-                                                    <Building2 class="h-8 w-8 sm:h-10 sm:w-10" />
+                                                    <Icon name="building-2" size="24" />
                                                 </div>
-                                                <div
-                                                    class="mt-2 flex gap-1 sm:mt-3"
-                                                    :title="primaryColor(brand)"
-                                                >
+                                                <div class="mt-2 d-flex gap-1" :title="primaryColor(brand)">
                                                     <span
-                                                        class="h-4 w-4 rounded-full border border-gray-300 shadow-sm dark:border-gray-600"
+                                                        class="rounded-circle border border-secondary"
+                                                        style="width: 1rem; height: 1rem"
                                                         :style="{ backgroundColor: primaryColor(brand) }"
                                                     />
                                                     <span
                                                         v-if="brand.theme_colors?.primary_hover"
-                                                        class="h-4 w-4 rounded-full border border-gray-300 shadow-sm dark:border-gray-600"
+                                                        class="rounded-circle border border-secondary"
+                                                        style="width: 1rem; height: 1rem"
                                                         :style="{ backgroundColor: brand.theme_colors.primary_hover }"
                                                     />
                                                 </div>
                                             </div>
-                                            <div class="flex flex-1 flex-col justify-between p-5">
-                                                <div>
-                                                    <div class="flex flex-wrap items-center gap-2">
-                                                        <span class="text-lg font-semibold text-foreground">{{ brand.name }}</span>
-                                                        <Badge v-if="brand.is_default" variant="secondary" class="shrink-0">
-                                                            Standard
-                                                        </Badge>
-                                                    </div>
-                                                    <p class="mt-1 text-sm text-muted-foreground">{{ brand.key }}</p>
-                                                    <div
-                                                        v-if="firstDomains(brand.domains).length"
-                                                        class="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
-                                                    >
-                                                        <Globe class="h-3.5 w-3.5 shrink-0" />
-                                                        <span>{{ firstDomains(brand.domains).join(', ') }}</span>
-                                                        <span v-if="brand.domains && brand.domains.length > 2">
-                                                            (+{{ brand.domains.length - 2 }} weitere)
-                                                        </span>
-                                                    </div>
-                                                    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                                        <span class="flex items-center gap-1">
-                                                            <Mail class="h-3.5 w-3.5" />
-                                                            Anrede: {{ salutationLabel(brand.salutation) }}
-                                                        </span>
-                                                    </div>
-                                                    <div
-                                                        v-if="activeFeatures(brand.features).length"
-                                                        class="mt-3 flex flex-wrap gap-1.5"
-                                                    >
-                                                        <span
-                                                            v-for="label in activeFeatures(brand.features)"
-                                                            :key="label"
-                                                            class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                                                        >
-                                                            {{ label }}
-                                                        </span>
-                                                    </div>
+                                            <div class="card-body d-flex flex-column">
+                                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                                    <span class="h5 mb-0">{{ brand.name }}</span>
+                                                    <BBadge v-if="brand.is_default" variant="secondary">Standard</BBadge>
                                                 </div>
-                                                <div class="mt-4 flex items-center gap-2">
-                                                    <Button variant="outline" size="sm" class="gap-2" as="span">
-                                                        <Edit class="h-4 w-4" />
-                                                        Bearbeiten
-                                                    </Button>
+                                                <p class="text-muted small mb-1">{{ brand.key }}</p>
+                                                <div v-if="firstDomains(brand.domains).length" class="small text-muted d-flex align-items-center gap-1 flex-wrap">
+                                                    <Icon name="globe" size="14" />
+                                                    <span>{{ firstDomains(brand.domains).join(', ') }}</span>
+                                                    <span v-if="brand.domains && brand.domains.length > 2">(+{{ brand.domains.length - 2 }} weitere)</span>
+                                                </div>
+                                                <div class="small text-muted d-flex align-items-center gap-1 mt-1">
+                                                    <Icon name="mail" size="14" />
+                                                    Anrede: {{ salutationLabel(brand.salutation) }}
+                                                </div>
+                                                <div v-if="activeFeatures(brand.features).length" class="d-flex flex-wrap gap-1 mt-2">
+                                                    <BBadge v-for="label in activeFeatures(brand.features)" :key="label" variant="light" class="text-muted">
+                                                        {{ label }}
+                                                    </BBadge>
+                                                </div>
+                                                <div class="mt-auto pt-3">
+                                                    <BButton variant="outline-primary" size="sm">
+                                                        <Icon name="edit" class="me-1" />Bearbeiten
+                                                    </BButton>
                                                 </div>
                                             </div>
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            </Link>
-                        </div>
-                    </TabsContent>
-                </Tabs>
-            </form>
-        </div>
+                                    </BCard>
+                                </Link>
+                            </BCol>
+                        </BRow>
+                    </div>
+                </BForm>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

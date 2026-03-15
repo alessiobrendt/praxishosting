@@ -1,9 +1,16 @@
+<!-- Admin: Pterodactyl Nests -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Egg, ChevronRight } from 'lucide-vue-next';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import hostingServers from '@/routes/admin/hosting-servers/index';
 import type { BreadcrumbItem } from '@/types';
@@ -33,55 +40,64 @@ const eggsUrl = (nestId: number) =>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Pterodactyl Nests" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Nests & Eggs</Heading>
-                <Text class="mt-2" muted>
-                    {{ hostingServer.name }} – Wählen Sie ein Nest, um die Eggs anzuzeigen.
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Nests & Eggs</h4>
+                    <p class="text-muted small mb-0">
+                        {{ hostingServer.name }} – Wählen Sie ein Nest, um die Eggs anzuzeigen.
+                    </p>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Nests</CardTitle>
-                    <CardDescription>
-                        Nests gruppieren ähnliche Server-Typen (z. B. Minecraft, Discord Bots). Klicken Sie auf ein Nest, um die Eggs zu sehen.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div
-                        v-if="nests.length === 0"
-                        class="rounded-xl border-2 border-dashed border-gray-200 py-12 text-center text-muted-foreground dark:border-gray-700"
-                    >
-                        Keine Nests vom Panel geladen.
-                    </div>
-                    <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        <Link
-                            v-for="nest in nests"
-                            :key="nest.id"
-                            :href="eggsUrl(nest.id)"
-                            class="flex items-center gap-3 rounded-lg border border-gray-200 p-4 transition-modern hover:border-violet-300 hover:bg-violet-50/50 dark:border-gray-700 dark:hover:border-violet-600 dark:hover:bg-violet-950/20"
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Nests</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Nests gruppieren ähnliche Server-Typen (z. B. Minecraft, Discord Bots). Klicken Sie auf ein
+                            Nest, um die Eggs zu sehen.
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div
+                            v-if="nests.length === 0"
+                            class="rounded border-2 border-dashed border-secondary py-5 text-center text-muted"
                         >
-                            <div
-                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400"
+                            Keine Nests vom Panel geladen.
+                        </div>
+                        <BRow v-else>
+                            <BCol
+                                v-for="nest in nests"
+                                :key="nest.id"
+                                sm="6"
+                                lg="4"
+                                class="mb-3"
                             >
-                                <Egg class="h-5 w-5" />
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="font-medium text-gray-900 dark:text-white">{{ nest.name }}</p>
-                                <p
-                                    v-if="nest.description"
-                                    class="mt-0.5 truncate text-sm text-muted-foreground"
-                                    :title="nest.description"
+                                <Link
+                                    :href="eggsUrl(nest.id)"
+                                    class="text-decoration-none d-block rounded border border-secondary p-3 h-100 transition bg-light-hover"
                                 >
-                                    {{ nest.description }}
-                                </p>
-                            </div>
-                            <ChevronRight class="h-5 w-5 shrink-0 text-muted-foreground" />
-                        </Link>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="flex-shrink-0 rounded bg-primary bg-opacity-25 p-2 text-primary">
+                                            <Icon icon="egg" />
+                                        </div>
+                                        <div class="min-w-0 flex-grow-1">
+                                            <p class="fw-medium text-body mb-0">{{ nest.name }}</p>
+                                            <p
+                                                v-if="nest.description"
+                                                class="small text-muted text-truncate mb-0 mt-1"
+                                                :title="nest.description"
+                                            >
+                                                {{ nest.description }}
+                                            </p>
+                                        </div>
+                                        <Icon icon="chevron-right" class="flex-shrink-0 text-muted" />
+                                    </div>
+                                </Link>
+                            </BCol>
+                        </BRow>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

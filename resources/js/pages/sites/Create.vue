@@ -1,121 +1,81 @@
-<script setup lang="ts">
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { watch } from 'vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Heading, Text } from '@/components/ui/typography';
-import { notify } from '@/composables/useNotify';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { dashboard } from '@/routes';
-import { index as sitesIndex } from '@/routes/sites';
-import { store as sitesStore } from '@/routes/sites';
-import type { BreadcrumbItem } from '@/types';
-
-type Template = {
-    id: number;
-    name: string;
-    slug: string;
-    price: string;
-};
-
-type Props = {
-    template: Template | null;
-    templates: Template[];
-};
-
-const props = defineProps<Props>();
-
-const page = usePage();
-const form = useForm({
-    template_id: (props.template?.id ?? '') as string | number,
-    name: '',
-});
-
-watch(
-    () => (page.props.flash as { error?: string })?.error,
-    (message) => {
-        if (message) {
-            notify.error(message);
-        }
-    },
-    { immediate: true },
-);
-
-function submit(): void {
-    form.post(sitesStore.url());
-}
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: dashboard().url },
-    { title: 'Meine Sites', href: sitesIndex().url },
-    { title: 'Neue Site', href: '#' },
-];
-</script>
-
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Neue Site erstellen" />
+  <DefaultLayout>
+    <Head title="Neue Site erstellen" />
+    <PageBreadcrumb title="Neue Site erstellen" subtitle="Meine Sites" subtitle-url="/sites" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Neue Site erstellen</Heading>
-                <Text class="mt-2" muted>
-                    Wählen Sie ein Template und geben Sie einen Namen ein
-                </Text>
-            </div>
+    <div class="mb-4">
+      <h4 class="mb-1">Neue Site erstellen</h4>
+      <p class="text-muted mb-0">Wählen Sie ein Template und geben Sie einen Namen ein</p>
+    </div>
 
-            <Card class="max-w-2xl">
-                <CardHeader>
-                    <CardTitle>Site-Details</CardTitle>
-                    <CardDescription>Geben Sie die Informationen für Ihre neue Site ein</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form class="space-y-6" @submit.prevent="submit">
-                        <div class="space-y-2">
-                            <Label for="template_id">Template</Label>
-                            <Select
-                                id="template_id"
-                                v-model="form.template_id"
-                                required
-                                :aria-invalid="!!form.errors.template_id"
-                            >
-                                <option value="">Bitte wählen...</option>
-                                <option
-                                    v-for="t in templates"
-                                    :key="t.id"
-                                    :value="t.id"
-                                >
-                                    {{ t.name }} ({{ t.price }} €)
-                                </option>
-                            </Select>
-                            <InputError :message="form.errors.template_id" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="name">Name der Site</Label>
-                            <Input
-                                id="name"
-                                v-model="form.name"
-                                required
-                                placeholder="z. B. Praxis Mustermann"
-                                :aria-invalid="!!form.errors.name"
-                            />
-                            <InputError :message="form.errors.name" />
-                        </div>
-                        <CardFooter class="px-0 pb-0">
-                            <div class="flex gap-2">
-                                <Button type="submit" :disabled="form.processing">Zur Kasse</Button>
-                                <Link :href="sitesIndex().url">
-                                    <Button type="button" variant="outline">Abbrechen</Button>
-                                </Link>
-                            </div>
-                        </CardFooter>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
-    </AppLayout>
+    <BRow>
+      <BCol lg="8">
+    <BCard no-body>
+      <BCardHeader>
+        <h5 class="mb-0">Site-Details</h5>
+        <p class="text-muted small mb-0">Geben Sie die Informationen für Ihre neue Site ein</p>
+      </BCardHeader>
+      <BCardBody>
+        <BForm @submit.prevent="submit">
+          <div class="mb-3">
+            <label class="form-label" for="template_id">Template *</label>
+            <BFormSelect
+              id="template_id"
+              v-model="form.template_id"
+              required
+              :options="templateOptions"
+              :class="{ 'is-invalid': form.errors.template_id }"
+            />
+            <div v-if="form.errors.template_id" class="invalid-feedback d-block">{{ form.errors.template_id }}</div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label" for="name">Name der Site *</label>
+            <BFormInput
+              id="name"
+              v-model="form.name"
+              required
+              placeholder="z. B. Praxis Mustermann"
+              :class="{ 'is-invalid': form.errors.name }"
+            />
+            <div v-if="form.errors.name" class="invalid-feedback d-block">{{ form.errors.name }}</div>
+          </div>
+          <div class="d-flex gap-2">
+            <BButton type="submit" variant="primary" :disabled="form.processing">Zur Kasse</BButton>
+            <Link href="/sites" class="btn btn-outline-secondary">Abbrechen</Link>
+          </div>
+        </BForm>
+      </BCardBody>
+    </BCard>
+      </BCol>
+    </BRow>
+  </DefaultLayout>
 </template>
+
+<script setup lang="ts">
+import { Head, Link, useForm } from '@inertiajs/vue3'
+import { computed } from 'vue'
+import { BButton, BCard, BCardBody, BCardHeader, BCol, BForm, BFormInput, BFormSelect, BRow } from 'bootstrap-vue-next'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue'
+
+type Template = { id: number; name: string; slug: string; price: string }
+
+const props = defineProps<{
+  template: Template | null
+  templates: Template[]
+}>()
+
+const form = useForm({
+  template_id: (props.template?.id ?? '') as string | number,
+  name: '',
+})
+
+const templateOptions = computed(() => [
+  { value: '', text: 'Bitte wählen...' },
+  ...props.templates.map((t) => ({ value: t.id, text: `${t.name} (${t.price} €)` })),
+])
+
+function submit() {
+  form.post('/sites')
+}
+</script>

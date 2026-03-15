@@ -1,21 +1,23 @@
+<!-- Admin: API-Dokumentation -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, ChevronDown, Download } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Heading, Text } from '@/components/ui/typography';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -542,19 +544,14 @@ const endpoints: EndpointSpec[] = [
     },
 ];
 
-function methodClass(method: string): string {
+function methodVariant(method: string): 'success' | 'primary' | 'warning' | 'danger' | 'secondary' {
     switch (method) {
-        case 'GET':
-            return 'bg-emerald-600/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
-        case 'POST':
-            return 'bg-blue-600/20 text-blue-700 dark:text-blue-400 border-blue-500/30';
+        case 'GET': return 'success';
+        case 'POST': return 'primary';
         case 'PUT':
-        case 'PATCH':
-            return 'bg-amber-600/20 text-amber-700 dark:text-amber-400 border-amber-500/30';
-        case 'DELETE':
-            return 'bg-red-600/20 text-red-700 dark:text-red-400 border-red-500/30';
-        default:
-            return 'bg-muted text-muted-foreground';
+        case 'PATCH': return 'warning';
+        case 'DELETE': return 'danger';
+        default: return 'secondary';
     }
 }
 </script>
@@ -563,154 +560,111 @@ function methodClass(method: string): string {
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="API-Dokumentation" />
 
-        <div class="space-y-6">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <Heading level="h1">API v1 – Dokumentation</Heading>
-                    <Text class="mt-2" muted>
-                        Basis-URL:
-                        <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">{{
-                            apiBaseUrl
-                        }}</code>
-                    </Text>
+        <BRow>
+            <BCol>
+                <div class="mb-3 d-flex flex-column flex-sm-row flex-sm-wrap align-items-start align-sm-center justify-content-between gap-2">
+                    <div>
+                        <h4 class="mb-1">API v1 – Dokumentation</h4>
+                        <p class="text-muted small mb-0">
+                            Basis-URL: <code class="rounded bg-light px-1 py-0 font-monospace">{{ apiBaseUrl }}</code>
+                        </p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <BButton variant="outline-secondary" size="sm" @click="downloadMarkdown">
+                            <Icon icon="download" class="me-2" />Als Markdown
+                        </BButton>
+                        <Link href="/admin/api">
+                            <BButton variant="outline-secondary" size="sm">
+                                <Icon icon="arrow-left" class="me-2" />Zurück zur API-Übersicht
+                            </BButton>
+                        </Link>
+                    </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        @click="downloadMarkdown"
-                    >
-                        <Download class="mr-2 h-4 w-4" aria-hidden="true" />
-                        Als Markdown
-                    </Button>
-                    <Link href="/admin/api">
-                        <Button variant="outline" size="sm">
-                            <ArrowLeft class="mr-2 h-4 w-4" aria-hidden="true" />
-                            Zurück zur API-Übersicht
-                        </Button>
-                    </Link>
-                </div>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Authentifizierung</CardTitle>
-                    <CardDescription>
-                        Jede Anfrage muss den Authorization-Header mit einem gültigen Bearer-Token senden.
-                        Optional: <code class="rounded bg-muted px-1 py-0.5">X-Brand-Id: &lt;id&gt;</code> oder
-                        Query <code class="rounded bg-muted px-1 py-0.5">brand_id=&lt;id&gt;</code> für Multi-Brand.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <pre
-                        class="overflow-x-auto rounded-lg border border-border bg-muted/50 p-4 font-mono text-sm"
-                    ><code>Authorization: Bearer &lt;Ihr-API-Token&gt;</code></pre>
-                </CardContent>
-            </Card>
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Authentifizierung</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Jede Anfrage muss den Authorization-Header mit einem gültigen Bearer-Token senden.
+                            Optional: <code class="rounded bg-light px-1 py-0">X-Brand-Id: &lt;id&gt;</code> oder
+                            Query <code class="rounded bg-light px-1 py-0">brand_id=&lt;id&gt;</code> für Multi-Brand.
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <pre class="overflow-x-auto rounded border bg-light p-3 font-monospace small mb-0"><code>Authorization: Bearer &lt;Ihr-API-Token&gt;</code></pre>
+                    </BCardBody>
+                </BCard>
 
-            <div class="space-y-2">
-                <Heading level="h2">Endpoints</Heading>
-                <Text class="text-muted-foreground">
+                <h5 class="mb-2">Endpoints</h5>
+                <p class="text-muted small mb-3">
                     Klicken Sie auf einen Endpoint, um Parameter, Request-Body und Response-Beispiele zu sehen.
-                </Text>
-            </div>
+                </p>
 
-            <div class="space-y-2">
-                <Collapsible
-                    v-for="ep in endpoints"
-                    :key="ep.path"
-                    class="group rounded-lg border border-border bg-card"
-                >
-                    <CollapsibleTrigger
-                        as-child
-                        class="block w-full rounded-lg text-left transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                <div class="d-flex flex-column gap-2">
+                    <Collapsible
+                        v-for="ep in endpoints"
+                        :key="ep.path"
+                        class="border rounded group"
                     >
-                        <div
-                            class="flex w-full cursor-pointer items-center gap-3 px-4 py-3"
+                        <CollapsibleTrigger
+                            as-child
+                            class="d-block w-100 text-start rounded hover-bg-light focus-outline-none"
                         >
-                            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                                <span
-                                    :class="[
-                                        'inline-flex shrink-0 items-center rounded border px-2 py-0.5 font-mono text-xs font-semibold',
-                                        methodClass(ep.method),
-                                    ]"
-                                >
-                                    {{ ep.method }}
-                                </span>
-                                <code
-                                    class="min-w-0 truncate rounded bg-muted px-2 py-0.5 font-mono text-sm"
-                                >{{ apiBaseUrl }}{{ ep.path }}</code>
-                                <span class="text-sm font-medium text-foreground">{{ ep.summary }}</span>
-                            </div>
-                            <span
-                                class="ml-auto flex shrink-0 items-center pr-2"
-                            >
-                                <ChevronDown
-                                    class="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
-                                    aria-hidden="true"
-                                />
-                            </span>
-                        </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                        <div class="border-t border-border px-4 pb-4 pt-3">
-                            <p class="mb-4 text-sm text-muted-foreground">{{ ep.description }}</p>
-
-                            <!-- Parameters -->
-                            <template v-if="ep.parameters && ep.parameters.length > 0">
-                                <h4 class="mb-2 text-sm font-semibold text-foreground">Parameter</h4>
-                                <div class="mb-4 overflow-x-auto rounded-md border border-border">
-                                    <table class="w-full min-w-[400px] text-sm">
-                                        <thead>
-                                            <tr class="border-b border-border bg-muted/50">
-                                                <th class="px-3 py-2 text-left font-medium">Name</th>
-                                                <th class="px-3 py-2 text-left font-medium">In</th>
-                                                <th class="px-3 py-2 text-left font-medium">Typ</th>
-                                                <th class="px-3 py-2 text-left font-medium">Pflicht</th>
-                                                <th class="px-3 py-2 text-left font-medium">Beschreibung</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr
-                                                v-for="p in ep.parameters"
-                                                :key="p.name"
-                                                class="border-b border-border last:border-0"
-                                            >
-                                                <td class="px-3 py-2 font-mono text-xs">{{ p.name }}</td>
-                                                <td class="px-3 py-2 text-muted-foreground">{{ p.in }}</td>
-                                                <td class="px-3 py-2 font-mono text-xs">{{ p.type }}</td>
-                                                <td class="px-3 py-2">{{ p.required ? 'Ja' : 'Nein' }}</td>
-                                                <td class="px-3 py-2 text-muted-foreground">{{ p.description }}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                            <div class="d-flex align-items-center gap-3 px-3 py-3 cursor-pointer">
+                                <div class="d-flex min-w-0 flex-grow-1 flex-wrap align-items-center gap-2">
+                                    <BBadge :variant="methodVariant(ep.method)" class="font-monospace">{{ ep.method }}</BBadge>
+                                    <code class="min-w-0 text-truncate rounded bg-light px-2 py-0 small">{{ apiBaseUrl }}{{ ep.path }}</code>
+                                    <span class="small fw-medium">{{ ep.summary }}</span>
                                 </div>
-                            </template>
+                                <Icon icon="chevron-down" class="flex-shrink-0 text-muted small" />
+                            </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <div class="border-top px-3 pb-3 pt-3">
+                                <p class="small text-muted mb-3">{{ ep.description }}</p>
 
-                            <!-- Request Body (POST etc.) -->
-                            <template v-if="ep.requestBody">
-                                <h4 class="mb-2 text-sm font-semibold text-foreground">Request Body</h4>
-                                <p class="mb-1 text-xs text-muted-foreground">Schema (JSON)</p>
-                                <pre
-                                    class="mb-3 overflow-x-auto rounded-md border border-border bg-muted/50 p-3 font-mono text-xs"
-                                ><code>{{ ep.requestBody.schema }}</code></pre>
-                                <p class="mb-1 text-xs text-muted-foreground">Beispiel</p>
-                                <pre
-                                    class="mb-4 overflow-x-auto rounded-md border border-border bg-muted/50 p-3 font-mono text-xs whitespace-pre-wrap break-words"
-                                ><code>{{ ep.requestBody.example }}</code></pre>
-                            </template>
+                                <template v-if="ep.parameters && ep.parameters.length > 0">
+                                    <h6 class="small fw-semibold mb-2">Parameter</h6>
+                                    <div class="table-responsive mb-3">
+                                        <table class="table table-sm table-bordered small">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>In</th>
+                                                    <th>Typ</th>
+                                                    <th>Pflicht</th>
+                                                    <th>Beschreibung</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="p in ep.parameters" :key="p.name">
+                                                    <td class="font-monospace">{{ p.name }}</td>
+                                                    <td class="text-muted">{{ p.in }}</td>
+                                                    <td class="font-monospace">{{ p.type }}</td>
+                                                    <td>{{ p.required ? 'Ja' : 'Nein' }}</td>
+                                                    <td class="text-muted">{{ p.description }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </template>
 
-                            <!-- Response -->
-                            <h4 class="mb-2 text-sm font-semibold text-foreground">Response (200 OK)</h4>
-                            <p class="mb-1 text-xs text-muted-foreground">Beispiel (JSON)</p>
-                            <pre
-                                class="overflow-x-auto rounded-md border border-border bg-muted/50 p-3 font-mono text-xs whitespace-pre-wrap break-words"
-                            ><code>{{ ep.responseExample }}</code></pre>
-                        </div>
-                    </CollapsibleContent>
-                </Collapsible>
-            </div>
-        </div>
+                                <template v-if="ep.requestBody">
+                                    <h6 class="small fw-semibold mb-2">Request Body</h6>
+                                    <p class="small text-muted mb-1">Schema (JSON)</p>
+                                    <pre class="overflow-x-auto rounded border bg-light p-3 font-monospace small mb-3"><code>{{ ep.requestBody.schema }}</code></pre>
+                                    <p class="small text-muted mb-1">Beispiel</p>
+                                    <pre class="overflow-x-auto rounded border bg-light p-3 font-monospace small mb-3 text-break whitespace-pre-wrap"><code>{{ ep.requestBody.example }}</code></pre>
+                                </template>
+
+                                <h6 class="small fw-semibold mb-2">Response (200 OK)</h6>
+                                <p class="small text-muted mb-1">Beispiel (JSON)</p>
+                                <pre class="overflow-x-auto rounded border bg-light p-3 font-monospace small mb-0 text-break whitespace-pre-wrap"><code>{{ ep.responseExample }}</code></pre>
+                            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
+                </div>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

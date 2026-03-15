@@ -1,15 +1,23 @@
+<!-- Admin: Kunde bearbeiten -->
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormSelect,
+    BFormCheckbox,
+    BButton,
+} from 'bootstrap-vue-next';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Heading, Text } from '@/components/ui/typography';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import { index as customersIndex } from '@/routes/admin/customers';
@@ -47,11 +55,17 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const countryOptions = computed(() =>
-    Object.entries(props.countries)
-        .map(([code, name]) => ({ code, name }))
-        .sort((a, b) => a.name.localeCompare(b.name, 'de')),
-);
+const countryOptions = computed(() => [
+    { value: '', text: 'Bitte wählen' },
+    ...Object.entries(props.countries)
+        .map(([code, name]) => ({ value: code, text: name }))
+        .sort((a, b) => a.text.localeCompare(b.text, 'de')),
+]);
+
+const brandOptions = computed(() => [
+    { value: '', text: '– Keine –' },
+    ...props.brands.map((b) => ({ value: String(b.id), text: `${b.name} (${b.key})` })),
+]);
 
 const form = useForm({
     brand_id: props.customer.brand_id ?? '',
@@ -91,161 +105,125 @@ function submit() {
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Kunde bearbeiten: ${customer.name}`" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Stammdaten bearbeiten</Heading>
-                <Text class="mt-2" muted>
-                    {{ customer.name }}
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Stammdaten bearbeiten</h4>
+                    <p class="text-muted small mb-0">{{ customer.name }}</p>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Kundendaten</CardTitle>
-                    <CardDescription>Name, E-Mail, Firma, Adresse</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form class="space-y-4" @submit.prevent="submit">
-                        <div class="space-y-2">
-                            <Label>Gruppen</Label>
-                            <p class="text-muted-foreground text-sm">Gruppen-Labels erscheinen im Admin-Header. Benutzer kann mehreren Gruppen angehören.</p>
-                            <div class="max-h-40 space-y-2 overflow-y-auto rounded-md border p-3">
-                                <div
-                                    v-for="g in groups"
-                                    :key="g.id"
-                                    class="flex items-center gap-2"
-                                >
-                                    <Checkbox
-                                        :id="`group-${g.id}`"
-                                        :model-value="form.group_ids.includes(g.id)"
-                                        @update:model-value="(v: boolean) => setGroup(g.id, v)"
-                                    />
-                                    <label :for="`group-${g.id}`" class="cursor-pointer text-sm">
-                                        {{ g.label }} ({{ g.key }})
-                                    </label>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Kundendaten</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Name, E-Mail, Firma, Adresse</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BForm id="customer-edit-form" @submit.prevent="submit">
+                            <BFormGroup label="Gruppen" label-for="groups">
+                                <p class="text-muted small mb-2">Gruppen-Labels erscheinen im Admin-Header. Benutzer kann mehreren Gruppen angehören.</p>
+                                <div class="border rounded p-3 overflow-auto" style="max-height: 10rem">
+                                    <div v-for="g in groups" :key="g.id" class="form-check">
+                                        <BFormCheckbox
+                                            :id="`group-${g.id}`"
+                                            :model-value="form.group_ids.includes(g.id)"
+                                            @update:model-value="(v: boolean) => setGroup(g.id, v)"
+                                        >
+                                            {{ g.label }} ({{ g.key }})
+                                        </BFormCheckbox>
+                                    </div>
                                 </div>
-                            </div>
-                            <InputError :message="form.errors.group_ids" />
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2">
-                            <Switch
-                                id="is_admin"
-                                v-model="form.is_admin"
-                            />
-                            <Label for="is_admin">Administrator</Label>
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="brand_id">Marke</Label>
-                            <Select
-                                id="brand_id"
-                                v-model="form.brand_id"
-                                name="brand_id"
-                                :aria-invalid="!!form.errors.brand_id"
-                            >
-                                <option value="">– Keine –</option>
-                                <option
-                                    v-for="b in brands"
-                                    :key="b.id"
-                                    :value="b.id"
-                                >
-                                    {{ b.name }} ({{ b.key }})
-                                </option>
-                            </Select>
-                            <InputError :message="form.errors.brand_id" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="name">Name</Label>
-                            <Input
-                                id="name"
-                                v-model="form.name"
-                                name="name"
-                                required
-                                :aria-invalid="!!form.errors.name"
-                            />
-                            <InputError :message="form.errors.name" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="email">E-Mail</Label>
-                            <Input
-                                id="email"
-                                v-model="form.email"
-                                type="email"
-                                name="email"
-                                required
-                                :aria-invalid="!!form.errors.email"
-                            />
-                            <InputError :message="form.errors.email" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="company">Firma (optional)</Label>
-                            <Input
-                                id="company"
-                                v-model="form.company"
-                                name="company"
-                                :aria-invalid="!!form.errors.company"
-                            />
-                            <InputError :message="form.errors.company" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="street">Straße (optional)</Label>
-                            <Input
-                                id="street"
-                                v-model="form.street"
-                                name="street"
-                                :aria-invalid="!!form.errors.street"
-                            />
-                            <InputError :message="form.errors.street" />
-                        </div>
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div class="space-y-2">
-                                <Label for="postal_code">PLZ (optional)</Label>
-                                <Input
-                                    id="postal_code"
-                                    v-model="form.postal_code"
-                                    name="postal_code"
-                                    :aria-invalid="!!form.errors.postal_code"
+                                <InputError :message="form.errors.group_ids" />
+                            </BFormGroup>
+                            <BFormGroup>
+                                <BFormCheckbox id="is_admin" v-model="form.is_admin">
+                                    Administrator
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BFormGroup label="Marke" label-for="brand_id">
+                                <BFormSelect
+                                    id="brand_id"
+                                    v-model="form.brand_id"
+                                    :options="brandOptions"
+                                    :aria-invalid="!!form.errors.brand_id"
                                 />
-                                <InputError :message="form.errors.postal_code" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="city">Ort (optional)</Label>
-                                <Input
-                                    id="city"
-                                    v-model="form.city"
-                                    name="city"
-                                    :aria-invalid="!!form.errors.city"
+                                <InputError :message="form.errors.brand_id" />
+                            </BFormGroup>
+                            <BFormGroup label="Name" label-for="name">
+                                <BFormInput
+                                    id="name"
+                                    v-model="form.name"
+                                    required
+                                    :aria-invalid="!!form.errors.name"
                                 />
-                                <InputError :message="form.errors.city" />
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="country">Land (optional)</Label>
-                            <Select
-                                id="country"
-                                v-model="form.country"
-                                name="country"
-                                :aria-invalid="!!form.errors.country"
-                            >
-                                <option value="">Bitte wählen</option>
-                                <option
-                                    v-for="c in countryOptions"
-                                    :key="c.code"
-                                    :value="c.code"
-                                >
-                                    {{ c.name }}
-                                </option>
-                            </Select>
-                            <InputError :message="form.errors.country" />
-                        </div>
-                        <CardFooter class="flex flex-wrap gap-2 px-0 pb-0 pt-4">
-                            <Button type="submit" :disabled="form.processing">Speichern</Button>
-                            <Link :href="`/admin/customers/${customer.id}`">
-                                <Button type="button" variant="outline">Abbrechen</Button>
-                            </Link>
-                        </CardFooter>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
+                                <InputError :message="form.errors.name" />
+                            </BFormGroup>
+                            <BFormGroup label="E-Mail" label-for="email">
+                                <BFormInput
+                                    id="email"
+                                    v-model="form.email"
+                                    type="email"
+                                    required
+                                    :aria-invalid="!!form.errors.email"
+                                />
+                                <InputError :message="form.errors.email" />
+                            </BFormGroup>
+                            <BFormGroup label="Firma (optional)" label-for="company">
+                                <BFormInput
+                                    id="company"
+                                    v-model="form.company"
+                                    :aria-invalid="!!form.errors.company"
+                                />
+                                <InputError :message="form.errors.company" />
+                            </BFormGroup>
+                            <BFormGroup label="Straße (optional)" label-for="street">
+                                <BFormInput
+                                    id="street"
+                                    v-model="form.street"
+                                    :aria-invalid="!!form.errors.street"
+                                />
+                                <InputError :message="form.errors.street" />
+                            </BFormGroup>
+                            <BRow>
+                                <BCol md="6">
+                                    <BFormGroup label="PLZ (optional)" label-for="postal_code">
+                                        <BFormInput
+                                            id="postal_code"
+                                            v-model="form.postal_code"
+                                            :aria-invalid="!!form.errors.postal_code"
+                                        />
+                                        <InputError :message="form.errors.postal_code" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol md="6">
+                                    <BFormGroup label="Ort (optional)" label-for="city">
+                                        <BFormInput
+                                            id="city"
+                                            v-model="form.city"
+                                            :aria-invalid="!!form.errors.city"
+                                        />
+                                        <InputError :message="form.errors.city" />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+                            <BFormGroup label="Land (optional)" label-for="country">
+                                <BFormSelect
+                                    id="country"
+                                    v-model="form.country"
+                                    :options="countryOptions"
+                                    :aria-invalid="!!form.errors.country"
+                                />
+                                <InputError :message="form.errors.country" />
+                            </BFormGroup>
+                        </BForm>
+                    </BCardBody>
+                    <BCardFooter class="d-flex gap-2">
+                        <BButton type="submit" form="customer-edit-form" variant="primary" :disabled="form.processing">Speichern</BButton>
+                        <Link :href="`/admin/customers/${customer.id}`">
+                            <BButton type="button" variant="outline-secondary">Abbrechen</BButton>
+                        </Link>
+                    </BCardFooter>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

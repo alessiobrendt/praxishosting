@@ -1,14 +1,22 @@
+<!-- Admin: TLD-Preise (Pricelist) -->
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Download, Percent, Search } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Pagination } from '@/components/ui/pagination';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormSelect,
+    BFormCheckbox,
+    BButton,
+} from 'bootstrap-vue-next';
+import Icon from '@/components/wrappers/Icon.vue';
 import { notify } from '@/composables/useNotify';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
@@ -78,6 +86,11 @@ const bulkForm = useForm({
     margin_transfer_value: '' as string,
     tlds: [] as string[],
 });
+
+const marginTypeOptions = [
+    { value: 'percent', text: 'Prozent (%)' },
+    { value: 'fixed', text: 'Festbetrag (€)' },
+];
 
 const page = usePage();
 watch(
@@ -151,178 +164,187 @@ const submitBulk = () => {
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="TLD-Preise" />
 
-        <div class="space-y-6">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <Heading level="h1">TLD-Preise</Heading>
-                    <Text class="mt-2" muted>
-                        Einkaufspreise und Marge pro Domain-Endung. Bulk-Import aus Skrime, Massen-Edit der Gewinn-Marge.
-                    </Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">TLD-Preise</h4>
+                        <p class="text-muted small mb-0">
+                            Einkaufspreise und Marge pro Domain-Endung. Bulk-Import aus Skrime, Massen-Edit der Gewinn-Marge.
+                        </p>
+                    </div>
+                    <BButton
+                        variant="outline-primary"
+                        :disabled="syncLoading"
+                        @click="syncPricelist"
+                    >
+                        <span v-if="syncLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                        <Icon v-else icon="download" class="me-2" />
+                        {{ syncLoading ? 'Importiere…' : 'Pricelist von Skrime importieren' }}
+                    </BButton>
                 </div>
-                <Button
-                    variant="outline"
-                    :disabled="syncLoading"
-                    @click="syncPricelist"
-                >
-                    <Download class="mr-2 h-4 w-4" />
-                    {{ syncLoading ? 'Importiere…' : 'Pricelist von Skrime importieren' }}
-                </Button>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Marge setzen</CardTitle>
-                    <CardDescription>
-                        Margin-Typ und Wert wählen. Entweder TLDs in der Tabelle auswählen oder „Für alle TLDs“ aktivieren.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <form @submit.prevent="submitBulk" class="flex flex-wrap items-end gap-4">
-                        <div class="space-y-2 min-w-[140px]">
-                            <Label for="bulk-margin-type">Typ</Label>
-                            <select
-                                id="bulk-margin-type"
-                                v-model="bulkForm.margin_type"
-                                class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                            >
-                                <option value="percent">Prozent (%)</option>
-                                <option value="fixed">Festbetrag (€)</option>
-                            </select>
-                        </div>
-                        <div class="space-y-2 min-w-[100px]">
-                            <Label for="bulk-margin-value">Verkauf (Create)</Label>
-                            <Input
-                                id="bulk-margin-value"
-                                v-model="bulkForm.margin_value"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="z. B. 10"
-                            />
-                            <p v-if="bulkForm.errors.margin_value" class="text-sm text-destructive">
-                                {{ bulkForm.errors.margin_value }}
-                            </p>
-                        </div>
-                        <div class="space-y-2 min-w-[100px]">
-                            <Label for="bulk-margin-renew">Verkauf (Renew)</Label>
-                            <Input
-                                id="bulk-margin-renew"
-                                v-model="bulkForm.margin_renew_value"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="leer = Create"
-                            />
-                        </div>
-                        <div class="space-y-2 min-w-[100px]">
-                            <Label for="bulk-margin-transfer">Verkauf (Transfer)</Label>
-                            <Input
-                                id="bulk-margin-transfer"
-                                v-model="bulkForm.margin_transfer_value"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="leer = Create"
-                            />
-                        </div>
-                        <div class="flex items-end gap-2">
-                            <label class="flex items-center gap-2 text-sm">
-                                <input
-                                    v-model="applyMarginToAll"
-                                    type="checkbox"
-                                    class="h-4 w-4 rounded border-input"
+                <BCard no-body class="mb-3">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Marge setzen</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Margin-Typ und Wert wählen. Entweder TLDs in der Tabelle auswählen oder „Für alle TLDs“ aktivieren.
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BForm @submit.prevent="submitBulk" class="d-flex flex-wrap align-items-end gap-3">
+                            <BFormGroup label="Typ" class="mb-0" style="min-width: 8rem">
+                                <BFormSelect
+                                    id="bulk-margin-type"
+                                    v-model="bulkForm.margin_type"
+                                    :options="marginTypeOptions"
                                 />
-                                Für alle TLDs
-                            </label>
-                        </div>
-                        <Button
-                            type="submit"
-                            :disabled="bulkForm.processing || (!applyMarginToAll && selectedTlds.size === 0)"
-                        >
-                            <Percent class="mr-2 h-4 w-4" />
-                            {{ applyMarginToAll ? 'Marge für alle TLDs übernehmen' : `Marge für ${selectedTlds.size} TLD(s) übernehmen` }}
-                        </Button>
-                    </form>
-                    <p v-if="bulkForm.errors.tlds" class="text-sm text-destructive">
-                        {{ bulkForm.errors.tlds }}
-                    </p>
-                </CardContent>
-            </Card>
+                            </BFormGroup>
+                            <BFormGroup label="Verkauf (Create)" class="mb-0" style="min-width: 6rem">
+                                <BFormInput
+                                    id="bulk-margin-value"
+                                    v-model="bulkForm.margin_value"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="z. B. 10"
+                                    :aria-invalid="!!bulkForm.errors.margin_value"
+                                />
+                                <p v-if="bulkForm.errors.margin_value" class="text-danger small mb-0 mt-1">
+                                    {{ bulkForm.errors.margin_value }}
+                                </p>
+                            </BFormGroup>
+                            <BFormGroup label="Verkauf (Renew)" class="mb-0" style="min-width: 6rem">
+                                <BFormInput
+                                    id="bulk-margin-renew"
+                                    v-model="bulkForm.margin_renew_value"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="leer = Create"
+                                />
+                            </BFormGroup>
+                            <BFormGroup label="Verkauf (Transfer)" class="mb-0" style="min-width: 6rem">
+                                <BFormInput
+                                    id="bulk-margin-transfer"
+                                    v-model="bulkForm.margin_transfer_value"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="leer = Create"
+                                />
+                            </BFormGroup>
+                            <BFormGroup class="mb-0">
+                                <BFormCheckbox id="bulk-apply-all" v-model="applyMarginToAll">
+                                    Für alle TLDs
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BButton
+                                type="submit"
+                                variant="primary"
+                                :disabled="bulkForm.processing || (!applyMarginToAll && selectedTlds.size === 0)"
+                            >
+                                <Icon icon="percentage" class="me-2" />
+                                {{ applyMarginToAll ? 'Marge für alle TLDs übernehmen' : `Marge für ${selectedTlds.size} TLD(s) übernehmen` }}
+                            </BButton>
+                        </BForm>
+                        <p v-if="bulkForm.errors.tlds" class="text-danger small mb-0 mt-2">
+                            {{ bulkForm.errors.tlds }}
+                        </p>
+                    </BCardBody>
+                </BCard>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Alle TLDs</CardTitle>
-                    <CardDescription>
-                        Einkauf und Verkaufspreise für Create, Renew und Transfer. Margen getrennt pro Aktion.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <div class="flex flex-wrap items-center gap-4">
-                        <div class="relative flex-1 min-w-[200px] max-w-sm">
-                            <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Alle TLDs</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Einkauf und Verkaufspreise für Create, Renew und Transfer. Margen getrennt pro Aktion.
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                            <BFormInput
                                 v-model="searchInput"
                                 type="search"
                                 placeholder="TLD suchen (z. B. de, com)"
-                                class="pl-9"
+                                class="flex-grow-1"
+                                style="max-width: 20rem"
                                 @keydown.enter.prevent="applySearch"
                             />
+                            <BButton variant="secondary" @click="applySearch">Suchen</BButton>
                         </div>
-                        <Button variant="secondary" @click="applySearch">
-                            Suchen
-                        </Button>
-                    </div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead class="w-12">
-                                    <input
-                                        type="checkbox"
-                                        :checked="allSelected()"
-                                        :indeterminate="selectedTlds.size > 0 && selectedTlds.size < items.length"
-                                        class="rounded border-input"
-                                        @change="toggleAll(($event.target as HTMLInputElement).checked)"
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped table-bordered mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center" style="width: 3rem">
+                                            <input
+                                                type="checkbox"
+                                                :checked="allSelected()"
+                                                :indeterminate="selectedTlds.size > 0 && selectedTlds.size < items.length"
+                                                class="form-check-input"
+                                                aria-label="Alle auswählen"
+                                                @change="toggleAll(($event.target as HTMLInputElement).checked)"
+                                            />
+                                        </th>
+                                        <th>TLD</th>
+                                        <th>Einkauf (Create)</th>
+                                        <th>Einkauf (Renew)</th>
+                                        <th>Einkauf (Transfer)</th>
+                                        <th>Verkauf (Create)</th>
+                                        <th>Verkauf (Renew)</th>
+                                        <th>Verkauf (Transfer)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="item in items" :key="item.id">
+                                        <td class="text-center">
+                                            <input
+                                                type="checkbox"
+                                                :checked="selectedTlds.has(item.tld)"
+                                                class="form-check-input"
+                                                :aria-label="`${item.tld} auswählen`"
+                                                @change="toggleOne(item.tld, ($event.target as HTMLInputElement).checked)"
+                                            />
+                                        </td>
+                                        <td class="fw-medium">.{{ item.tld }}</td>
+                                        <td>{{ item.create_price.toFixed(2) }} €</td>
+                                        <td>{{ item.renew_price.toFixed(2) }} €</td>
+                                        <td>{{ item.transfer_price.toFixed(2) }} €</td>
+                                        <td>{{ item.sale_price.toFixed(2) }} €</td>
+                                        <td>{{ item.sale_price_renew.toFixed(2) }} €</td>
+                                        <td>{{ item.sale_price_transfer.toFixed(2) }} €</td>
+                                    </tr>
+                                    <tr v-if="items.length === 0">
+                                        <td colspan="8" class="text-center text-muted py-4">
+                                            Keine TLDs. Klicken Sie auf „Pricelist von Skrime importieren“, um alle verfügbaren Endungen zu laden.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <nav v-if="links && links.length > 3" class="d-flex justify-content-center p-3">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a
+                                        v-if="link.url"
+                                        class="page-link"
+                                        href="#"
+                                        @click.prevent="handlePagination(link.url!)"
+                                        v-html="link.label"
                                     />
-                                </TableHead>
-                                <TableHead>TLD</TableHead>
-                                <TableHead>Einkauf (Create)</TableHead>
-                                <TableHead>Einkauf (Renew)</TableHead>
-                                <TableHead>Einkauf (Transfer)</TableHead>
-                                <TableHead>Verkauf (Create)</TableHead>
-                                <TableHead>Verkauf (Renew)</TableHead>
-                                <TableHead>Verkauf (Transfer)</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="item in items" :key="item.id">
-                                <TableCell>
-                                    <input
-                                        type="checkbox"
-                                        :checked="selectedTlds.has(item.tld)"
-                                        class="rounded border-input"
-                                        @change="toggleOne(item.tld, ($event.target as HTMLInputElement).checked)"
-                                    />
-                                </TableCell>
-                                <TableCell class="font-medium">.{{ item.tld }}</TableCell>
-                                <TableCell>{{ item.create_price.toFixed(2) }} €</TableCell>
-                                <TableCell>{{ item.renew_price.toFixed(2) }} €</TableCell>
-                                <TableCell>{{ item.transfer_price.toFixed(2) }} €</TableCell>
-                                <TableCell>{{ item.sale_price.toFixed(2) }} €</TableCell>
-                                <TableCell>{{ item.sale_price_renew.toFixed(2) }} €</TableCell>
-                                <TableCell>{{ item.sale_price_transfer.toFixed(2) }} €</TableCell>
-                            </TableRow>
-                            <TableRow v-if="items.length === 0">
-                                <TableCell colspan="7" class="text-center text-muted">
-                                    Keine TLDs. Klicken Sie auf „Pricelist von Skrime importieren“, um alle verfügbaren Endungen zu laden.
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <div v-if="links && links.length > 3" class="flex justify-center pt-4">
-                        <Pagination :links="links" @navigate="handlePagination" />
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

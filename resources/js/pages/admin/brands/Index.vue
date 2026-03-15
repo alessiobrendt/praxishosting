@@ -1,11 +1,16 @@
+<!-- Admin: Marken / Unternehmen -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Edit, Globe, Building2, Mail } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -44,7 +49,7 @@ function primaryColor(brand: Brand): string {
     return (
         brand.theme_colors?.primary ??
         brand.seo?.theme_color ??
-        'var(--primary, #059669)'
+        'var(--bs-primary, #0d6efd)'
     );
 }
 
@@ -74,115 +79,103 @@ function salutationLabel(salutation: string | null): string {
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Marken" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Marken / Unternehmen</Heading>
-                <Text class="mt-2" muted>
-                    B2B und Privat/Gaming: Name, Domains, Farben, Features und E-Mail pro Marke
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Marken / Unternehmen</h4>
+                    <p class="text-muted small mb-0">
+                        B2B und Privat/Gaming: Name, Domains, Farben, Features und E-Mail pro Marke
+                    </p>
+                </div>
 
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <Link
-                    v-for="brand in brands"
-                    :key="brand.id"
-                    :href="`/admin/brands/${brand.id}/edit`"
-                    class="group block transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-xl"
-                >
-                    <Card
-                        class="h-full overflow-hidden border-2 transition-colors group-hover:border-primary/40 group-focus:border-primary"
-                        :style="{
-                            borderLeftColor: primaryColor(brand),
-                            borderLeftWidth: '4px',
-                        }"
-                    >
-                        <CardContent class="p-0">
-                            <div class="flex flex-col sm:flex-row sm:items-stretch">
-                                <div
-                                    class="flex shrink-0 items-center justify-center px-6 py-8 sm:w-36 sm:flex-col sm:py-6"
-                                    :style="{
-                                        backgroundColor: `${primaryColor(brand)}12`,
-                                    }"
-                                >
-                                    <img
-                                        v-if="brand.logo_url || brand.logo_collapsed_url"
-                                        :src="brand.logo_url || brand.logo_collapsed_url!"
-                                        :alt="brand.name"
-                                        class="max-h-16 w-auto object-contain sm:max-h-20"
-                                        loading="lazy"
-                                    />
+                <BRow>
+                    <BCol v-for="brand in brands" :key="brand.id" md="6" class="mb-4">
+                        <Link
+                            :href="`/admin/brands/${brand.id}/edit`"
+                            class="text-decoration-none text-body d-block h-100"
+                        >
+                            <BCard
+                                no-body
+                                class="h-100 border-2 overflow-hidden"
+                                :style="{
+                                    borderLeftColor: primaryColor(brand),
+                                    borderLeftWidth: '4px',
+                                }"
+                            >
+                                <div class="d-flex flex-column flex-sm-row">
                                     <div
-                                        v-else
-                                        class="flex h-16 w-16 items-center justify-center rounded-xl text-white/80 sm:h-20 sm:w-20"
-                                        :style="{ backgroundColor: primaryColor(brand) }"
+                                        class="d-flex align-items-center justify-content-center p-4 flex-shrink-0"
+                                        :style="{
+                                            backgroundColor: `${primaryColor(brand)}20`,
+                                            minWidth: '8rem',
+                                        }"
                                     >
-                                        <Building2 class="h-8 w-8 sm:h-10 sm:w-10" />
-                                    </div>
-                                    <div
-                                        class="mt-2 flex gap-1 sm:mt-3"
-                                        :title="primaryColor(brand)"
-                                    >
-                                        <span
-                                            class="h-4 w-4 rounded-full border border-gray-300 shadow-sm dark:border-gray-600"
+                                        <img
+                                            v-if="brand.logo_url || brand.logo_collapsed_url"
+                                            :src="brand.logo_url || brand.logo_collapsed_url!"
+                                            :alt="brand.name"
+                                            class="img-fluid"
+                                            style="max-height: 5rem; width: auto; object-fit: contain"
+                                            loading="lazy"
+                                        />
+                                        <div
+                                            v-else
+                                            class="rounded d-flex align-items-center justify-content-center text-white"
+                                            style="width: 4rem; height: 4rem"
                                             :style="{ backgroundColor: primaryColor(brand) }"
-                                        />
+                                        >
+                                            <Icon icon="building-store" class="fs-4" />
+                                        </div>
                                         <span
-                                            v-if="brand.theme_colors?.primary_hover"
-                                            class="h-4 w-4 rounded-full border border-gray-300 shadow-sm dark:border-gray-600"
-                                            :style="{ backgroundColor: brand.theme_colors.primary_hover }"
+                                            class="rounded-circle border mt-2 d-inline-block"
+                                            style="width: 1rem; height: 1rem"
+                                            :style="{ backgroundColor: primaryColor(brand) }"
+                                            :title="primaryColor(brand)"
                                         />
                                     </div>
-                                </div>
-                                <div class="flex flex-1 flex-col justify-between p-5">
-                                    <div>
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <span class="text-lg font-semibold text-foreground">{{ brand.name }}</span>
-                                            <Badge v-if="brand.is_default" variant="secondary" class="shrink-0">
-                                                Standard
-                                            </Badge>
+                                    <BCardBody class="d-flex flex-column">
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <span class="fs-5 fw-semibold">{{ brand.name }}</span>
+                                            <BBadge v-if="brand.is_default" variant="secondary">Standard</BBadge>
                                         </div>
-                                        <p class="mt-1 text-sm text-muted-foreground">{{ brand.key }}</p>
+                                        <p class="text-muted small mb-1">{{ brand.key }}</p>
                                         <div
                                             v-if="firstDomains(brand.domains).length"
-                                            class="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
+                                            class="small text-muted d-flex align-items-center gap-1 mb-1"
                                         >
-                                            <Globe class="h-3.5 w-3.5 shrink-0" />
-                                            <span>{{ firstDomains(brand.domains).join(', ') }}</span>
+                                            <Icon icon="world" class="flex-shrink-0" />
+                                            {{ firstDomains(brand.domains).join(', ') }}
                                             <span v-if="brand.domains && brand.domains.length > 2">
                                                 (+{{ brand.domains.length - 2 }} weitere)
                                             </span>
                                         </div>
-                                        <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                            <span class="flex items-center gap-1">
-                                                <Mail class="h-3.5 w-3.5" />
-                                                Anrede: {{ salutationLabel(brand.salutation) }}
-                                            </span>
+                                        <div class="small text-muted d-flex align-items-center gap-1 mb-2">
+                                            <Icon icon="mail" class="flex-shrink-0" />
+                                            Anrede: {{ salutationLabel(brand.salutation) }}
                                         </div>
-                                        <div
-                                            v-if="activeFeatures(brand.features).length"
-                                            class="mt-3 flex flex-wrap gap-1.5"
-                                        >
-                                            <span
+                                        <div v-if="activeFeatures(brand.features).length" class="d-flex flex-wrap gap-1">
+                                            <BBadge
                                                 v-for="label in activeFeatures(brand.features)"
                                                 :key="label"
-                                                class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                                                variant="secondary"
+                                                class="small"
                                             >
                                                 {{ label }}
-                                            </span>
+                                            </BBadge>
                                         </div>
-                                    </div>
-                                    <div class="mt-4 flex items-center gap-2">
-                                        <Button variant="outline" size="sm" class="gap-2" as="span">
-                                            <Edit class="h-4 w-4" />
-                                            Bearbeiten
-                                        </Button>
-                                    </div>
+                                        <div class="mt-auto pt-2">
+                                            <BButton variant="outline-primary" size="sm">
+                                                <Icon icon="pencil" class="me-1" />
+                                                Bearbeiten
+                                            </BButton>
+                                        </div>
+                                    </BCardBody>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </Link>
-            </div>
-        </div>
+                            </BCard>
+                        </Link>
+                    </BCol>
+                </BRow>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

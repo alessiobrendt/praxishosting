@@ -1,3 +1,4 @@
+<!-- Admin: Cron-Statistik -->
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import {
@@ -12,11 +13,17 @@ import {
     Legend,
 } from 'chart.js';
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BButton,
+    BFormSelect,
+    BFormGroup,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -102,14 +109,14 @@ function formatNextDaily(iso: string): string {
     }
 }
 
-const applyFilters = () => {
+function applyFilters(): void {
     router.get('/admin/cron-statistics', { days: filterDays.value }, { preserveState: true });
-};
+}
 
 const chartCanvas = ref<HTMLCanvasElement | null>(null);
 let chartInstance: Chart<'line'> | null = null;
 
-const chartData = () => {
+function chartData(): { labels: string[]; datasets: object[] } {
     const stats = [...props.dailyStats].reverse();
     return {
         labels: stats.map((d) => d.date_formatted),
@@ -180,9 +187,9 @@ const chartData = () => {
             },
         ],
     };
-};
+}
 
-const buildChart = () => {
+function buildChart(): void {
     if (!chartCanvas.value || !props.dailyStats.length) return;
     if (chartInstance) {
         chartInstance.destroy();
@@ -210,7 +217,7 @@ const buildChart = () => {
             },
         },
     });
-};
+}
 
 onMounted(() => {
     buildChart();
@@ -230,109 +237,140 @@ watch(
     },
     { deep: true },
 );
+
+const daysOptions = [
+    { value: 7, text: '7 Tage' },
+    { value: 14, text: '14 Tage' },
+    { value: 30, text: '30 Tage' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Cron / Worker-Statistik" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Cron-Statistik</Heading>
-                <Text class="mt-2" muted>
-                    Scheduler-Läufe und tägliche Metriken (Rechnungen, Suspendierungen, Tickets, Bezahlungen)
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Cron-Statistik</h4>
+                    <p class="text-muted small mb-0">
+                        Scheduler-Läufe und tägliche Metriken (Rechnungen, Suspendierungen, Tickets,
+                        Bezahlungen)
+                    </p>
+                </div>
 
-            <div class="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Letzter Scheduler-Lauf</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-lg font-semibold">{{ formatDateTime(lastSchedulerRunAt) }}</span>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Letzter Cron-Lauf</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-lg font-semibold">{{ formatDateTime(lastCronRunAt) }}</span>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="text-sm font-medium">Nächster Cron-Lauf</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span class="text-lg font-semibold">{{ nextCronRunDescription }}</span>
-                        <Text variant="small" muted class="mt-1 block">
-                            Nächster täglicher Lauf: {{ formatNextDaily(nextDailyRunAt) }}
-                        </Text>
-                    </CardContent>
-                </Card>
-            </div>
+                <BRow class="mb-4">
+                    <BCol md="4" class="mb-3">
+                        <BCard no-body>
+                            <BCardHeader class="py-3">
+                                <BCardTitle class="small fw-medium mb-0">Letzter Scheduler-Lauf</BCardTitle>
+                            </BCardHeader>
+                            <BCardBody>
+                                <span class="fs-5 fw-semibold">{{ formatDateTime(lastSchedulerRunAt) }}</span>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                    <BCol md="4" class="mb-3">
+                        <BCard no-body>
+                            <BCardHeader class="py-3">
+                                <BCardTitle class="small fw-medium mb-0">Letzter Cron-Lauf</BCardTitle>
+                            </BCardHeader>
+                            <BCardBody>
+                                <span class="fs-5 fw-semibold">{{ formatDateTime(lastCronRunAt) }}</span>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                    <BCol md="4" class="mb-3">
+                        <BCard no-body>
+                            <BCardHeader class="py-3">
+                                <BCardTitle class="small fw-medium mb-0">Nächster Cron-Lauf</BCardTitle>
+                            </BCardHeader>
+                            <BCardBody>
+                                <span class="fs-5 fw-semibold">{{ nextCronRunDescription }}</span>
+                                <p class="text-muted small mb-0 mt-1">
+                                    Nächster täglicher Lauf: {{ formatNextDaily(nextDailyRunAt) }}
+                                </p>
+                            </BCardBody>
+                        </BCard>
+                    </BCol>
+                </BRow>
 
-            <Card>
-                <CardHeader class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <CardTitle>Cron-Diagramm</CardTitle>
-                        <CardDescription>Metriken pro Tag (letzte {{ filterDays }} Tage) – Linien mit transparentem Verlauf</CardDescription>
-                    </div>
-                    <form @submit.prevent="applyFilters" class="flex flex-shrink-0 items-end gap-2">
-                        <div class="space-y-1.5">
-                            <Label for="filter_days" class="text-xs">Zeitraum</Label>
-                            <Select id="filter_days" v-model="filterDays" class="w-32">
-                                <option :value="7">7 Tage</option>
-                                <option :value="14">14 Tage</option>
-                                <option :value="30">30 Tage</option>
-                            </Select>
+                <BCard no-body class="mb-4">
+                    <BCardHeader class="d-flex flex-column flex-sm-row align-items-start justify-content-between gap-3">
+                        <div>
+                            <BCardTitle class="mb-0">Cron-Diagramm</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">
+                                Metriken pro Tag (letzte {{ filterDays }} Tage) – Linien mit transparentem Verlauf
+                            </p>
                         </div>
-                        <Button type="submit" size="sm">Anwenden</Button>
-                    </form>
-                </CardHeader>
-                <CardContent>
-                    <div v-if="dailyStats.length" class="h-[300px] w-full">
-                        <canvas ref="chartCanvas" class="h-full w-full"></canvas>
-                    </div>
-                    <div v-else class="flex min-h-[200px] items-center justify-center rounded-md border border-dashed border-muted-foreground/25 bg-muted/30 text-muted-foreground">
-                        Keine Daten für den gewählten Zeitraum.
-                    </div>
-                </CardContent>
-            </Card>
+                        <form
+                            class="d-flex flex-shrink-0 align-items-end gap-2"
+                            @submit.prevent="applyFilters"
+                        >
+                            <BFormGroup label="Zeitraum" label-for="filter_days" class="mb-0 me-2">
+                                <BFormSelect
+                                    id="filter_days"
+                                    v-model="filterDays"
+                                    :options="daysOptions"
+                                    class="form-select-sm"
+                                    style="min-width: 7rem"
+                                />
+                            </BFormGroup>
+                            <BButton type="submit" size="sm" variant="primary">Anwenden</BButton>
+                        </form>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div v-if="dailyStats.length" class="w-100" style="height: 300px">
+                            <canvas ref="chartCanvas" class="w-100 h-100"></canvas>
+                        </div>
+                        <div
+                            v-else
+                            class="d-flex align-items-center justify-content-center border border-secondary border-2 border-dashed rounded bg-light text-muted"
+                            style="min-height: 200px"
+                        >
+                            Keine Daten für den gewählten Zeitraum.
+                        </div>
+                    </BCardBody>
+                </BCard>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Legende</CardTitle>
-                </CardHeader>
-                <CardContent class="space-y-2 text-sm text-muted-foreground">
-                    <p>
-                        <strong>Rechnungen erstellt:</strong> Verlängerungs-Rechnungen (Site- und Domain-Abos), die an diesem Tag erstellt wurden.
-                    </p>
-                    <p>
-                        <strong>Dienste bestellt:</strong> Site-Abos, die an diesem Tag angelegt wurden.
-                    </p>
-                    <p>
-                        <strong>Dienste verlängert:</strong> Abo-Verlängerungs-Rechnungen, die an diesem Tag bezahlt wurden.
-                    </p>
-                    <p>
-                        <strong>Dienste gesperrt:</strong> Abos, die an diesem Tag nach Ablauf der Laufzeit auf „gesperrt“ gesetzt wurden.
-                    </p>
-                    <p>
-                        <strong>Dienste beendet:</strong> Abos/Seiten, die nach Ablauf der Schonfrist an diesem Tag gekündigt/entfernt wurden.
-                    </p>
-                    <p>
-                        <strong>Tickets erstellt:</strong> Tickets, die an diesem Tag angelegt wurden.
-                    </p>
-                    <p>
-                        <strong>Tickets geschlossen:</strong> Inaktive Tickets, die an diesem Tag automatisch geschlossen wurden.
-                    </p>
-                    <p>
-                        <strong>Rechnungen bezahlt:</strong> Rechnungen, die an diesem Tag als bezahlt markiert wurden.
-                    </p>
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Legende</BCardTitle>
+                    </BCardHeader>
+                    <BCardBody class="small text-muted">
+                        <p class="mb-2">
+                            <strong>Rechnungen erstellt:</strong> Verlängerungs-Rechnungen (Site- und
+                            Domain-Abos), die an diesem Tag erstellt wurden.
+                        </p>
+                        <p class="mb-2">
+                            <strong>Dienste bestellt:</strong> Site-Abos, die an diesem Tag angelegt wurden.
+                        </p>
+                        <p class="mb-2">
+                            <strong>Dienste verlängert:</strong> Abo-Verlängerungs-Rechnungen, die an diesem
+                            Tag bezahlt wurden.
+                        </p>
+                        <p class="mb-2">
+                            <strong>Dienste gesperrt:</strong> Abos, die an diesem Tag nach Ablauf der
+                            Laufzeit auf „gesperrt“ gesetzt wurden.
+                        </p>
+                        <p class="mb-2">
+                            <strong>Dienste beendet:</strong> Abos/Seiten, die nach Ablauf der Schonfrist an
+                            diesem Tag gekündigt/entfernt wurden.
+                        </p>
+                        <p class="mb-2">
+                            <strong>Tickets erstellt:</strong> Tickets, die an diesem Tag angelegt wurden.
+                        </p>
+                        <p class="mb-2">
+                            <strong>Tickets geschlossen:</strong> Inaktive Tickets, die an diesem Tag
+                            automatisch geschlossen wurden.
+                        </p>
+                        <p class="mb-0">
+                            <strong>Rechnungen bezahlt:</strong> Rechnungen, die an diesem Tag als bezahlt
+                            markiert wurden.
+                        </p>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

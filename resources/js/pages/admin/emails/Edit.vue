@@ -1,15 +1,24 @@
+<!-- Admin: E-Mail-Vorlage bearbeiten -->
 <script setup lang="ts">
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
 import { ref, watch, onMounted } from 'vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormTextarea,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import InputError from '@/components/InputError.vue';
 import { dashboard } from '@/routes';
 import {
     index as emailsIndex,
@@ -118,91 +127,124 @@ function sendTestEmail() {
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`E-Mail-Vorlage: ${emailTemplate.name}`" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">{{ emailTemplate.name }}</Heading>
-                <Text class="mt-2" muted>
-                    Vorlage „{{ emailTemplate.key }}“. Platzhalter z. B. :user_name, :site_name werden beim Versand ersetzt.
-                </Text>
-            </div>
+        <BRow>
+            <BCol cols="12">
+                <div class="mb-3">
+                    <h4 class="mb-1">{{ emailTemplate.name }}</h4>
+                    <p class="text-muted small mb-0">
+                        Vorlage „{{ emailTemplate.key }}“. Platzhalter z. B. :user_name, :site_name werden beim
+                        Versand ersetzt.
+                    </p>
+                </div>
+            </BCol>
+        </BRow>
 
-            <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <form class="space-y-6" @submit.prevent="submit">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Inhalt</CardTitle>
-                            <CardDescription v-if="placeholders.length">
+        <BRow>
+            <BCol xl="6" class="mb-4">
+                <BForm @submit.prevent="submit">
+                    <BCard no-body>
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Inhalt</BCardTitle>
+                            <p v-if="placeholders.length" class="text-muted small mb-0 mt-1">
                                 Verfügbare Platzhalter: {{ placeholders.map((p) => `:${p}`).join(', ') }}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-4">
-                            <div class="space-y-2">
-                                <Label for="subject">Betreff</Label>
-                                <Input id="subject" v-model="form.subject" required :aria-invalid="!!form.errors.subject" />
+                            </p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BFormGroup label="Betreff" label-for="subject">
+                                <BFormInput
+                                    id="subject"
+                                    v-model="form.subject"
+                                    required
+                                    :aria-invalid="!!form.errors.subject"
+                                />
                                 <InputError :message="form.errors.subject" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="greeting">Anrede</Label>
-                                <Input id="greeting" v-model="form.greeting" required :aria-invalid="!!form.errors.greeting" />
+                            </BFormGroup>
+                            <BFormGroup label="Anrede" label-for="greeting">
+                                <BFormInput
+                                    id="greeting"
+                                    v-model="form.greeting"
+                                    required
+                                    :aria-invalid="!!form.errors.greeting"
+                                />
                                 <InputError :message="form.errors.greeting" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="body">Nachricht (Zeilenumbrüche bleiben erhalten, **fett** für Markdown)</Label>
-                                <Textarea
+                            </BFormGroup>
+                            <BFormGroup
+                                label="Nachricht (Zeilenumbrüche bleiben erhalten, **fett** für Markdown)"
+                                label-for="body"
+                            >
+                                <BFormTextarea
                                     id="body"
                                     v-model="form.body"
                                     required
-                                    :rows="12"
-                                    class="font-mono text-sm"
+                                    rows="12"
+                                    class="font-monospace small"
                                     :aria-invalid="!!form.errors.body"
                                 />
                                 <InputError :message="form.errors.body" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="action_text">Button-Text (optional)</Label>
-                                <Input id="action_text" v-model="form.action_text" :aria-invalid="!!form.errors.action_text" />
+                            </BFormGroup>
+                            <BFormGroup label="Button-Text (optional)" label-for="action_text">
+                                <BFormInput
+                                    id="action_text"
+                                    v-model="form.action_text"
+                                    :aria-invalid="!!form.errors.action_text"
+                                />
                                 <InputError :message="form.errors.action_text" />
-                            </div>
-                        </CardContent>
-                        <CardFooter class="flex flex-wrap gap-2">
-                            <Button type="submit" :disabled="form.processing">Speichern</Button>
-                            <Button type="button" variant="outline" @click="sendTestEmail">
+                            </BFormGroup>
+                        </BCardBody>
+                        <BCardFooter class="d-flex flex-wrap gap-2">
+                            <BButton type="submit" variant="primary" :disabled="form.processing">
+                                Speichern
+                            </BButton>
+                            <BButton type="button" variant="outline-primary" @click="sendTestEmail">
                                 Test senden
-                            </Button>
+                            </BButton>
                             <Link :href="emailsIndex().url">
-                                <Button type="button" variant="outline">Abbrechen</Button>
+                                <BButton type="button" variant="outline-secondary">Abbrechen</BButton>
                             </Link>
-                        </CardFooter>
-                    </Card>
-                </form>
+                        </BCardFooter>
+                    </BCard>
+                </BForm>
+            </BCol>
 
-                <Card class="xl:sticky xl:top-6 xl:self-start">
-                    <CardHeader>
-                        <CardTitle>Live-Vorschau</CardTitle>
-                        <CardDescription>Wie die E-Mail beim Versand aussieht (aktualisiert beim Tippen)</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div v-if="previewError" class="rounded border border-border bg-muted/30 p-4 text-sm text-destructive">
+            <BCol xl="6" class="mb-4">
+                <BCard no-body class="sticky-top">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Live-Vorschau</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Wie die E-Mail beim Versand aussieht (aktualisiert beim Tippen)
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div
+                            v-if="previewError"
+                            class="rounded border border-danger bg-danger bg-opacity-10 p-3 small text-danger"
+                        >
                             {{ previewError }}
                         </div>
                         <div
                             v-else
-                            class="min-h-[400px] overflow-hidden rounded border border-border bg-muted/30"
+                            class="overflow-hidden rounded border border-secondary bg-light"
+                            style="min-height: 400px"
                         >
-                            <div v-if="previewLoading && !previewHtml" class="flex h-64 items-center justify-center text-muted-foreground">
+                            <div
+                                v-if="previewLoading && !previewHtml"
+                                class="d-flex align-items-center justify-content-center text-muted"
+                                style="height: 16rem"
+                            >
                                 Lädt…
                             </div>
                             <iframe
                                 v-else
                                 :srcdoc="previewHtml"
                                 title="E-Mail-Vorschau"
-                                class="h-[70vh] min-h-[400px] w-full border-0"
+                                class="w-100 border-0"
+                                style="height: 70vh; min-height: 400px"
                                 sandbox="allow-same-origin"
                             />
                         </div>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

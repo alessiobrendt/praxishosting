@@ -1,7 +1,6 @@
+<!-- Admin: Hosting-Server Tabelle/Karten-Grid mit Pagination -->
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
+import { BCard, BCardHeader, BCardTitle, BCardBody } from 'bootstrap-vue-next';
 import HostingServerCard from './HostingServerCard.vue';
 import type { HostingServerCardData } from './HostingServerCard.vue';
 
@@ -14,41 +13,53 @@ defineProps<{
 }>();
 
 const handlePagination = (url: string) => {
-    router.get(url);
+    if (url) window.location.href = url;
 };
 </script>
 
 <template>
-    <Card>
-        <CardHeader>
-            <CardTitle>Alle Server</CardTitle>
-            <CardDescription>
+    <BCard no-body>
+        <BCardHeader>
+            <BCardTitle class="mb-0">Alle Server</BCardTitle>
+            <p class="text-muted small mb-0 mt-1">
                 Plesk- und Pterodactyl-Server. API prüfen prüft die Verbindung zum Panel.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
+            </p>
+        </BCardHeader>
+        <BCardBody>
             <div
                 v-if="servers.length > 0"
-                class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                class="row g-3 row-cols-1 row-cols-sm-2 row-cols-xl-3"
             >
-                <HostingServerCard
-                    v-for="server in servers"
-                    :key="server.id"
-                    :server="server"
-                />
+                <div v-for="server in servers" :key="server.id" class="col">
+                    <HostingServerCard :server="server" />
+                </div>
             </div>
             <div
                 v-else
-                class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 py-16 text-center dark:border-gray-700"
+                class="text-center py-5 rounded border border-2 border-dashed"
             >
-                <p class="text-muted-foreground">
-                    {{ emptyMessage ?? 'Keine Server vorhanden' }}
-                </p>
+                <p class="text-muted mb-0">{{ emptyMessage ?? 'Keine Server vorhanden' }}</p>
             </div>
-        </CardContent>
-    </Card>
+        </BCardBody>
+    </BCard>
 
-    <div v-if="links && links.length > 3" class="flex justify-center">
-        <Pagination :links="links" @navigate="handlePagination" />
-    </div>
+    <nav v-if="links && links.length > 3" class="d-flex justify-content-center p-3">
+        <ul class="pagination pagination-sm mb-0">
+            <li
+                v-for="(link, idx) in links"
+                :key="idx"
+                class="page-item"
+                :class="{ active: link.active, disabled: !link.url }"
+            >
+                <a
+                    v-if="link.url"
+                    class="page-link"
+                    href="#"
+                    @click.prevent="handlePagination(link.url!)"
+                    v-html="link.label"
+                />
+                <span v-else class="page-link" v-html="link.label" />
+            </li>
+        </ul>
+    </nav>
 </template>

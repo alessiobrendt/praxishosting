@@ -1,11 +1,19 @@
+<!-- Admin: TeamSpeak-Server-Account (Detail) -->
 <script setup lang="ts">
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
-import { CreditCard, ExternalLink, Headphones } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -15,6 +23,7 @@ type HostingServer = { id: number; name: string | null; hostname: string } | nul
 
 type TeamSpeakServerAccount = {
     id: number;
+    uuid: string;
     name: string;
     port: number | null;
     virtual_server_id: number | null;
@@ -55,124 +64,116 @@ const csrfToken = () => (page.props.csrfToken as string) ?? '';
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`TeamSpeak: ${teamSpeakServerAccount.name}`" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <Headphones class="h-8 w-8" />
-                    <div>
-                        <Heading level="h1">{{ teamSpeakServerAccount.name }}</Heading>
-                        <Text class="mt-2" muted>
-                            TeamSpeak-Server – Kunde: {{ teamSpeakServerAccount.user.name }}
-                        </Text>
-                    </div>
-                </div>
-                <Badge variant="secondary">{{ teamSpeakServerAccount.status }}</Badge>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Account-Daten</CardTitle>
-                    <CardDescription>Kunde und Zuordnung</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <BRow>
+            <BCol>
+                <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <Icon icon="headphones" class="fs-4 text-primary" />
                         <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Kunde</Text>
-                            <p class="font-medium">{{ teamSpeakServerAccount.user.name }}</p>
-                            <p class="text-sm text-muted-foreground">{{ teamSpeakServerAccount.user.email }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Server-Name</Text>
-                            <p class="font-medium">{{ teamSpeakServerAccount.name }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Port / Virtual Server ID</Text>
-                            <p class="font-medium">
-                                <span v-if="teamSpeakServerAccount.port != null">{{ teamSpeakServerAccount.port }}</span>
-                                <span v-else class="text-muted-foreground">–</span>
-                                <span v-if="teamSpeakServerAccount.virtual_server_id != null" class="text-muted-foreground">
-                                    (ID: {{ teamSpeakServerAccount.virtual_server_id }})
-                                </span>
+                            <h4 class="mb-1">{{ teamSpeakServerAccount.name }}</h4>
+                            <p class="text-muted small mb-0">
+                                TeamSpeak-Server – Kunde: {{ teamSpeakServerAccount.user.name }}
                             </p>
                         </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Plan / Hosting-Server</Text>
-                            <p class="font-medium">{{ teamSpeakServerAccount.hosting_plan.name }}</p>
-                            <p class="text-sm text-muted-foreground">{{ teamSpeakServerAccount.hosting_server?.name ?? teamSpeakServerAccount.hosting_server?.hostname ?? '–' }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Abo-Ende</Text>
-                            <p class="font-medium">{{ formatDate(teamSpeakServerAccount.current_period_ends_at) }}</p>
-                        </div>
-                        <div v-if="slots != null">
-                            <Text class="text-sm font-medium text-muted-foreground">Slots</Text>
-                            <p class="font-medium">{{ slots }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Verlängerung</Text>
-                            <p class="font-medium">{{ renewalLabel }}</p>
-                        </div>
-                        <div v-if="teamSpeakServerAccount.monthly_amount != null">
-                            <Text class="text-sm font-medium text-muted-foreground">Monatspreis</Text>
-                            <p class="font-medium">{{ teamSpeakServerAccount.monthly_amount?.toFixed(2) }} €</p>
-                        </div>
                     </div>
-                    <div class="flex flex-wrap gap-2 pt-4">
-                        <Link :href="`/admin/teamspeak-accounts/${teamSpeakServerAccount.id}/edit`">
-                            <Button variant="default">Bearbeiten</Button>
-                        </Link>
-                        <a :href="`/teamspeak-accounts/${teamSpeakServerAccount.id}`" target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" as="span">
-                                <ExternalLink class="mr-2 h-4 w-4" />
-                                Als Kunde ansehen
-                            </Button>
-                        </a>
-                    </div>
-                </CardContent>
-            </Card>
+                    <BBadge variant="secondary">{{ teamSpeakServerAccount.status }}</BBadge>
+                </div>
 
-            <Card v-if="teamSpeakServerAccount.mollie_subscription_id">
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <CreditCard class="h-5 w-5" />
-                        Mollie-Abo
-                    </CardTitle>
-                    <CardDescription>Subscription bei Mollie – Abo kündigen zum Periodenende</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-3">
-                    <div>
-                        <Text class="text-sm font-medium text-muted-foreground">Subscription-ID</Text>
-                        <p class="font-mono text-sm">{{ teamSpeakServerAccount.mollie_subscription_id }}</p>
-                    </div>
-                    <div v-if="teamSpeakServerAccount.cancel_at_period_end" class="text-amber-600 dark:text-amber-400 text-sm">
-                        Wird zum Periodenende gekündigt.
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <a
-                            :href="`https://www.mollie.com/dashboard/customers`"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex"
-                        >
-                            <Button variant="outline" size="sm" as="span">
-                                <ExternalLink class="mr-2 h-4 w-4" />
-                                Bei Mollie anzeigen
-                            </Button>
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Account-Daten</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Kunde und Zuordnung</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BRow>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Kunde</p>
+                                <p class="fw-medium mb-0">{{ teamSpeakServerAccount.user.name }}</p>
+                                <p class="small text-muted mb-0">{{ teamSpeakServerAccount.user.email }}</p>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Server-Name</p>
+                                <p class="fw-medium mb-0">{{ teamSpeakServerAccount.name }}</p>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Port / Virtual Server ID</p>
+                                <p class="fw-medium mb-0">
+                                    <span v-if="teamSpeakServerAccount.port != null">{{ teamSpeakServerAccount.port }}</span>
+                                    <span v-else class="text-muted">–</span>
+                                    <span v-if="teamSpeakServerAccount.virtual_server_id != null" class="text-muted">
+                                        (ID: {{ teamSpeakServerAccount.virtual_server_id }})
+                                    </span>
+                                </p>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Plan / Hosting-Server</p>
+                                <p class="fw-medium mb-0">{{ teamSpeakServerAccount.hosting_plan.name }}</p>
+                                <p class="small text-muted mb-0">{{ teamSpeakServerAccount.hosting_server?.name ?? teamSpeakServerAccount.hosting_server?.hostname ?? '–' }}</p>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Abo-Ende</p>
+                                <p class="fw-medium mb-0">{{ formatDate(teamSpeakServerAccount.current_period_ends_at) }}</p>
+                            </BCol>
+                            <BCol v-if="slots != null" md="6">
+                                <p class="text-muted small mb-1">Slots</p>
+                                <p class="fw-medium mb-0">{{ slots }}</p>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Verlängerung</p>
+                                <p class="fw-medium mb-0">{{ renewalLabel }}</p>
+                            </BCol>
+                            <BCol v-if="teamSpeakServerAccount.monthly_amount != null" md="6">
+                                <p class="text-muted small mb-1">Monatspreis</p>
+                                <p class="fw-medium mb-0">{{ teamSpeakServerAccount.monthly_amount?.toFixed(2) }} €</p>
+                            </BCol>
+                        </BRow>
+                    </BCardBody>
+                    <BCardFooter class="d-flex flex-wrap gap-2">
+                        <Link :href="`/admin/teamspeak-accounts/${teamSpeakServerAccount.uuid}/edit`">
+                            <BButton variant="primary">
+                                <Icon icon="pencil" class="me-1" />Bearbeiten
+                            </BButton>
+                        </Link>
+                        <a :href="`/teamspeak-accounts/${teamSpeakServerAccount.uuid}`" target="_blank" rel="noopener noreferrer">
+                            <BButton variant="outline-secondary">
+                                <Icon icon="external-link" class="me-1" />Als Kunde ansehen
+                            </BButton>
+                        </a>
+                    </BCardFooter>
+                </BCard>
+
+                <BCard v-if="teamSpeakServerAccount.mollie_subscription_id" no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0 d-flex align-items-center gap-2">
+                            <Icon icon="credit-card" />Mollie-Abo
+                        </BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Subscription bei Mollie – Abo kündigen zum Periodenende</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <p class="text-muted small mb-1">Subscription-ID</p>
+                        <p class="font-monospace small mb-0">{{ teamSpeakServerAccount.mollie_subscription_id }}</p>
+                        <p v-if="teamSpeakServerAccount.cancel_at_period_end" class="text-warning small mt-2 mb-0">
+                            Wird zum Periodenende gekündigt.
+                        </p>
+                    </BCardBody>
+                    <BCardFooter class="d-flex flex-wrap gap-2">
+                        <a href="https://www.mollie.com/dashboard/customers" target="_blank" rel="noopener noreferrer">
+                            <BButton variant="outline-secondary" size="sm">
+                                <Icon icon="external-link" class="me-1" />Bei Mollie anzeigen
+                            </BButton>
                         </a>
                         <Form
                             v-if="!teamSpeakServerAccount.cancel_at_period_end"
-                            :action="`/admin/teamspeak-accounts/${teamSpeakServerAccount.id}/subscription/cancel`"
+                            :action="`/admin/teamspeak-accounts/${teamSpeakServerAccount.uuid}/subscription/cancel`"
                             method="post"
-                            class="inline"
+                            class="d-inline"
                         >
                             <input type="hidden" name="_token" :value="csrfToken()" />
-                            <Button type="submit" variant="outline" size="sm">
-                                Abo kündigen
-                            </Button>
+                            <BButton type="submit" variant="outline-warning" size="sm">Abo kündigen</BButton>
                         </Form>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                    </BCardFooter>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

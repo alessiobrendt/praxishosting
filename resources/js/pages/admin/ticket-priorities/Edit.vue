@@ -1,12 +1,21 @@
+<!-- Admin: Ticket-Priorität bearbeiten -->
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormCheckbox,
+    BButton,
+} from 'bootstrap-vue-next';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Heading } from '@/components/ui/typography';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -46,45 +55,49 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Priorität: ${ticketPriority.name}`" />
 
-        <div class="space-y-6">
-            <Heading level="h1">Priorität bearbeiten</Heading>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Priorität bearbeiten</h4>
+                    <p class="text-muted small mb-0">{{ ticketPriority.name }}</p>
+                </div>
 
-            <Card class="max-w-xl">
-                <CardHeader>
-                    <CardTitle>{{ ticketPriority.name }}</CardTitle>
-                </CardHeader>
-                <form @submit.prevent="form.put(`/admin/ticket-priorities/${ticketPriority.id}`)">
-                    <CardContent class="space-y-4">
-                        <div class="space-y-2">
-                            <Label for="name">Name</Label>
-                            <Input id="name" v-model="form.name" required :aria-invalid="!!form.errors.name" />
-                            <InputError :message="form.errors.name" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="slug">Slug</Label>
-                            <Input id="slug" v-model="form.slug" required :aria-invalid="!!form.errors.slug" />
-                            <InputError :message="form.errors.slug" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="color">Farbe (optional)</Label>
-                            <Input id="color" v-model="form.color" type="text" placeholder="#3b82f6" />
-                            <InputError :message="form.errors.color" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="sort_order">Sortierung</Label>
-                            <Input id="sort_order" v-model="form.sort_order" type="number" min="0" />
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Switch id="is_active" :checked="form.is_active" @update:checked="(v: boolean) => (form.is_active = v)" />
-                            <Label for="is_active">Aktiv</Label>
-                        </div>
-                    </CardContent>
-                    <CardFooter>
-                        <Button type="submit" :disabled="form.processing">Speichern</Button>
-                        <Link :href="settingsSupportUrl"><Button type="button" variant="outline">Abbrechen</Button></Link>
-                    </CardFooter>
-                </form>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">{{ ticketPriority.name }}</BCardTitle>
+                    </BCardHeader>
+                    <BForm @submit.prevent="form.put(`/admin/ticket-priorities/${ticketPriority.id}`)">
+                        <BCardBody>
+                            <BFormGroup label="Name" label-for="name">
+                                <BFormInput id="name" v-model="form.name" required :aria-invalid="!!form.errors.name" />
+                                <InputError :message="form.errors.name" />
+                            </BFormGroup>
+                            <BFormGroup label="Slug" label-for="slug">
+                                <BFormInput id="slug" v-model="form.slug" required :aria-invalid="!!form.errors.slug" />
+                                <InputError :message="form.errors.slug" />
+                            </BFormGroup>
+                            <BFormGroup label="Farbe (optional)" label-for="color">
+                                <BFormInput id="color" v-model="form.color" type="text" placeholder="#3b82f6" />
+                                <InputError :message="form.errors.color" />
+                            </BFormGroup>
+                            <BFormGroup label="Sortierung" label-for="sort_order">
+                                <BFormInput id="sort_order" v-model="form.sort_order" type="number" min="0" />
+                            </BFormGroup>
+                            <BFormGroup>
+                                <BFormCheckbox id="is_active" v-model="form.is_active" switch>
+                                    Aktiv
+                                </BFormCheckbox>
+                            </BFormGroup>
+                        </BCardBody>
+                        <BCardFooter class="d-flex gap-2">
+                            <BButton type="submit" variant="primary" :disabled="form.processing">Speichern</BButton>
+                            <Link :href="settingsSupportUrl">
+                                <BButton type="button" variant="outline-secondary">Abbrechen</BButton>
+                            </Link>
+                        </BCardFooter>
+                    </BForm>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

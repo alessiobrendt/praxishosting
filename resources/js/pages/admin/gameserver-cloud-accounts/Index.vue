@@ -1,20 +1,19 @@
+<!-- Admin: Gameserver-Cloud-Accounts -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Eye } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
 import {
-    Table,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableHead,
-    TableCell,
-} from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -27,6 +26,7 @@ type GameserverCloudPlan = {
 
 type Subscription = {
     id: number;
+    uuid: string;
     user: User;
     gameserver_cloud_plan: GameserverCloudPlan;
     status: string;
@@ -55,12 +55,9 @@ const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
-    { title: 'Gameserver-Cloud-Accounts', href: '/admin/gameserver-cloud-accounts' },
+    { title: 'Admin', href: '/admin' },
+    { title: 'Gameserver-Cloud-Accounts', href: '#' },
 ];
-
-const handlePagination = (url: string) => {
-    window.location.href = url;
-};
 
 const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '–';
@@ -72,104 +69,103 @@ function usageLabel(sub: Subscription): string {
     parts.push(`${Math.round(sub.used_disk_mb / 1024)} GB Disk`);
     return parts.join(' · ');
 }
+
+const tableFields = [
+    { key: 'customer', label: 'Kunde', sortable: false },
+    { key: 'plan', label: 'Cloud-Plan', sortable: false },
+    { key: 'status', label: 'Status', sortable: false },
+    { key: 'period_end', label: 'Abo-Ende', sortable: false },
+    { key: 'usage', label: 'Verbrauch', sortable: false },
+    { key: 'servers_count', label: 'Server', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Gameserver-Cloud-Accounts" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Gameserver-Cloud-Accounts</Heading>
-                <Text class="mt-2" muted>
-                    Gemietete Clouds (Abos) mit zugehörigen Game-Servern
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Gameserver-Cloud-Accounts</h4>
+                    <p class="text-muted small mb-0">
+                        Gemietete Clouds (Abos) mit zugehörigen Game-Servern
+                    </p>
+                </div>
 
-            <Card v-if="!brandHasGameserverCloud">
-                <CardContent class="py-8 text-center text-muted-foreground">
-                    Für diese Marke ist das Feature „Gameserver Cloud“ nicht aktiviert.
-                </CardContent>
-            </Card>
+                <BCard v-if="!brandHasGameserverCloud" no-body>
+                    <BCardBody class="py-5 text-center text-muted">
+                        Für diese Marke ist das Feature „Gameserver Cloud“ nicht aktiviert.
+                    </BCardBody>
+                </BCard>
 
-            <Card v-else>
-                <CardHeader>
-                    <CardTitle>Alle Cloud-Abos</CardTitle>
-                    <CardDescription>
-                        Kunde, Cloud-Plan, Status, Abo-Ende, Verbrauch, Anzahl Server
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Kunde</TableHead>
-                                <TableHead>Cloud-Plan</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Abo-Ende</TableHead>
-                                <TableHead>Verbrauch</TableHead>
-                                <TableHead>Server</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow
-                                v-for="sub in props.subscriptions.data"
-                                :key="sub.id"
+                <template v-else>
+                    <BCard no-body>
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Alle Cloud-Abos</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">
+                                Kunde, Cloud-Plan, Status, Abo-Ende, Verbrauch, Anzahl Server
+                            </p>
+                        </BCardHeader>
+                        <BCardBody class="p-0">
+                            <BTable
+                                :items="props.subscriptions.data"
+                                :fields="tableFields"
+                                striped
+                                responsive
+                                class="mb-0"
+                                show-empty
+                                empty-text="Keine Gameserver-Cloud-Abos vorhanden"
                             >
-                                <TableCell>
-                                    <div v-if="sub.user" class="font-medium">{{ sub.user.name }}</div>
-                                    <div
-                                        v-if="sub.user"
-                                        class="text-sm text-muted-foreground"
-                                    >
-                                        {{ sub.user.email }}
-                                    </div>
-                                    <span v-else class="text-muted-foreground">–</span>
-                                </TableCell>
-                                <TableCell>{{ sub.gameserver_cloud_plan?.name ?? '–' }}</TableCell>
-                                <TableCell>
-                                    <Badge variant="secondary">{{ sub.status }}</Badge>
-                                </TableCell>
-                                <TableCell>{{ formatDate(sub.current_period_ends_at) }}</TableCell>
-                                <TableCell class="text-sm text-muted-foreground">
-                                    {{ usageLabel(sub) }}
-                                </TableCell>
-                                <TableCell>{{ sub.servers_count }}</TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="`/admin/gameserver-cloud-accounts/${sub.id}`">
-                                        <Button variant="ghost" size="sm">
-                                            <Eye class="h-4 w-4" />
-                                        </Button>
+                                <template #cell(customer)="row">
+                                    <template v-if="row.item.user">
+                                        <div class="fw-medium">{{ row.item.user.name }}</div>
+                                        <div class="small text-muted">{{ row.item.user.email }}</div>
+                                    </template>
+                                    <span v-else class="text-muted">–</span>
+                                </template>
+                                <template #cell(plan)="row">
+                                    {{ row.item.gameserver_cloud_plan?.name ?? '–' }}
+                                </template>
+                                <template #cell(status)="row">
+                                    <BBadge variant="secondary">{{ row.item.status }}</BBadge>
+                                </template>
+                                <template #cell(period_end)="row">
+                                    {{ formatDate(row.item.current_period_ends_at) }}
+                                </template>
+                                <template #cell(usage)="row">
+                                    <span class="small text-muted">{{ usageLabel(row.item) }}</span>
+                                </template>
+                                <template #cell(actions)="row">
+                                    <Link :href="`/admin/gameserver-cloud-accounts/${row.item.uuid}`">
+                                        <BButton variant="outline-primary" size="sm">
+                                            <Icon icon="eye" class="me-1" />
+                                            Ansehen
+                                        </BButton>
                                     </Link>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="props.subscriptions.data.length === 0">
-                                <TableCell
-                                    colspan="7"
-                                    class="text-center text-gray-500 dark:text-gray-400"
-                                >
-                                    Keine Gameserver-Cloud-Abos vorhanden
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-            <div
-                v-if="
-                    brandHasGameserverCloud &&
-                    props.subscriptions.links &&
-                    props.subscriptions.links.length > 3
-                "
-                class="flex justify-center"
-            >
-                <Pagination
-                    :links="props.subscriptions.links"
-                    @navigate="handlePagination"
-                />
-            </div>
-        </div>
+                                </template>
+                            </BTable>
+                            <nav
+                                v-if="props.subscriptions.links && props.subscriptions.links.length > 3"
+                                class="d-flex justify-content-center p-3"
+                            >
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li
+                                        v-for="(link, idx) in props.subscriptions.links"
+                                        :key="idx"
+                                        class="page-item"
+                                        :class="{ active: link.active, disabled: !link.url }"
+                                    >
+                                        <a v-if="link.url" class="page-link" :href="link.url" v-html="link.label" />
+                                        <span v-else class="page-link" v-html="link.label" />
+                                    </li>
+                                </ul>
+                            </nav>
+                        </BCardBody>
+                    </BCard>
+                </template>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

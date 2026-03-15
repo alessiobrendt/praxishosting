@@ -1,13 +1,20 @@
+<!-- Admin: Template-Seiten (Übersicht) -->
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { Plus, ArrowLeft, FileText, ChevronDown, Layout } from 'lucide-vue-next';
 import { computed } from 'vue';
-import JsonViewer from '@/components/JsonViewer.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Head, Link } from '@inertiajs/vue3';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BButton,
+} from 'bootstrap-vue-next';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Heading } from '@/components/ui/typography';
+import JsonViewer from '@/components/JsonViewer.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import templates from '@/routes/admin/templates';
 import { getTemplateEntry } from '@/templates/template-registry';
@@ -50,88 +57,82 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Seiten: ${template.name}`" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">Seiten</Heading>
-                    <p class="mt-2 text-muted-foreground">
-                        Seiten dieses Templates: {{ template.name }}
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    <Link :href="templates.show({ template: template.id }).url">
-                        <Button variant="outline">
-                            <ArrowLeft class="mr-2 h-4 w-4" />
-                            Zurück
-                        </Button>
-                    </Link>
-                    <Link v-if="hasPageDesigner" :href="templates.design({ template: template.id }).url">
-                        <Button>
-                            <Layout class="mr-2 h-4 w-4" />
-                            Standard-Seiten designen
-                        </Button>
-                    </Link>
-                    <Link :href="templates.pages.create({ template: template.id }).url">
-                        <Button>
-                            <Plus class="mr-2 h-4 w-4" />
-                            Neue Seite
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Seiten dieses Templates</CardTitle>
-                    <CardDescription>
-                        Standardseiten dieser Vorlage. Kunden erhalten diese beim Kauf; hier legen Sie Inhalt und Reihenfolge fest.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent class="p-0 pt-0">
-                    <div v-if="pages.length === 0" class="text-center py-12 text-muted-foreground">
-                        <FileText class="mx-auto h-12 w-12 mb-4 opacity-50" />
-                        <p class="mb-4">Noch keine Seiten vorhanden</p>
+        <BRow>
+            <BCol>
+                <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <h4 class="mb-1">Seiten</h4>
+                        <p class="text-muted small mb-0">Seiten dieses Templates: {{ template.name }}</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <Link :href="templates.show({ template: template.id }).url">
+                            <BButton variant="outline-secondary">
+                                <Icon icon="arrow-left" class="me-2" />Zurück
+                            </BButton>
+                        </Link>
+                        <Link v-if="hasPageDesigner" :href="templates.design({ template: template.id }).url">
+                            <BButton variant="primary">
+                                <Icon icon="layout" class="me-2" />Standard-Seiten designen
+                            </BButton>
+                        </Link>
                         <Link :href="templates.pages.create({ template: template.id }).url">
-                            <Button>
-                                <Plus class="mr-2 h-4 w-4" />
-                                Erste Seite hinzufügen
-                            </Button>
+                            <BButton variant="primary">
+                                <Icon icon="plus" class="me-2" />Neue Seite
+                            </BButton>
                         </Link>
                     </div>
-                    <div v-else class="divide-y divide-sidebar-border">
-                        <div
-                            v-for="page in pages"
-                            :key="page.id"
-                            class="p-4 hover:bg-muted/50 transition-colors space-y-4"
-                        >
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-4">
-                                    <span class="text-sm text-muted-foreground font-mono w-8">
-                                        #{{ page.order }}
-                                    </span>
-                                    <div>
-                                        <p class="font-medium">{{ page.name }}</p>
-                                        <p class="text-sm text-muted-foreground">{{ page.slug }}</p>
-                                    </div>
-                                </div>
-                                <Link :href="templates.pages.show({ template: template.id, page: page.id }).url">
-                                    <Button size="sm" variant="ghost">Anzeigen</Button>
-                                </Link>
-                            </div>
-                            <Collapsible v-if="page.data" class="mt-4">
-                                <CollapsibleTrigger class="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                                    <ChevronDown class="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                    <span>Seiten-Daten</span>
-                                    <span class="text-xs ml-1">(JSON-Daten dieser Seite)</span>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent class="mt-3">
-                                    <JsonViewer :value="page.data" max-height="300px" />
-                                </CollapsibleContent>
-                            </Collapsible>
+                </div>
+
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Seiten dieses Templates</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Standardseiten dieser Vorlage. Kunden erhalten diese beim Kauf; hier legen Sie Inhalt und Reihenfolge fest.
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div v-if="pages.length === 0" class="text-center py-5 text-muted">
+                            <Icon icon="file-text" class="fs-1 opacity-50 mb-3" />
+                            <p class="mb-3">Noch keine Seiten vorhanden</p>
+                            <Link :href="templates.pages.create({ template: template.id }).url">
+                                <BButton variant="primary">
+                                    <Icon icon="plus" class="me-2" />Erste Seite hinzufügen
+                                </BButton>
+                            </Link>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                        <div v-else class="border-top">
+                            <div
+                                v-for="page in pages"
+                                :key="page.id"
+                                class="p-4 border-bottom"
+                            >
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="small text-muted font-monospace" style="width: 2rem">#{{ page.order }}</span>
+                                        <div>
+                                            <p class="fw-medium mb-0">{{ page.name }}</p>
+                                            <p class="small text-muted mb-0">{{ page.slug }}</p>
+                                        </div>
+                                    </div>
+                                    <Link :href="templates.pages.show({ template: template.id, page: page.id }).url">
+                                        <BButton variant="outline-primary" size="sm">Anzeigen</BButton>
+                                    </Link>
+                                </div>
+                                <Collapsible v-if="page.data" class="mt-3">
+                                    <CollapsibleTrigger class="d-flex align-items-center gap-2 small text-muted text-decoration-none">
+                                        <Icon icon="chevron-down" class="small" />
+                                        <span>Seiten-Daten</span>
+                                        <span class="ms-1">(JSON-Daten dieser Seite)</span>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent class="mt-3">
+                                        <JsonViewer :value="page.data" max-height="300px" />
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            </div>
+                        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

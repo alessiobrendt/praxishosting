@@ -1,3 +1,4 @@
+<!-- Admin: Template-Seite bearbeiten (Einstellungen) -->
 <script setup lang="ts">
 import { router, Head, Link, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from 'lucide-vue-next';

@@ -1,3 +1,4 @@
+<!-- Admin: Template bearbeiten -->
 <script setup lang="ts">
 import { router, Head, Link, usePage } from '@inertiajs/vue3';
 import { Upload, ChevronDown, Sparkles, Plus, Trash2, GripVertical } from 'lucide-vue-next';

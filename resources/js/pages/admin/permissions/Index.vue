@@ -1,11 +1,19 @@
+<!-- Admin: Berechtigungen -->
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Edit, Plus, Trash2 } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -13,7 +21,9 @@ type Permission = { id: number; key: string; name: string; label: string | null 
 
 type Props = { permissions: Permission[] };
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const tableItems = computed(() => (props.permissions ?? []).filter((p): p is Permission => p != null));
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -21,64 +31,78 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Berechtigungen', href: '#' },
 ];
 
-const destroy = (id: number) => {
+function destroy(id: number): void {
     if (confirm('Berechtigung wirklich löschen? Sie wird aus allen Gruppen entfernt.')) {
         router.delete(`/admin/permissions/${id}`);
     }
-};
+}
+
+const tableFields = [
+    { key: 'key', label: 'Key', sortable: false },
+    { key: 'name', label: 'Name', sortable: false },
+    { key: 'label', label: 'Label', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Berechtigungen" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">Berechtigungen</Heading>
-                    <Text class="mt-2" muted>Berechtigungs-Keys verwalten. Werte * und admin.access gewähren Zugriff.</Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">Berechtigungen</h4>
+                        <p class="text-muted small mb-0">
+                            Berechtigungs-Keys verwalten. Werte * und admin.access gewähren Zugriff.
+                        </p>
+                    </div>
+                    <Link href="/admin/permissions/create">
+                        <BButton variant="primary">
+                            <Icon icon="plus" class="me-2" />
+                            Neu
+                        </BButton>
+                    </Link>
                 </div>
-                <Link href="/admin/permissions/create">
-                    <Button><Plus class="mr-2 h-4 w-4" />Neu</Button>
-                </Link>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Berechtigungen</CardTitle>
-                    <CardDescription>Key, Name, Label</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Key</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Label</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="p in permissions" :key="p.id">
-                                <TableCell><code class="text-sm">{{ p.key }}</code></TableCell>
-                                <TableCell>{{ p.name }}</TableCell>
-                                <TableCell>{{ p.label ?? '—' }}</TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="`/admin/permissions/${p.id}/edit`">
-                                        <Button variant="ghost" size="sm"><Edit class="h-4 w-4" /></Button>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Berechtigungen</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Key, Name, Label</p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="tableItems"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Berechtigungen"
+                        >
+                            <template #cell(key)="row">
+                                <code class="small">{{ row.item?.key ?? '–' }}</code>
+                            </template>
+                            <template #cell(label)="row">
+                                {{ row.item?.label ?? '—' }}
+                            </template>
+                            <template #cell(actions)="row">
+                                <template v-if="row.item">
+                                    <Link :href="`/admin/permissions/${row.item.id}/edit`" class="me-1">
+                                        <BButton variant="outline-primary" size="sm">
+                                            <Icon icon="pencil" />
+                                        </BButton>
                                     </Link>
-                                    <Button variant="ghost" size="sm" class="text-destructive" @click="destroy(p.id)">
-                                        <Trash2 class="h-4 w-4" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="permissions.length === 0">
-                                <TableCell colspan="4" class="text-center text-muted">Keine Berechtigungen.</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </div>
+                                    <BButton variant="outline-danger" size="sm" @click="destroy(row.item.id)">
+                                        <Icon icon="trash" />
+                                    </BButton>
+                                </template>
+                            </template>
+                        </BTable>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

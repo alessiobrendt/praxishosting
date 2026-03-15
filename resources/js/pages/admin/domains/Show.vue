@@ -1,21 +1,23 @@
+<!-- Admin: Domain anzeigen -->
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
-import InputError from '@/components/InputError.vue';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Heading, Text } from '@/components/ui/typography';
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormSelect,
+    BButton,
+    BBadge,
+    BModal,
+} from 'bootstrap-vue-next';
+import InputError from '@/components/InputError.vue';
 import { pushAdminRecent } from '@/composables/useAdminRecent';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
@@ -29,6 +31,7 @@ type User = {
 
 type Domain = {
     id: number;
+    uuid: string;
     domain: string;
     user_id: number | null;
     skrime_id: string | null;
@@ -78,6 +81,11 @@ const authcodeDialogOpen = ref(false);
 const authcodeValue = ref('');
 const authcodeLoading = ref(false);
 const authcodeError = ref('');
+
+const customerOptions = [
+    { value: '', text: '– Kein Kunde –' },
+    ...customers.map((c) => ({ value: String(c.id), text: `${c.name} (${c.email})` })),
+];
 
 const submitCustomer = () => {
     customerForm.put(`/admin/domains/${props.domain.uuid}/customer`, {
@@ -157,173 +165,163 @@ onMounted(() => {
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Domain: ${domain.domain}`" />
 
-        <div class="space-y-6">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <Heading level="h1">{{ domain.domain }}</Heading>
-                    <Text class="mt-2" muted>
-                        Skrime-ID: {{ domain.skrime_id ?? '–' }} · Status:
-                        <Badge :variant="domain.status === 'active' ? 'success' : 'secondary'">
-                            {{ domain.status }}
-                        </Badge>
-                    </Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">{{ domain.domain }}</h4>
+                        <p class="text-muted small mb-0">
+                            Skrime-ID: {{ domain.skrime_id ?? '–' }} · Status:
+                            <BBadge :variant="domain.status === 'active' ? 'success' : 'secondary'">
+                                {{ domain.status }}
+                            </BBadge>
+                        </p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <BButton
+                            v-if="domain.skrime_id"
+                            variant="outline-primary"
+                            @click="renew"
+                        >
+                            Verlängern
+                        </BButton>
+                        <BButton
+                            v-if="domain.skrime_id"
+                            :variant="domain.auto_renew ? 'secondary' : 'outline-primary'"
+                            @click="setAutoRenew(!domain.auto_renew)"
+                        >
+                            {{ domain.auto_renew ? 'Auto-Renew aus' : 'Auto-Renew an' }}
+                        </BButton>
+                        <BButton variant="outline-primary" @click="fetchAuthcode">
+                            Auth-Code anzeigen
+                        </BButton>
+                        <BButton
+                            v-if="domain.status === 'active'"
+                            variant="danger"
+                            @click="cancelDomain"
+                        >
+                            Kündigen
+                        </BButton>
+                    </div>
                 </div>
-                <div class="flex flex-wrap gap-2">
-                    <Button
-                        v-if="domain.skrime_id"
-                        variant="outline"
-                        @click="renew"
-                    >
-                        Verlängern
-                    </Button>
-                    <Button
-                        v-if="domain.skrime_id"
-                        :variant="domain.auto_renew ? 'secondary' : 'outline'"
-                        @click="setAutoRenew(!domain.auto_renew)"
-                    >
-                        {{ domain.auto_renew ? 'Auto-Renew aus' : 'Auto-Renew an' }}
-                    </Button>
-                    <Button variant="outline" @click="fetchAuthcode">
-                        Auth-Code anzeigen
-                    </Button>
-                    <Button
-                        v-if="domain.status === 'active'"
-                        variant="destructive"
-                        @click="cancelDomain"
-                    >
-                        Kündigen
-                    </Button>
-                </div>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Domain-Daten</CardTitle>
-                    <CardDescription>Registrierung, Ablauf, Preise</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-2">
-                    <p><span class="font-medium">Registriert:</span> {{ domain.registered_at ?? '–' }}</p>
-                    <p><span class="font-medium">Ablaufdatum:</span> {{ domain.expires_at ?? '–' }}</p>
-                    <p><span class="font-medium">Auto-Renew:</span> {{ domain.auto_renew ? 'Ja' : 'Nein' }}</p>
-                    <p><span class="font-medium">Einkaufspreis:</span> {{ domain.purchase_price != null ? `${domain.purchase_price} €` : '–' }}</p>
-                    <p><span class="font-medium">Verkaufspreis:</span> {{ domain.sale_price != null ? `${domain.sale_price} €` : '–' }}</p>
-                    <p><span class="font-medium">Gewinn:</span> {{ domain.profit_margin != null ? `${domain.profit_margin} €` : '–' }}</p>
-                </CardContent>
-            </Card>
+                <BCard no-body class="mb-3">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Domain-Daten</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Registrierung, Ablauf, Preise</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <p class="mb-1"><span class="fw-medium">Registriert:</span> {{ domain.registered_at ?? '–' }}</p>
+                        <p class="mb-1"><span class="fw-medium">Ablaufdatum:</span> {{ domain.expires_at ?? '–' }}</p>
+                        <p class="mb-1"><span class="fw-medium">Auto-Renew:</span> {{ domain.auto_renew ? 'Ja' : 'Nein' }}</p>
+                        <p class="mb-1"><span class="fw-medium">Einkaufspreis:</span> {{ domain.purchase_price != null ? `${domain.purchase_price} €` : '–' }}</p>
+                        <p class="mb-1"><span class="fw-medium">Verkaufspreis:</span> {{ domain.sale_price != null ? `${domain.sale_price} €` : '–' }}</p>
+                        <p class="mb-0"><span class="fw-medium">Gewinn:</span> {{ domain.profit_margin != null ? `${domain.profit_margin} €` : '–' }}</p>
+                    </BCardBody>
+                </BCard>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Kunde zuweisen</CardTitle>
-                    <CardDescription>Domain einem Kunden zuordnen oder Zuweisung aufheben</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form @submit.prevent="submitCustomer" class="space-y-4">
-                        <div class="flex flex-wrap items-end gap-4">
-                            <div class="space-y-2 min-w-[200px]">
-                                <Label for="user_id">Kunde</Label>
-                                <select
+                <BCard no-body class="mb-3">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Kunde zuweisen</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Domain einem Kunden zuordnen oder Zuweisung aufheben</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BForm @submit.prevent="submitCustomer" class="d-flex flex-wrap align-items-end gap-3">
+                            <BFormGroup label="Kunde" class="mb-0 flex-grow-1" style="min-width: 12rem">
+                                <BFormSelect
                                     id="user_id"
                                     v-model="customerForm.user_id"
-                                    class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                >
-                                    <option :value="''">– Kein Kunde –</option>
-                                    <option
-                                        v-for="c in customers"
-                                        :key="c.id"
-                                        :value="c.id"
-                                    >
-                                        {{ c.name }} ({{ c.email }})
-                                    </option>
-                                </select>
+                                    :options="customerOptions"
+                                    :aria-invalid="!!customerForm.errors.user_id"
+                                />
                                 <InputError :message="customerForm.errors.user_id" />
-                            </div>
-                            <Button type="submit" :disabled="customerForm.processing">
+                            </BFormGroup>
+                            <BButton type="submit" variant="primary" :disabled="customerForm.processing">
                                 Zuweisen
-                            </Button>
-                        </div>
-                    </form>
-                    <p v-if="domain.user" class="mt-2 text-sm text-muted">
-                        Aktuell: {{ domain.user.name }} ({{ domain.user.email }})
-                    </p>
-                </CardContent>
-            </Card>
+                            </BButton>
+                        </BForm>
+                        <p v-if="domain.user" class="text-muted small mb-0 mt-2">
+                            Aktuell: {{ domain.user.name }} ({{ domain.user.email }})
+                        </p>
+                    </BCardBody>
+                </BCard>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Nameserver</CardTitle>
-                    <CardDescription>2–6 Nameserver (Skrime-Standard oder eigene)</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form @submit.prevent="submitNameserver" class="space-y-4">
-                        <div
-                            v-for="(ns, idx) in nameserverForm.nameservers"
-                            :key="idx"
-                            class="flex gap-2 items-center"
-                        >
-                            <Input
-                                v-model="nameserverForm.nameservers[idx]"
-                                placeholder="ns.example.com"
-                                class="flex-1"
-                            />
-                            <Button
-                                v-if="nameserverForm.nameservers.length > 2"
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                @click="removeNameserverSlot(idx)"
+                <BCard no-body class="mb-3">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Nameserver</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">2–6 Nameserver (Skrime-Standard oder eigene)</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BForm @submit.prevent="submitNameserver">
+                            <div
+                                v-for="(ns, idx) in nameserverForm.nameservers"
+                                :key="idx"
+                                class="d-flex gap-2 align-items-center mb-2"
                             >
-                                Entfernen
-                            </Button>
-                        </div>
-                        <div class="flex gap-2">
-                            <Button
-                                v-if="nameserverForm.nameservers.length < 6"
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                @click="addNameserverSlot"
-                            >
-                                + Nameserver
-                            </Button>
-                            <Button type="submit" :disabled="nameserverForm.processing">
-                                Nameserver speichern
-                            </Button>
-                        </div>
-                        <InputError :message="nameserverForm.errors.nameservers" />
-                    </form>
-                </CardContent>
-            </Card>
+                                <BFormInput
+                                    v-model="nameserverForm.nameservers[idx]"
+                                    placeholder="ns.example.com"
+                                    class="flex-grow-1"
+                                />
+                                <BButton
+                                    v-if="nameserverForm.nameservers.length > 2"
+                                    type="button"
+                                    variant="outline-danger"
+                                    size="sm"
+                                    @click="removeNameserverSlot(idx)"
+                                >
+                                    Entfernen
+                                </BButton>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <BButton
+                                    v-if="nameserverForm.nameservers.length < 6"
+                                    type="button"
+                                    variant="outline-primary"
+                                    size="sm"
+                                    @click="addNameserverSlot"
+                                >
+                                    + Nameserver
+                                </BButton>
+                                <BButton type="submit" variant="primary" :disabled="nameserverForm.processing">
+                                    Nameserver speichern
+                                </BButton>
+                            </div>
+                            <InputError :message="nameserverForm.errors.nameservers" />
+                        </BForm>
+                    </BCardBody>
+                </BCard>
 
-            <Card v-if="domain.skrime_id">
-                <CardHeader>
-                    <CardTitle>DNS verwalten</CardTitle>
-                    <CardDescription>A-, AAAA-, MX-, TXT-, CNAME-Records etc.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Link :href="`/admin/domains/${domain.uuid}/dns`">
-                        <Button variant="outline">DNS-Zone bearbeiten</Button>
-                    </Link>
-                </CardContent>
-            </Card>
-        </div>
+                <BCard v-if="domain.skrime_id" no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">DNS verwalten</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">A-, AAAA-, MX-, TXT-, CNAME-Records etc.</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <Link :href="`/admin/domains/${domain.uuid}/dns`">
+                            <BButton variant="outline-primary">DNS-Zone bearbeiten</BButton>
+                        </Link>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
 
-        <Dialog v-model:open="authcodeDialogOpen">
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Auth-Code (Transfer)</DialogTitle>
-                    <DialogDescription>
-                        Dieser Code wird beim Domain-Transfer beim neuen Anbieter benötigt.
-                    </DialogDescription>
-                </DialogHeader>
-                <div v-if="authcodeLoading" class="py-4 text-center text-muted">Laden …</div>
-                <div v-else-if="authcodeError" class="py-4 text-destructive">{{ authcodeError }}</div>
-                <div v-else class="py-4">
-                    <p class="font-mono text-lg break-all">{{ authcodeValue || '–' }}</p>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" @click="authcodeDialogOpen = false">Schließen</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <BModal
+            v-model="authcodeDialogOpen"
+            title="Auth-Code (Transfer)"
+            hide-footer
+        >
+            <p class="text-muted small mb-3">
+                Dieser Code wird beim Domain-Transfer beim neuen Anbieter benötigt.
+            </p>
+            <div v-if="authcodeLoading" class="py-4 text-center text-muted">Laden …</div>
+            <div v-else-if="authcodeError" class="py-4 text-danger">{{ authcodeError }}</div>
+            <div v-else class="py-4">
+                <p class="font-monospace fs-6 text-break mb-0">{{ authcodeValue || '–' }}</p>
+            </div>
+            <div class="d-flex justify-content-end">
+                <BButton variant="outline-secondary" @click="authcodeDialogOpen = false">Schließen</BButton>
+            </div>
+        </BModal>
     </AdminLayout>
 </template>

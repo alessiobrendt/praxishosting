@@ -1,7 +1,8 @@
+<!-- Admin: Hosting-Server Übersicht -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Plus } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
+import { BButton } from 'bootstrap-vue-next';
+import Icon from '@/components/wrappers/Icon.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import hostingServersRoutes from '@/routes/admin/hosting-servers/index';
@@ -37,17 +38,17 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Hosting-Server" />
 
-        <div class="space-y-6">
+        <div>
             <PageHeader
                 title="Hosting-Server"
                 description="Plesk- und Pterodactyl-Server (nicht markenbezogen)"
             >
                 <template #action>
                     <Link :href="hostingServersRoutes.create.url()">
-                        <Button>
-                            <Plus class="mr-2 h-4 w-4" />
+                        <BButton variant="primary">
+                            <Icon icon="plus" class="me-2" />
                             Neuer Server
-                        </Button>
+                        </BButton>
                     </Link>
                 </template>
             </PageHeader>

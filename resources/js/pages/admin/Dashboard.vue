@@ -1,11 +1,11 @@
+<!-- Admin: Dashboard mit konfigurierbaren Widgets -->
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { ref, computed, onMounted, watch } from 'vue';
 import { GridLayout, GridItem } from 'vue-grid-layout-v3';
+import { BButton } from 'bootstrap-vue-next';
 import DashboardWidgetSlot from '@/components/admin/dashboard/DashboardWidgetSlot.vue';
 import WidgetGalleryModal from '@/components/admin/dashboard/WidgetGalleryModal.vue';
-import { Button } from '@/components/ui/button';
-import { Heading, Text } from '@/components/ui/typography';
 import { getAdminRecent } from '@/composables/useAdminRecent';
 import type { AdminRecentItem } from '@/composables/useAdminRecent';
 import AdminLayout from '@/layouts/AdminLayout.vue';
@@ -165,40 +165,38 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Admin Dashboard" />
 
-        <div class="space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="mb-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
                 <div>
-                    <Heading level="h1">Admin Dashboard</Heading>
-                    <Text class="mt-2" muted>
-                        Übersicht Umsatz, Abos und Webseiten
-                    </Text>
+                    <h4 class="mb-1">Admin Dashboard</h4>
+                    <p class="text-muted small mb-0">Übersicht Umsatz, Abos und Webseiten</p>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="d-flex flex-wrap gap-2">
                     <template v-if="isEditMode">
-                        <Button variant="outline" size="sm" :disabled="saving" @click="resetToDefault">
+                        <BButton variant="outline-secondary" size="sm" :disabled="saving" @click="resetToDefault">
                             Zurücksetzen
-                        </Button>
-                        <Button variant="outline" size="sm" @click="openGallery">
+                        </BButton>
+                        <BButton variant="outline-primary" size="sm" @click="openGallery">
                             Widget hinzufügen
-                        </Button>
-                        <Button size="sm" :disabled="saving" @click="saveLayout">
+                        </BButton>
+                        <BButton variant="primary" size="sm" :disabled="saving" @click="saveLayout">
                             {{ saving ? 'Speichern…' : 'Speichern' }}
-                        </Button>
-                        <Button variant="ghost" size="sm" @click="isEditMode = false">
+                        </BButton>
+                        <BButton variant="outline-secondary" size="sm" @click="isEditMode = false">
                             Abbrechen
-                        </Button>
+                        </BButton>
                     </template>
-                    <Button v-else variant="outline" size="sm" @click="isEditMode = true">
+                    <BButton v-else variant="outline-primary" size="sm" @click="isEditMode = true">
                         Dashboard bearbeiten
-                    </Button>
+                    </BButton>
                 </div>
             </div>
-
-            <Text v-if="saveError" variant="small" class="text-destructive">
+            <p v-if="saveError" class="text-danger small mt-2 mb-0">
                 {{ saveError }}
-            </Text>
+            </p>
+        </div>
 
-            <GridLayout
+        <GridLayout
                 :layout="layoutLocal"
                 :col-num="12"
                 :row-height="20"
@@ -226,8 +224,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         />
                     </div>
                 </GridItem>
-            </GridLayout>
-        </div>
+        </GridLayout>
 
         <WidgetGalleryModal
             :open="galleryOpen"

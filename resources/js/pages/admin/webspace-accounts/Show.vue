@@ -1,18 +1,27 @@
+<!-- Admin: Webspace-Account (Detail) -->
 <script setup lang="ts">
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 import { watch } from 'vue';
-import { CreditCard, ExternalLink, HardDrive } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import { notify } from '@/composables/useNotify';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
 type WebspaceAccount = {
     id: number;
+    uuid: string;
     domain: string;
     plesk_username: string;
     status: string;
@@ -66,129 +75,117 @@ const formatDate = (d: string | null) =>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="webspaceAccount.domain" />
 
-        <div class="space-y-6">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <HardDrive class="h-8 w-8" />
-                    <div>
-                        <Heading level="h1">{{ webspaceAccount.domain }}</Heading>
-                        <Text class="mt-2" muted>
-                            Webspace-Account · {{ webspaceAccount.hosting_plan.name }}
-                        </Text>
+        <BRow>
+            <BCol>
+                <div class="mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <Icon icon="server" class="fs-4 text-primary" />
+                        <div>
+                            <h4 class="mb-1">{{ webspaceAccount.domain }}</h4>
+                            <p class="text-muted small mb-0">
+                                Webspace-Account · {{ webspaceAccount.hosting_plan.name }}
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <div v-if="canRetryPlesk()" class="flex items-center gap-2">
                     <Form
-                        :action="`/admin/webspace-accounts/${webspaceAccount.id}/retry-plesk`"
+                        v-if="canRetryPlesk()"
+                        :action="`/admin/webspace-accounts/${webspaceAccount.uuid}/retry-plesk`"
                         method="post"
-                        class="inline"
+                        class="d-inline"
                     >
                         <input type="hidden" name="_token" :value="csrfToken()" />
-                        <Button type="submit" variant="outline">
-                            Plesk-Anlage erneut ausführen
-                        </Button>
+                        <BButton type="submit" variant="outline-primary">Plesk-Anlage erneut ausführen</BButton>
                     </Form>
                 </div>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Details</CardTitle>
-                    <CardDescription>Kunde, Domain, Plan, Server, Status, Abo-Ende</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Kunde</Text>
-                            <p class="font-medium">{{ webspaceAccount.user.name }}</p>
-                            <p class="text-sm text-muted-foreground">{{ webspaceAccount.user.email }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Domain</Text>
-                            <code class="rounded bg-muted px-2 py-1 text-sm">{{ webspaceAccount.domain }}</code>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Plesk-Benutzer</Text>
-                            <p class="font-mono text-sm">{{ webspaceAccount.plesk_username }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Plan</Text>
-                            <Link :href="`/admin/hosting-plans/${webspaceAccount.hosting_plan.id}`" class="text-primary hover:underline font-medium">
-                                {{ webspaceAccount.hosting_plan.name }}
-                            </Link>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Server</Text>
-                            <p class="font-medium">{{ webspaceAccount.hosting_server?.hostname ?? '–' }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Status</Text>
-                            <p><Badge variant="secondary">{{ webspaceAccount.status }}</Badge></p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Abo-Ende (aktueller Zeitraum)</Text>
-                            <p class="font-medium">{{ formatDate(webspaceAccount.current_period_ends_at) }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Kündigung zum Periodenende</Text>
-                            <p class="font-medium">{{ webspaceAccount.cancel_at_period_end ? 'Ja' : 'Nein' }}</p>
-                        </div>
-                        <div>
-                            <Text class="text-sm font-medium text-muted-foreground">Beendet am</Text>
-                            <p class="font-medium">{{ formatDate(webspaceAccount.ends_at) }}</p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Details</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Kunde, Domain, Plan, Server, Status, Abo-Ende</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BRow>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Kunde</p>
+                                <p class="fw-medium mb-0">{{ webspaceAccount.user.name }}</p>
+                                <p class="small text-muted mb-0">{{ webspaceAccount.user.email }}</p>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Domain</p>
+                                <code class="bg-light rounded px-2 py-1 small">{{ webspaceAccount.domain }}</code>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Plesk-Benutzer</p>
+                                <p class="font-monospace small mb-0">{{ webspaceAccount.plesk_username }}</p>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Plan</p>
+                                <Link :href="`/admin/hosting-plans/${webspaceAccount.hosting_plan.id}`" class="text-primary fw-medium">
+                                    {{ webspaceAccount.hosting_plan.name }}
+                                </Link>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Server</p>
+                                <p class="fw-medium mb-0">{{ webspaceAccount.hosting_server?.hostname ?? '–' }}</p>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Status</p>
+                                <BBadge variant="secondary">{{ webspaceAccount.status }}</BBadge>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Abo-Ende (aktueller Zeitraum)</p>
+                                <p class="fw-medium mb-0">{{ formatDate(webspaceAccount.current_period_ends_at) }}</p>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Kündigung zum Periodenende</p>
+                                <p class="fw-medium mb-0">{{ webspaceAccount.cancel_at_period_end ? 'Ja' : 'Nein' }}</p>
+                            </BCol>
+                            <BCol md="6">
+                                <p class="text-muted small mb-1">Beendet am</p>
+                                <p class="fw-medium mb-0">{{ formatDate(webspaceAccount.ends_at) }}</p>
+                            </BCol>
+                        </BRow>
+                    </BCardBody>
+                </BCard>
 
-            <Card v-if="webspaceAccount.mollie_subscription_id">
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <CreditCard class="h-5 w-5" />
-                        Mollie-Abo
-                    </CardTitle>
-                    <CardDescription>Subscription bei Mollie – Abo kündigen zum Periodenende</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-3">
-                    <div>
-                        <Text class="text-sm font-medium text-muted-foreground">Subscription-ID</Text>
-                        <p class="font-mono text-sm">{{ webspaceAccount.mollie_subscription_id }}</p>
-                    </div>
-                    <div v-if="webspaceAccount.cancel_at_period_end" class="text-amber-600 dark:text-amber-400 text-sm">
-                        Wird zum Periodenende gekündigt.
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <a
-                            href="https://www.mollie.com/dashboard/customers"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex"
-                        >
-                            <Button variant="outline" size="sm" as="span">
-                                <ExternalLink class="mr-2 h-4 w-4" />
-                                Bei Mollie anzeigen
-                            </Button>
+                <BCard v-if="webspaceAccount.mollie_subscription_id" no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0 d-flex align-items-center gap-2">
+                            <Icon icon="credit-card" />Mollie-Abo
+                        </BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Subscription bei Mollie – Abo kündigen zum Periodenende</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <p class="text-muted small mb-1">Subscription-ID</p>
+                        <p class="font-monospace small mb-0">{{ webspaceAccount.mollie_subscription_id }}</p>
+                        <p v-if="webspaceAccount.cancel_at_period_end" class="text-warning small mt-2 mb-0">
+                            Wird zum Periodenende gekündigt.
+                        </p>
+                    </BCardBody>
+                    <BCardFooter class="d-flex flex-wrap gap-2">
+                        <a href="https://www.mollie.com/dashboard/customers" target="_blank" rel="noopener noreferrer">
+                            <BButton variant="outline-secondary" size="sm">
+                                <Icon icon="external-link" class="me-1" />Bei Mollie anzeigen
+                            </BButton>
                         </a>
                         <Form
                             v-if="!webspaceAccount.cancel_at_period_end"
-                            :action="`/admin/webspace-accounts/${webspaceAccount.id}/subscription/cancel`"
+                            :action="`/admin/webspace-accounts/${webspaceAccount.uuid}/subscription/cancel`"
                             method="post"
-                            class="inline"
+                            class="d-inline"
                         >
                             <input type="hidden" name="_token" :value="csrfToken()" />
-                            <Button type="submit" variant="outline" size="sm">
-                                Abo kündigen
-                            </Button>
+                            <BButton type="submit" variant="outline-warning" size="sm">Abo kündigen</BButton>
                         </Form>
-                    </div>
-                </CardContent>
-            </Card>
+                    </BCardFooter>
+                </BCard>
 
-            <div class="flex gap-2">
-                <Link href="/admin/webspace-accounts">
-                    <Button variant="outline">Zurück zur Liste</Button>
-                </Link>
-            </div>
-        </div>
+                <div class="mt-3">
+                    <Link href="/admin/webspace-accounts">
+                        <BButton variant="outline-secondary">Zurück zur Liste</BButton>
+                    </Link>
+                </div>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

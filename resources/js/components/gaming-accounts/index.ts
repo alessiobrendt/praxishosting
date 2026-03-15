@@ -1,0 +1,6 @@
+export { default as GamingAccountConsoleTab } from './GamingAccountConsoleTab.vue'
+export { default as GamingAccountFilesTab } from './GamingAccountFilesTab.vue'
+export { default as GamingAccountBackupsTab } from './GamingAccountBackupsTab.vue'
+export { default as GamingAccountDatabasesTab } from './GamingAccountDatabasesTab.vue'
+export { default as GamingAccountSchedulesTab } from './GamingAccountSchedulesTab.vue'
+export { formatBytes } from './formatBytes'

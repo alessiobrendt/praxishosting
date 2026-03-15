@@ -1,179 +1,130 @@
+<template>
+  <DefaultLayout>
+    <Head title="Meine Sites" />
+    <PageBreadcrumb title="Meine Sites" subtitle="Dashboard" subtitle-url="/dashboard" />
+
+    <div class="mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div>
+        <h4 class="mb-1">Meine Sites</h4>
+        <p class="text-muted mb-0">Ihre Webseiten und gemeinsam bearbeitete Sites</p>
+      </div>
+      <Link href="/sites/create" class="btn btn-primary">
+        <Icon icon="plus" class="me-2" />
+        Neue Site erstellen
+      </Link>
+    </div>
+
+    <BCard no-body class="mb-4">
+      <BCardHeader>
+        <h5 class="mb-0">Eigene Sites</h5>
+        <p class="text-muted small mb-0">Von Ihnen gekaufte Templates</p>
+      </BCardHeader>
+      <BCardBody>
+        <BTable :items="sites" :fields="siteFields" responsive stacked="sm" show-empty>
+          <template #cell(name)="{ item }">
+            <span class="fw-medium">{{ item.name }}</span>
+          </template>
+          <template #cell(slug)="{ item }">
+            <code class="bg-light px-2 py-1 rounded small">{{ item.slug }}</code>
+          </template>
+          <template #cell(template)="{ item }">
+            {{ item.template?.name ?? '–' }}
+          </template>
+          <template #cell(subscription)="{ item }">
+            <template v-if="item.site_subscription">
+              <BBadge v-if="item.site_subscription.mollie_status === 'active' && !item.site_subscription.cancel_at_period_end" variant="success">Aktiv</BBadge>
+              <BBadge v-else-if="item.site_subscription.cancel_at_period_end" variant="warning">Läuft aus</BBadge>
+              <BBadge v-else variant="secondary">{{ item.site_subscription.mollie_status }}</BBadge>
+            </template>
+            <span v-else class="text-muted">–</span>
+          </template>
+          <template #cell(actions)="{ item }">
+            <Link :href="`/sites/${item.uuid}`" class="btn btn-sm btn-outline-primary">
+              Bearbeiten
+              <Icon icon="external-link" class="ms-1" />
+            </Link>
+          </template>
+          <template #empty>
+            <span class="text-muted">Keine Sites vorhanden</span>
+          </template>
+        </BTable>
+      </BCardBody>
+    </BCard>
+
+    <BCard v-if="collaboratingSites?.length" no-body>
+      <BCardHeader>
+        <h5 class="mb-0">Gemeinsam bearbeitete Sites</h5>
+        <p class="text-muted small mb-0">Sites, an denen Sie mitarbeiten</p>
+      </BCardHeader>
+      <BCardBody>
+        <BTable :items="collaboratingSites" :fields="collabFields" responsive stacked="sm">
+          <template #cell(name)="{ item }">
+            <span class="fw-medium">{{ item.name }}</span>
+          </template>
+          <template #cell(slug)="{ item }">
+            <code class="bg-light px-2 py-1 rounded small">{{ item.slug }}</code>
+          </template>
+          <template #cell(owner)="{ item }">
+            {{ (item as { user?: { name: string } }).user?.name ?? '–' }}
+          </template>
+          <template #cell(actions)="{ item }">
+            <Link :href="`/sites/${item.uuid}`" class="btn btn-sm btn-outline-primary">
+              Bearbeiten
+              <Icon icon="external-link" class="ms-1" />
+            </Link>
+          </template>
+        </BTable>
+      </BCardBody>
+    </BCard>
+
+    <div class="text-center">
+      <Link href="/gallery" class="btn btn-outline-secondary">
+        Weitere Templates in der Galerie ansehen
+        <Icon icon="external-link" class="ms-2" />
+      </Link>
+    </div>
+  </DefaultLayout>
+</template>
+
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { Plus, ExternalLink } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { dashboard } from '@/routes';
-import gallery from '@/routes/gallery';
-import { show as sitesShow, create as sitesCreate } from '@/routes/sites';
-import type { BreadcrumbItem } from '@/types';
+import { Head, Link } from '@inertiajs/vue3'
+import { BCard, BCardBody, BCardHeader, BBadge, BTable } from 'bootstrap-vue-next'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue'
+import Icon from '@/components/wrappers/Icon.vue'
 
 type SiteSubscription = {
-    id: number;
-    mollie_status: string;
-    current_period_ends_at: string | null;
-    cancel_at_period_end: boolean;
-};
+  id?: number
+  mollie_status: string
+  current_period_ends_at: string | null
+  cancel_at_period_end: boolean
+}
 
 type Site = {
-    uuid: string;
-    name: string;
-    slug: string;
-    template?: { name: string };
-    site_subscription?: SiteSubscription | null;
-};
+  uuid: string
+  name: string
+  slug: string
+  template?: { name: string }
+  site_subscription?: SiteSubscription | null
+}
 
-type Props = {
-    sites: Site[];
-    collaboratingSites: (Site & { user?: { name: string } })[];
-};
+defineProps<{
+  sites: Site[]
+  collaboratingSites?: (Site & { user?: { name: string } })[]
+}>()
 
-defineProps<Props>();
+const siteFields = [
+  { key: 'name', label: 'Name' },
+  { key: 'slug', label: 'Slug' },
+  { key: 'template', label: 'Template' },
+  { key: 'subscription', label: 'Abo-Status' },
+  { key: 'actions', label: 'Aktionen', thClass: 'text-end' },
+]
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: dashboard().url },
-    { title: 'Meine Sites', href: '#' },
-];
+const collabFields = [
+  { key: 'name', label: 'Name' },
+  { key: 'slug', label: 'Slug' },
+  { key: 'owner', label: 'Besitzer' },
+  { key: 'actions', label: 'Aktionen', thClass: 'text-end' },
+]
 </script>
-
-<template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Meine Sites" />
-
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">Meine Sites</Heading>
-                    <Text class="mt-2" muted>
-                        Ihre Webseiten und gemeinsam bearbeitete Sites
-                    </Text>
-                </div>
-                <Link :href="sitesCreate().url">
-                    <Button>
-                        <Plus class="mr-2 h-4 w-4" />
-                        Neue Site erstellen
-                    </Button>
-                </Link>
-            </div>
-
-            <!-- Own Sites -->
-            <Card>
-                <CardHeader>
-                    <CardTitle>Eigene Sites</CardTitle>
-                    <CardDescription>Von Ihnen gekaufte Templates</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Slug</TableHead>
-                                <TableHead>Template</TableHead>
-                                <TableHead>Abo-Status</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="site in sites" :key="site.uuid">
-                                <TableCell class="font-medium">{{ site.name }}</TableCell>
-                                <TableCell>
-                                    <code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">
-                                        {{ site.slug }}
-                                    </code>
-                                </TableCell>
-                                <TableCell>{{ site.template?.name ?? '-' }}</TableCell>
-                                <TableCell>
-                                    <template v-if="site.site_subscription">
-                                        <span
-                                            v-if="site.site_subscription.mollie_status === 'active' && !site.site_subscription.cancel_at_period_end"
-                                            class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                        >
-                                            Aktiv
-                                        </span>
-                                        <span
-                                            v-else-if="site.site_subscription.cancel_at_period_end"
-                                            class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                                        >
-                                            Läuft aus
-                                        </span>
-                                        <span
-                                            v-else
-                                            class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-800 dark:text-gray-400"
-                                        >
-                                            {{ site.site_subscription.mollie_status }}
-                                        </span>
-                                    </template>
-                                    <span v-else class="text-muted">–</span>
-                                </TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="sitesShow({ site: site.uuid }).url">
-                                        <Button variant="ghost" size="sm">
-                                            Bearbeiten
-                                            <ExternalLink class="ml-2 h-3 w-3" />
-                                        </Button>
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="sites.length === 0">
-                                <TableCell colspan="5" class="text-center text-gray-500 dark:text-gray-400">
-                                    Keine Sites vorhanden
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-            <!-- Collaborating Sites -->
-            <Card v-if="collaboratingSites?.length">
-                <CardHeader>
-                    <CardTitle>Gemeinsam bearbeitete Sites</CardTitle>
-                    <CardDescription>Sites, an denen Sie mitarbeiten</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Slug</TableHead>
-                                <TableHead>Besitzer</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="site in collaboratingSites" :key="site.uuid">
-                                <TableCell class="font-medium">{{ site.name }}</TableCell>
-                                <TableCell>
-                                    <code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">
-                                        {{ site.slug }}
-                                    </code>
-                                </TableCell>
-                                <TableCell>{{ site.user?.name ?? '-' }}</TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="sitesShow({ site: site.uuid }).url">
-                                        <Button variant="ghost" size="sm">
-                                            Bearbeiten
-                                            <ExternalLink class="ml-2 h-3 w-3" />
-                                        </Button>
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-            <div class="flex justify-center">
-                <Link :href="gallery.index().url">
-                    <Button variant="outline">
-                        Weitere Templates in der Galerie ansehen
-                        <ExternalLink class="ml-2 h-4 w-4" />
-                    </Button>
-                </Link>
-            </div>
-        </div>
-    </AppLayout>
-</template>

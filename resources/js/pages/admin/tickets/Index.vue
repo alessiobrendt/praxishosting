@@ -1,15 +1,22 @@
+<!-- Admin: Support-Tickets-Übersicht -->
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { MessageCircle } from 'lucide-vue-next';
 import { reactive } from 'vue';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
-import { Select } from '@/components/ui/select';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+    BBadge,
+    BFormSelect,
+    BFormGroup,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import adminTickets from '@/routes/admin/tickets';
 import type { BreadcrumbItem } from '@/types';
@@ -21,6 +28,7 @@ type TicketPriority = { id: number; name: string; slug: string; color: string | 
 
 type Ticket = {
     id: number;
+    uuid?: string;
     subject: string;
     status: string;
     created_at: string;
@@ -62,7 +70,7 @@ const filters = reactive({
     assigned_to: '',
 });
 
-function applyFilters() {
+function applyFilters(): void {
     const params: Record<string, string> = {};
     if (filters.status) params.status = filters.status;
     if (filters.ticket_category_id) params.ticket_category_id = filters.ticket_category_id;
@@ -72,104 +80,155 @@ function applyFilters() {
     router.get('/admin/tickets', params);
 }
 
-const handlePagination = (url: string) => {
-    if (url) window.location.href = url;
-};
+const statusOptions = [
+    { value: '', text: 'Alle' },
+    ...Object.entries(statusLabels).map(([value, text]) => ({ value, text })),
+];
+
+const tableFields = [
+    { key: 'id', label: 'ID', sortable: false },
+    { key: 'customer', label: 'Kunde', sortable: false },
+    { key: 'subject', label: 'Betreff', sortable: false },
+    { key: 'category', label: 'Kategorie', sortable: false },
+    { key: 'priority', label: 'Priorität', sortable: false },
+    { key: 'site_name', label: 'Site', sortable: false },
+    { key: 'status_display', label: 'Status', sortable: false },
+    { key: 'assigned_to_name', label: 'Zugewiesen', sortable: false },
+    { key: 'created_at', label: 'Erstellt', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Support-Tickets" />
 
-        <div class="space-y-6">
-            <Heading level="h1">Support-Tickets</Heading>
-            <Text class="mt-2" muted>Alle Support-Anfragen verwalten</Text>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Support-Tickets</h4>
+                    <p class="text-muted small mb-0">Alle Support-Anfragen verwalten</p>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Filter</CardTitle>
-                    <CardDescription>Status, Kategorie, Priorität</CardDescription>
-                </CardHeader>
-                <CardContent class="flex flex-wrap items-end gap-4">
-                    <div class="space-y-1">
-                        <label class="text-sm font-medium">Status</label>
-                        <Select v-model="filters.status" class="w-48">
-                            <option value="">Alle</option>
-                            <option v-for="(label, key) in statusLabels" :key="key" :value="key">{{ label }}</option>
-                        </Select>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-sm font-medium">Kategorie</label>
-                        <Select v-model="filters.ticket_category_id" class="w-48">
-                            <option value="">Alle</option>
-                            <option v-for="c in categories" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
-                        </Select>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-sm font-medium">Priorität</label>
-                        <Select v-model="filters.ticket_priority_id" class="w-48">
-                            <option value="">Alle</option>
-                            <option v-for="p in priorities" :key="p.id" :value="String(p.id)">{{ p.name }}</option>
-                        </Select>
-                    </div>
-                    <Button type="button" @click="applyFilters">Filter anwenden</Button>
-                </CardContent>
-            </Card>
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Filter</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Status, Kategorie, Priorität</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div class="d-flex flex-wrap align-items-end gap-3">
+                            <BFormGroup label="Status" label-for="filter_status" class="mb-0">
+                                <BFormSelect
+                                    id="filter_status"
+                                    v-model="filters.status"
+                                    :options="statusOptions"
+                                    class="form-select-sm"
+                                    style="min-width: 12rem"
+                                />
+                            </BFormGroup>
+                            <BFormGroup label="Kategorie" label-for="filter_category" class="mb-0">
+                                <BFormSelect
+                                    id="filter_category"
+                                    v-model="filters.ticket_category_id"
+                                    :options="[{ value: '', text: 'Alle' }, ...categories.map((c) => ({ value: String(c.id), text: c.name }))]"
+                                    class="form-select-sm"
+                                    style="min-width: 12rem"
+                                />
+                            </BFormGroup>
+                            <BFormGroup label="Priorität" label-for="filter_priority" class="mb-0">
+                                <BFormSelect
+                                    id="filter_priority"
+                                    v-model="filters.ticket_priority_id"
+                                    :options="[{ value: '', text: 'Alle' }, ...priorities.map((p) => ({ value: String(p.id), text: p.name }))]"
+                                    class="form-select-sm"
+                                    style="min-width: 12rem"
+                                />
+                            </BFormGroup>
+                            <BButton variant="primary" @click="applyFilters">Filter anwenden</BButton>
+                        </div>
+                    </BCardBody>
+                </BCard>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Tickets</CardTitle>
-                    <CardDescription>Kunde, Betreff, Status, Priorität, Produkt</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>ID</TableHead>
-                                <TableHead>Kunde</TableHead>
-                                <TableHead>Betreff</TableHead>
-                                <TableHead>Kategorie</TableHead>
-                                <TableHead>Priorität</TableHead>
-                                <TableHead>Site</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Zugewiesen</TableHead>
-                                <TableHead>Erstellt</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="t in tickets.data" :key="t.id">
-                                <TableCell>#{{ t.id }}</TableCell>
-                                <TableCell>{{ t.user?.name ?? '–' }}<br /><span class="text-muted-foreground text-xs">{{ t.user?.email }}</span></TableCell>
-                                <TableCell>{{ t.subject }}</TableCell>
-                                <TableCell>{{ t.ticket_category?.name ?? '–' }}</TableCell>
-                                <TableCell>
-                                    <Badge
-                                        v-if="t.ticket_priority"
-                                        :style="t.ticket_priority.color ? { backgroundColor: t.ticket_priority.color, color: '#fff', border: 'none' } : undefined"
-                                    >
-                                        {{ t.ticket_priority.name }}
-                                    </Badge>
-                                    <span v-else>–</span>
-                                </TableCell>
-                                <TableCell>{{ t.site?.name ?? '–' }}</TableCell>
-                                <TableCell>{{ statusLabels[t.status] ?? t.status }}</TableCell>
-                                <TableCell>{{ t.assigned_to?.name ?? '–' }}</TableCell>
-                                <TableCell>{{ new Date(t.created_at).toLocaleDateString('de-DE') }}</TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="adminTickets.show(t.uuid).url">
-                                        <Button variant="ghost" size="sm"><MessageCircle class="h-4 w-4" /></Button>
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="tickets.data.length === 0">
-                                <TableCell colspan="10" class="text-center text-muted">Keine Tickets.</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Pagination v-if="tickets.links.length > 3" :links="tickets.links" @page-click="handlePagination" />
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Tickets</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Kunde, Betreff, Status, Priorität, Produkt</p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="tickets.data"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Tickets"
+                        >
+                            <template #cell(id)="row">
+                                #{{ row.item.id }}
+                            </template>
+                            <template #cell(customer)="row">
+                                <span v-if="row.item.user">{{ row.item.user.name }}</span>
+                                <br v-if="row.item.user?.email" />
+                                <span v-if="row.item.user?.email" class="small text-muted">{{ row.item.user.email }}</span>
+                                <span v-if="!row.item.user">–</span>
+                            </template>
+                            <template #cell(category)="row">
+                                {{ row.item.ticket_category?.name ?? '–' }}
+                            </template>
+                            <template #cell(priority)="row">
+                                <BBadge
+                                    v-if="row.item.ticket_priority"
+                                    :style="
+                                        row.item.ticket_priority.color
+                                            ? {
+                                                  backgroundColor: row.item.ticket_priority.color,
+                                                  color: '#fff',
+                                                  border: 'none',
+                                              }
+                                            : undefined
+                                    "
+                                >
+                                    {{ row.item.ticket_priority.name }}
+                                </BBadge>
+                                <span v-else>–</span>
+                            </template>
+                            <template #cell(site_name)="row">
+                                {{ row.item.site?.name ?? '–' }}
+                            </template>
+                            <template #cell(status_display)="row">
+                                {{ statusLabels[row.item.status] ?? row.item.status }}
+                            </template>
+                            <template #cell(assigned_to_name)="row">
+                                {{ row.item.assigned_to?.name ?? '–' }}
+                            </template>
+                            <template #cell(created_at)="row">
+                                {{ new Date(row.item.created_at).toLocaleDateString('de-DE') }}
+                            </template>
+                            <template #cell(actions)="row">
+                                <Link :href="adminTickets.show(row.item.uuid ?? row.item.id).url">
+                                    <BButton variant="outline-primary" size="sm">
+                                        <Icon icon="message-circle" />
+                                    </BButton>
+                                </Link>
+                            </template>
+                        </BTable>
+                        <nav v-if="tickets.links.length > 3" class="d-flex justify-content-center p-3">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in tickets.links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a v-if="link.url" class="page-link" href="#" @click.prevent="link.url && (window.location.href = link.url)" v-html="link.label" />
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

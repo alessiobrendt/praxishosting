@@ -88,6 +88,7 @@ class GameServerAccountController extends Controller
 
             return [
                 'id' => $sub->id,
+                'uuid' => $sub->uuid,
                 'user' => $sub->user ? [
                     'id' => $sub->user->id,
                     'name' => $sub->user->name,
@@ -149,6 +150,7 @@ class GameServerAccountController extends Controller
 
         $subscriptionPayload = [
             'id' => $subscription->id,
+            'uuid' => $subscription->uuid,
             'user' => $subscription->user ? [
                 'id' => $subscription->user->id,
                 'name' => $subscription->user->name,
@@ -184,6 +186,7 @@ class GameServerAccountController extends Controller
 
             return [
                 'id' => $acc->id,
+                'uuid' => $acc->uuid,
                 'name' => $acc->name,
                 'identifier' => $acc->identifier,
                 'status' => $acc->status,

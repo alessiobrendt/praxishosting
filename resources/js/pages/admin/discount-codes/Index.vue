@@ -1,13 +1,19 @@
+<!-- Admin: Rabattcodes-Übersicht -->
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Edit, Plus, Trash2 } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -25,7 +31,10 @@ type DiscountCode = {
 };
 
 type Props = {
-    discountCodes: { data: DiscountCode[]; links: { url: string | null; label: string; active: boolean }[] };
+    discountCodes: {
+        data: DiscountCode[];
+        links: { url: string | null; label: string; active: boolean }[];
+    };
 };
 
 defineProps<Props>();
@@ -36,73 +45,97 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Rabattcodes', href: '#' },
 ];
 
-const destroy = (id: number) => {
+function destroy(id: number): void {
     if (confirm('Rabattcode wirklich löschen?')) {
         router.delete(`/admin/discount-codes/${id}`);
     }
-};
+}
 
-const handlePagination = (url: string) => {
-    if (url) window.location.href = url;
-};
+const tableFields = [
+    { key: 'code', label: 'Code', sortable: false },
+    { key: 'type', label: 'Typ', sortable: false },
+    { key: 'value_display', label: 'Wert', sortable: false },
+    { key: 'redeemed', label: 'Eingelöst', sortable: false },
+    { key: 'is_active', label: 'Aktiv', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Rabattcodes" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">Rabattcodes</Heading>
-                    <Text class="mt-2" muted>Rabattcodes für den Checkout verwalten</Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">Rabattcodes</h4>
+                        <p class="text-muted small mb-0">Rabattcodes für den Checkout verwalten</p>
+                    </div>
+                    <Link href="/admin/discount-codes/create">
+                        <BButton variant="primary">
+                            <Icon icon="plus" class="me-2" />
+                            Neu
+                        </BButton>
+                    </Link>
                 </div>
-                <Link href="/admin/discount-codes/create">
-                    <Button><Plus class="mr-2 h-4 w-4" />Neu</Button>
-                </Link>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Rabattcodes</CardTitle>
-                    <CardDescription>Code, Typ (percent/fixed), Wert, Gültigkeit</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Code</TableHead>
-                                <TableHead>Typ</TableHead>
-                                <TableHead>Wert</TableHead>
-                                <TableHead>Eingelöst</TableHead>
-                                <TableHead>Aktiv</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="dc in discountCodes.data" :key="dc.id">
-                                <TableCell><code class="text-sm">{{ dc.code }}</code></TableCell>
-                                <TableCell>{{ dc.type }}</TableCell>
-                                <TableCell>{{ dc.type === 'percent' ? dc.value + '%' : dc.value + ' €' }}</TableCell>
-                                <TableCell>{{ dc.times_redeemed }}{{ dc.max_redemptions ? ` / ${dc.max_redemptions}` : '' }}</TableCell>
-                                <TableCell><Badge :variant="dc.is_active ? 'success' : 'secondary'">{{ dc.is_active ? 'Ja' : 'Nein' }}</Badge></TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="`/admin/discount-codes/${dc.id}/edit`">
-                                        <Button variant="ghost" size="sm"><Edit class="h-4 w-4" /></Button>
-                                    </Link>
-                                    <Button variant="ghost" size="sm" class="text-destructive" @click="destroy(dc.id)">
-                                        <Trash2 class="h-4 w-4" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="discountCodes.data.length === 0">
-                                <TableCell colspan="6" class="text-center text-muted">Keine Rabattcodes.</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Pagination v-if="discountCodes.links.length > 3" :links="discountCodes.links" @page-click="handlePagination" />
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Rabattcodes</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Code, Typ (percent/fixed), Wert, Gültigkeit</p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="discountCodes.data"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Rabattcodes"
+                        >
+                            <template #cell(code)="row">
+                                <code class="small">{{ row.item.code }}</code>
+                            </template>
+                            <template #cell(value_display)="row">
+                                {{ row.item.type === 'percent' ? row.item.value + '%' : row.item.value + ' €' }}
+                            </template>
+                            <template #cell(redeemed)="row">
+                                {{ row.item.times_redeemed }}{{ row.item.max_redemptions ? ` / ${row.item.max_redemptions}` : '' }}
+                            </template>
+                            <template #cell(is_active)="row">
+                                <BBadge :variant="row.item.is_active ? 'success' : 'secondary'">
+                                    {{ row.item.is_active ? 'Ja' : 'Nein' }}
+                                </BBadge>
+                            </template>
+                            <template #cell(actions)="row">
+                                <Link :href="`/admin/discount-codes/${row.item.id}/edit`" class="me-1">
+                                    <BButton variant="outline-primary" size="sm">
+                                        <Icon icon="pencil" />
+                                    </BButton>
+                                </Link>
+                                <BButton variant="outline-danger" size="sm" @click="destroy(row.item.id)">
+                                    <Icon icon="trash" />
+                                </BButton>
+                            </template>
+                        </BTable>
+                        <nav v-if="discountCodes.links.length > 3" class="d-flex justify-content-center p-3">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in discountCodes.links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a v-if="link.url" class="page-link" :href="link.url" v-html="link.label" />
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

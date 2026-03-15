@@ -1,13 +1,19 @@
+<!-- Admin: Partner-Übersicht -->
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Edit, Plus, Trash2 } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -33,7 +39,7 @@ type Props = {
     brands: Brand[];
 };
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
@@ -41,95 +47,131 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Partner', href: '#' },
 ];
 
-const destroy = (id: number) => {
+function destroy(id: number): void {
     if (confirm('Partner wirklich löschen?')) {
         router.delete(`/admin/partners/${id}`);
     }
-};
+}
 
-const handlePagination = (url: string) => {
-    if (url) window.location.href = url;
-};
-
-const currentBrandId = () => {
+function currentBrandId(): string | number {
     const p = new URLSearchParams(window.location.search).get('brand_id');
     return p ? parseInt(p, 10) : '';
-};
+}
+
+function onBrandFilter(e: Event): void {
+    const v = (e.target as HTMLSelectElement).value;
+    const u = new URL(window.location.href);
+    if (v) u.searchParams.set('brand_id', v);
+    else u.searchParams.delete('brand_id');
+    u.searchParams.set('page', '1');
+    window.location.href = u.toString();
+}
+
+const tableFields = [
+    { key: 'brand_name', label: 'Brand', sortable: false },
+    { key: 'name', label: 'Name', sortable: false },
+    { key: 'description', label: 'Beschreibung', sortable: false },
+    { key: 'discount_percent', label: 'Rabatt %', sortable: false },
+    { key: 'user_display', label: 'Nutzer', sortable: false },
+    { key: 'expires_at', label: 'Ablauf', sortable: false },
+    { key: 'is_active', label: 'Aktiv', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Partner" />
 
-        <div class="space-y-6">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <Heading level="h1">Partner</Heading>
-                    <Text class="mt-2" muted>Partner pro Brand verwalten (Name, Beschreibung, Bild, Nutzer, Rabatt %, Ablauf, Aktiv)</Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">Partner</h4>
+                        <p class="text-muted small mb-0">
+                            Partner pro Brand verwalten (Name, Beschreibung, Bild, Nutzer, Rabatt %, Ablauf, Aktiv)
+                        </p>
+                    </div>
+                    <Link href="/admin/partners/create">
+                        <BButton variant="primary">
+                            <Icon icon="plus" class="me-2" />
+                            Neu
+                        </BButton>
+                    </Link>
                 </div>
-                <Link href="/admin/partners/create">
-                    <Button><Plus class="mr-2 h-4 w-4" />Neu</Button>
-                </Link>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Partner</CardTitle>
-                    <CardDescription>
-                        <span class="flex flex-wrap items-center gap-2">
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Partner</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1 d-flex flex-wrap align-items-center gap-2">
                             Filter nach Brand:
                             <select
                                 id="filter-brand"
-                                class="h-10 w-48 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                                class="form-select form-select-sm d-inline-block w-auto"
                                 :value="currentBrandId()"
-                                @change="(e) => { const v = (e.target as HTMLSelectElement).value; const u = new URL(window.location.href); if (v) u.searchParams.set('brand_id', v); else u.searchParams.delete('brand_id'); u.searchParams.set('page', '1'); window.location.href = u.toString(); }"
+                                @change="onBrandFilter"
                             >
                                 <option value="">Alle</option>
                                 <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
                             </select>
-                        </span>
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Brand</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Beschreibung</TableHead>
-                                <TableHead>Rabatt %</TableHead>
-                                <TableHead>Nutzer</TableHead>
-                                <TableHead>Ablauf</TableHead>
-                                <TableHead>Aktiv</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="p in partners.data" :key="p.id">
-                                <TableCell>{{ p.brand?.name ?? '–' }}</TableCell>
-                                <TableCell class="font-medium">{{ p.name }}</TableCell>
-                                <TableCell class="max-w-xs truncate">{{ p.description || '–' }}</TableCell>
-                                <TableCell>{{ p.discount_percent }} %</TableCell>
-                                <TableCell>{{ p.user ? `${p.user.name} (${p.user.email})` : '–' }}</TableCell>
-                                <TableCell>{{ p.expires_at ? new Date(p.expires_at).toLocaleDateString('de-DE') : '–' }}</TableCell>
-                                <TableCell><Badge :variant="p.is_active ? 'success' : 'secondary'">{{ p.is_active ? 'Ja' : 'Nein' }}</Badge></TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="`/admin/partners/${p.id}/edit`">
-                                        <Button variant="ghost" size="sm"><Edit class="h-4 w-4" /></Button>
-                                    </Link>
-                                    <Button variant="ghost" size="sm" class="text-destructive" @click="destroy(p.id)">
-                                        <Trash2 class="h-4 w-4" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="partners.data.length === 0">
-                                <TableCell colspan="8" class="text-center text-muted">Keine Partner.</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Pagination v-if="partners.links.length > 3" :links="partners.links" @page-click="handlePagination" />
-                </CardContent>
-            </Card>
-        </div>
+                        </p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="partners.data"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Partner"
+                        >
+                            <template #cell(brand_name)="row">
+                                {{ row.item.brand?.name ?? '–' }}
+                            </template>
+                            <template #cell(description)="row">
+                                <span class="text-truncate d-inline-block" style="max-width: 12rem">
+                                    {{ row.item.description || '–' }}
+                                </span>
+                            </template>
+                            <template #cell(user_display)="row">
+                                {{ row.item.user ? `${row.item.user.name} (${row.item.user.email})` : '–' }}
+                            </template>
+                            <template #cell(expires_at)="row">
+                                {{ row.item.expires_at ? new Date(row.item.expires_at).toLocaleDateString('de-DE') : '–' }}
+                            </template>
+                            <template #cell(is_active)="row">
+                                <BBadge :variant="row.item.is_active ? 'success' : 'secondary'">
+                                    {{ row.item.is_active ? 'Ja' : 'Nein' }}
+                                </BBadge>
+                            </template>
+                            <template #cell(actions)="row">
+                                <Link :href="`/admin/partners/${row.item.id}/edit`" class="me-1">
+                                    <BButton variant="outline-primary" size="sm">
+                                        <Icon icon="pencil" />
+                                    </BButton>
+                                </Link>
+                                <BButton variant="outline-danger" size="sm" @click="destroy(row.item.id)">
+                                    <Icon icon="trash" />
+                                </BButton>
+                            </template>
+                        </BTable>
+                        <nav v-if="partners.links.length > 3" class="d-flex justify-content-center p-3">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in partners.links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a v-if="link.url" class="page-link" :href="link.url" v-html="link.label" />
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

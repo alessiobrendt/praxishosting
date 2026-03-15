@@ -1,10 +1,17 @@
+<!-- Admin: E-Mail-Vorlagen -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Edit } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import { edit as emailsEdit, index as emailsIndex } from '@/routes/admin/emails';
 import type { BreadcrumbItem } from '@/types';
@@ -35,41 +42,46 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="E-Mails" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">E-Mails</Heading>
-                <Text class="mt-2" muted>
-                    E-Mail-Vorlagen und Benachrichtigungen (Bestellung, Rechnung, Zahlung, Abo, Sperrung, Löschung)
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">E-Mails</h4>
+                    <p class="text-muted small mb-0">
+                        E-Mail-Vorlagen und Benachrichtigungen (Bestellung, Rechnung, Zahlung, Abo, Sperrung,
+                        Löschung)
+                    </p>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Vorlagen</CardTitle>
-                    <CardDescription>
-                        Diese E-Mails werden automatisch versendet. Vorschau und Test-Versand können später ergänzt werden.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ul class="divide-y divide-border">
-                        <li
-                            v-for="template in templates"
-                            :key="template.key"
-                            class="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-                        >
-                            <div>
-                                <span class="font-medium">{{ template.name }}</span>
-                                <span class="ml-2 text-muted-foreground text-sm">({{ template.key }})</span>
-                            </div>
-                            <Link :href="emailsEdit.url({ emailTemplate: template.key })">
-                                <Button variant="ghost" size="sm">
-                                    <Edit class="mr-2 h-4 w-4" />Bearbeiten
-                                </Button>
-                            </Link>
-                        </li>
-                    </ul>
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Vorlagen</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Diese E-Mails werden automatisch versendet. Vorschau und Test-Versand können später
+                            ergänzt werden.
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <ul class="list-group list-group-flush">
+                            <li
+                                v-for="template in templates"
+                                :key="template.key"
+                                class="list-group-item d-flex align-items-center justify-content-between px-0"
+                            >
+                                <div>
+                                    <span class="fw-medium">{{ template.name }}</span>
+                                    <span class="text-muted small ms-2">({{ template.key }})</span>
+                                </div>
+                                <Link :href="emailsEdit.url({ emailTemplate: template.key })">
+                                    <BButton variant="outline-primary" size="sm">
+                                        <Icon icon="pencil" class="me-1" />
+                                        Bearbeiten
+                                    </BButton>
+                                </Link>
+                            </li>
+                        </ul>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

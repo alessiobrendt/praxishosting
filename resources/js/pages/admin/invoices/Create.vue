@@ -1,14 +1,23 @@
+<!-- Admin: Rechnung erstellen -->
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { Plus, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormSelect,
+    BButton,
+} from 'bootstrap-vue-next';
+import Icon from '@/components/wrappers/Icon.vue';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Heading, Text } from '@/components/ui/typography';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import { index as invoicesIndex, store } from '@/routes/admin/invoices';
@@ -33,7 +42,17 @@ type Props = {
     customers: Customer[];
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const customerOptions = computed(() => [
+    { value: '', text: 'Bitte wählen' },
+    ...props.customers.map((c) => ({ value: String(c.id), text: `${c.name} (${c.email})` })),
+]);
+
+const statusOptions = [
+    { value: 'draft', text: 'Entwurf' },
+    { value: 'sent', text: 'Versendet' },
+];
 
 const form = useForm({
     user_id: '' as string | number,
@@ -90,173 +109,180 @@ function submit() {
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Rechnung erstellen" />
 
-        <div class="space-y-6">
-            <Heading level="h1">Rechnung erstellen</Heading>
-            <Text class="mt-2" muted>
-                Manuelle Rechnung mit mehreren Positionen anlegen
-            </Text>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Rechnung erstellen</h4>
+                    <p class="text-muted small mb-0">Manuelle Rechnung mit mehreren Positionen anlegen</p>
+                </div>
 
-            <form @submit.prevent="submit" class="space-y-6">
-                <Card class="max-w-4xl">
-                    <CardHeader>
-                        <CardTitle>Kunde & Datum</CardTitle>
-                        <CardDescription>Rechnungsempfänger und Fälligkeit</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <Label for="user_id">Kunde</Label>
-                                <Select
-                                    id="user_id"
-                                    v-model="form.user_id"
-                                    required
-                                    :aria-invalid="!!form.errors.user_id"
-                                >
-                                    <option value="">Bitte wählen</option>
-                                    <option
-                                        v-for="c in customers"
-                                        :key="c.id"
-                                        :value="c.id"
+                <BForm @submit.prevent="submit">
+                    <BCard no-body class="mb-3">
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Kunde & Datum</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">Rechnungsempfänger und Fälligkeit</p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BRow>
+                                <BCol sm="6" md="3">
+                                    <BFormGroup label="Kunde" label-for="user_id">
+                                        <BFormSelect
+                                            id="user_id"
+                                            v-model="form.user_id"
+                                            :options="customerOptions"
+                                            required
+                                            :aria-invalid="!!form.errors.user_id"
+                                        />
+                                        <InputError :message="form.errors.user_id" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol sm="6" md="3">
+                                    <BFormGroup label="Rechnungsdatum" label-for="invoice_date">
+                                        <BFormInput
+                                            id="invoice_date"
+                                            v-model="form.invoice_date"
+                                            type="date"
+                                            required
+                                            :aria-invalid="!!form.errors.invoice_date"
+                                        />
+                                        <InputError :message="form.errors.invoice_date" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol sm="6" md="3">
+                                    <BFormGroup label="Zahlbar bis (optional)" label-for="due_date">
+                                        <BFormInput
+                                            id="due_date"
+                                            v-model="form.due_date"
+                                            type="date"
+                                            :aria-invalid="!!form.errors.due_date"
+                                        />
+                                        <InputError :message="form.errors.due_date" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol sm="6" md="3">
+                                    <BFormGroup label="Status" label-for="status">
+                                        <BFormSelect id="status" v-model="form.status" :options="statusOptions" />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+                        </BCardBody>
+                    </BCard>
+
+                    <BCard no-body class="mb-3">
+                        <BCardHeader class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div>
+                                <BCardTitle class="mb-0">Positionen</BCardTitle>
+                                <p class="text-muted small mb-0 mt-1">Beschreibung, Menge, Einzelpreis – Betrag wird berechnet</p>
+                            </div>
+                            <BButton type="button" variant="outline-primary" size="sm" @click="addRow">
+                                <Icon icon="plus" class="me-1" />
+                                Zeile
+                            </BButton>
+                        </BCardHeader>
+                        <BCardBody>
+                            <div
+                                v-for="(item, index) in form.line_items"
+                                :key="index"
+                                class="row g-2 align-items-end mb-2"
+                            >
+                                <BCol cols="1">
+                                    <BFormGroup :label="`Pos.`" :label-for="`pos-${index}`" class="mb-0">
+                                        <BFormInput
+                                            :id="`pos-${index}`"
+                                            v-model.number="item.position"
+                                            type="number"
+                                            min="1"
+                                            size="sm"
+                                        />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="12" md="4">
+                                    <BFormGroup :label="`Beschreibung`" :label-for="`desc-${index}`" class="mb-0">
+                                        <BFormInput
+                                            :id="`desc-${index}`"
+                                            v-model="item.description"
+                                            size="sm"
+                                            :aria-invalid="!!form.errors[`line_items.${index}.description`]"
+                                        />
+                                        <InputError :message="form.errors[`line_items.${index}.description`]" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="4" md="1">
+                                    <BFormGroup :label="`Menge`" :label-for="`qty-${index}`" class="mb-0">
+                                        <BFormInput
+                                            :id="`qty-${index}`"
+                                            v-model.number="item.quantity"
+                                            type="number"
+                                            min="0.001"
+                                            step="0.001"
+                                            size="sm"
+                                            @blur="updateLineAmount(index)"
+                                        />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="4" md="1">
+                                    <BFormGroup :label="`Einheit`" :label-for="`unit-${index}`" class="mb-0">
+                                        <BFormInput
+                                            :id="`unit-${index}`"
+                                            v-model="item.unit"
+                                            size="sm"
+                                            placeholder="Stück"
+                                        />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="4" md="2">
+                                    <BFormGroup :label="`Einzelpreis (€)`" :label-for="`price-${index}`" class="mb-0">
+                                        <BFormInput
+                                            :id="`price-${index}`"
+                                            v-model.number="item.unit_price"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            size="sm"
+                                            @blur="updateLineAmount(index)"
+                                        />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="6" md="2">
+                                    <BFormGroup :label="`Betrag (€)`" :label-for="`amount-${index}`" class="mb-0">
+                                        <BFormInput
+                                            :id="`amount-${index}`"
+                                            v-model.number="item.amount"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            size="sm"
+                                            readonly
+                                            class="bg-light"
+                                        />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="6" md="1" class="text-end text-md-start">
+                                    <BButton
+                                        type="button"
+                                        variant="outline-danger"
+                                        size="sm"
+                                        :disabled="form.line_items.length <= 1"
+                                        @click="removeRow(index)"
+                                        aria-label="Zeile entfernen"
                                     >
-                                        {{ c.name }} ({{ c.email }})
-                                    </option>
-                                </Select>
-                                <InputError :message="form.errors.user_id" />
+                                        <Icon icon="trash" />
+                                    </BButton>
+                                </BCol>
                             </div>
-                            <div class="space-y-2">
-                                <Label for="invoice_date">Rechnungsdatum</Label>
-                                <Input
-                                    id="invoice_date"
-                                    v-model="form.invoice_date"
-                                    type="date"
-                                    required
-                                    :aria-invalid="!!form.errors.invoice_date"
-                                />
-                                <InputError :message="form.errors.invoice_date" />
+                            <div class="d-flex justify-content-end border-top pt-3 mt-3">
+                                <span class="fw-semibold">Gesamtbetrag: {{ totalAmount }} €</span>
                             </div>
-                            <div class="space-y-2">
-                                <Label for="due_date">Zahlbar bis (optional)</Label>
-                                <Input
-                                    id="due_date"
-                                    v-model="form.due_date"
-                                    type="date"
-                                    :aria-invalid="!!form.errors.due_date"
-                                />
-                                <InputError :message="form.errors.due_date" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="status">Status</Label>
-                                <Select id="status" v-model="form.status">
-                                    <option value="draft">Entwurf</option>
-                                    <option value="sent">Versendet</option>
-                                </Select>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card class="max-w-4xl">
-                    <CardHeader class="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>Positionen</CardTitle>
-                            <CardDescription>Beschreibung, Menge, Einzelpreis – Betrag wird berechnet</CardDescription>
-                        </div>
-                        <Button type="button" variant="outline" size="sm" @click="addRow">
-                            <Plus class="size-4 mr-1" />
-                            Zeile
-                        </Button>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div
-                            v-for="(item, index) in form.line_items"
-                            :key="index"
-                            class="grid grid-cols-12 gap-2 items-end"
-                        >
-                            <div class="col-span-1">
-                                <Label :for="`pos-${index}`">Pos.</Label>
-                                <Input
-                                    :id="`pos-${index}`"
-                                    v-model.number="item.position"
-                                    type="number"
-                                    min="1"
-                                    class="w-14"
-                                />
-                            </div>
-                            <div class="col-span-4">
-                                <Label :for="`desc-${index}`">Beschreibung</Label>
-                                <Input
-                                    :id="`desc-${index}`"
-                                    v-model="item.description"
-                                    :aria-invalid="!!form.errors[`line_items.${index}.description`]"
-                                />
-                                <InputError :message="form.errors[`line_items.${index}.description`]" />
-                            </div>
-                            <div class="col-span-1">
-                                <Label :for="`qty-${index}`">Menge</Label>
-                                <Input
-                                    :id="`qty-${index}`"
-                                    v-model.number="item.quantity"
-                                    type="number"
-                                    min="0.001"
-                                    step="0.001"
-                                    @blur="updateLineAmount(index)"
-                                />
-                            </div>
-                            <div class="col-span-1">
-                                <Label :for="`unit-${index}`">Einheit</Label>
-                                <Input
-                                    :id="`unit-${index}`"
-                                    v-model="item.unit"
-                                    placeholder="Stück"
-                                />
-                            </div>
-                            <div class="col-span-2">
-                                <Label :for="`price-${index}`">Einzelpreis (€)</Label>
-                                <Input
-                                    :id="`price-${index}`"
-                                    v-model.number="item.unit_price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    @blur="updateLineAmount(index)"
-                                />
-                            </div>
-                            <div class="col-span-2">
-                                <Label :for="`amount-${index}`">Betrag (€)</Label>
-                                <Input
-                                    :id="`amount-${index}`"
-                                    v-model.number="item.amount"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    readonly
-                                    class="bg-muted"
-                                />
-                            </div>
-                            <div class="col-span-1">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    :disabled="form.line_items.length <= 1"
-                                    @click="removeRow(index)"
-                                >
-                                    <Trash2 class="size-4 text-destructive" />
-                                </Button>
-                            </div>
-                        </div>
-                        <div class="flex justify-end border-t pt-4">
-                            <Text class="font-semibold">Gesamtbetrag: {{ totalAmount }} €</Text>
-                        </div>
-                    </CardContent>
-                    <CardFooter>
-                        <Button type="submit" :disabled="form.processing">Rechnung anlegen</Button>
-                        <Link :href="invoicesIndex().url">
-                            <Button type="button" variant="outline">Abbrechen</Button>
-                        </Link>
-                    </CardFooter>
-                </Card>
-            </form>
-        </div>
+                        </BCardBody>
+                        <BCardFooter class="d-flex gap-2">
+                            <BButton type="submit" variant="primary" :disabled="form.processing">Rechnung anlegen</BButton>
+                            <Link :href="invoicesIndex().url">
+                                <BButton type="button" variant="outline-secondary">Abbrechen</BButton>
+                            </Link>
+                        </BCardFooter>
+                    </BCard>
+                </BForm>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

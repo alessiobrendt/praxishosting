@@ -1,5 +1,276 @@
+<template>
+    <DefaultLayout>
+        <Head title="Dashboard" />
+        <PageBreadcrumb title="Dashboard" />
+
+        <div class="mb-4">
+            <h4 class="mb-1">Dashboard</h4>
+            <p class="text-muted mb-0">
+                Willkommen zurück! Hier ist eine Übersicht deiner Aktivitäten.
+            </p>
+        </div>
+
+        <!-- Stats -->
+        <BRow class="mb-4">
+            <BCol xs="12" sm="6" xxl="3" class="mb-3">
+                <BCard no-body class="h-100">
+                    <BCardBody class="d-flex align-items-center gap-3">
+                        <div class="rounded bg-primary bg-opacity-10 p-3">
+                            <Activity class="h-5 w-5 text-primary" />
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <p class="text-muted small mb-0">Aktive Dienste</p>
+                            <p class="fw-semibold mb-0">
+                                {{ stats.activeServicesCount }} Dienst{{ stats.activeServicesCount !== 1 ? 'e' : '' }}
+                            </p>
+                        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+            <BCol v-if="showBalanceCard" xs="12" sm="6" xxl="3" class="mb-3">
+                <BCard no-body class="h-100">
+                    <BCardBody class="d-flex align-items-center gap-3">
+                        <div class="rounded bg-success bg-opacity-10 p-3">
+                            <Wallet class="h-5 w-5 text-success" />
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <p class="text-muted small mb-0">Aktuelles Guthaben</p>
+                            <p class="fw-semibold mb-0">
+                                {{ formatCurrency(stats.customerBalance ?? 0) }}
+                                <Link v-if="stats.balanceTopUpUrl" :href="stats.balanceTopUpUrl" class="small text-primary text-decoration-underline">
+                                    (aufladen)
+                                </Link>
+                            </p>
+                        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+            <BCol xs="12" sm="6" xxl="3" class="mb-3">
+                <BCard no-body class="h-100">
+                    <BCardBody class="d-flex align-items-center gap-3">
+                        <div class="rounded bg-info bg-opacity-10 p-3">
+                            <Coins class="h-5 w-5 text-info" />
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <p class="text-muted small mb-0">Fällig in nächste 30 Tage</p>
+                            <p class="fw-semibold mb-0">{{ formatCurrency(stats.dueIn30Days) }}</p>
+                        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+            <BCol xs="12" sm="6" xxl="3" class="mb-3">
+                <BCard no-body class="h-100">
+                    <BCardBody class="d-flex align-items-center gap-3">
+                        <div class="rounded bg-warning bg-opacity-10 p-3">
+                            <CalendarCheck class="h-5 w-5 text-warning" />
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <p class="text-muted small mb-0">Registrierung</p>
+                            <p class="fw-semibold mb-0">{{ stats.registeredAt || '–' }}</p>
+                        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+            <BCol xs="12" sm="6" xxl="3" class="mb-3">
+                <BCard no-body class="h-100">
+                    <BCardBody class="d-flex align-items-center gap-3">
+                        <div class="rounded bg-secondary bg-opacity-10 p-3">
+                            <KeyRound class="h-5 w-5 text-secondary" />
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <p class="text-muted small mb-0">Support-PIN</p>
+                            <p class="fw-semibold font-monospace mb-0">{{ supportPin }}</p>
+                        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
+
+        <BRow>
+            <!-- Favoriten -->
+            <BCol xxl="6" class="mb-4">
+                <BCard>
+                    <BCardHeader class="d-flex align-items-center">
+                        <Trophy class="h-5 w-5 text-primary me-2" />
+                        <BCardTitle class="mb-0">Favoriten</BCardTitle>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div class="d-flex flex-wrap gap-2">
+                            <Link
+                                v-for="(fav, idx) in favorites"
+                                :key="idx"
+                                :href="fav.href"
+                                class="btn btn-soft-primary btn-sm"
+                            >
+                                {{ fav.name }}
+                            </Link>
+                        </div>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+
+            <!-- Dein Status -->
+            <BCol xxl="6" class="mb-4">
+                <BCard>
+                    <BCardHeader class="d-flex align-items-center">
+                        <HeartPulse class="h-5 w-5 text-primary me-2" />
+                        <BCardTitle class="mb-0">Dein Status</BCardTitle>
+                    </BCardHeader>
+                    <BCardBody>
+                        <p
+                            class="fw-semibold mb-2"
+                            :class="{
+                                'text-success': status.level === 'ok',
+                                'text-warning': status.level === 'warning',
+                                'text-danger': status.level === 'danger',
+                            }"
+                        >
+                            <Check v-if="status.level === 'ok'" class="me-1 inline" size="16" />
+                            <AlertTriangle v-else class="me-1 inline" size="16" />
+                            {{ status.label }}
+                        </p>
+                        <ul class="list-unstyled mb-0 small">
+                            <li v-if="status.balanceOk" class="d-flex align-items-center gap-2 mb-1">
+                                <Check class="text-success flex-shrink-0" size="16" />
+                                Keine ungedeckten Zahlungen in den nächsten 7 Tagen
+                            </li>
+                            <li v-else class="d-flex align-items-start gap-2 mb-1">
+                                <AlertTriangle class="text-danger flex-shrink-0 mt-1" size="16" />
+                                <span>{{ status.balanceMessage }}</span>
+                            </li>
+                            <li v-if="status.ticketsOk" class="d-flex align-items-center gap-2 mb-1">
+                                <Check class="text-success flex-shrink-0" size="16" />
+                                Keine offenen, vom Support beantworteten Support-Tickets
+                            </li>
+                            <li v-else class="mb-1">
+                                <span class="d-flex align-items-center gap-2">
+                                    <AlertTriangle class="text-warning flex-shrink-0" size="16" />
+                                    Es gibt offene, vom Support beantwortete Tickets:
+                                </span>
+                                <Link
+                                    v-for="t in status.ticketItems"
+                                    :key="t.id"
+                                    :href="t.url"
+                                    class="d-block ms-4 text-primary small"
+                                >
+                                    {{ t.subject }}
+                                </Link>
+                            </li>
+                        </ul>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+
+            <!-- Aktive Dienste -->
+            <BCol xxl="6" class="mb-4">
+                <BCard>
+                    <BCardHeader class="d-flex align-items-center">
+                        <Server class="h-5 w-5 text-primary me-2" />
+                        <BCardTitle class="mb-0">Aktive Dienste</BCardTitle>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div v-if="activeServices.length" class="d-flex flex-column gap-2">
+                            <Link
+                                v-for="(svc, idx) in activeServices"
+                                :key="idx"
+                                :href="svc.url"
+                                class="d-flex align-items-center justify-content-between gap-3 p-3 border rounded text-decoration-none text-body hover-bg-light"
+                            >
+                                <div class="d-flex align-items-center gap-3 min-w-0">
+                                    <div class="rounded bg-primary bg-opacity-10 p-2 text-primary">
+                                        <component :is="getServiceIcon(svc.type)" class="h-5 w-5" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="badge bg-primary bg-opacity-10 text-primary mb-1">
+                                            {{ getServiceTypeLabel(svc.type) }}
+                                        </span>
+                                        <p class="fw-semibold mb-0 truncate">{{ svc.name }}</p>
+                                    </div>
+                                </div>
+                                <span class="text-primary small flex-shrink-0">
+                                    Öffnen <ExternalLink class="inline ms-1" size="14" />
+                                </span>
+                            </Link>
+                        </div>
+                        <p v-else class="text-muted mb-0">Keine aktiven Dienste.</p>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+
+            <!-- Postfach -->
+            <BCol xxl="6" class="mb-4">
+                <BCard>
+                    <BCardHeader class="d-flex align-items-center justify-content-between">
+                        <BCardTitle class="d-flex align-items-center mb-0">
+                            <Inbox class="h-5 w-5 text-primary me-2" />
+                            Postfach
+                        </BCardTitle>
+                        <Link :href="postfach.index.url()" class="small text-primary">
+                            Alle anzeigen
+                        </Link>
+                    </BCardHeader>
+                    <BCardBody>
+                        <div v-if="recentEmails.length" class="d-flex flex-column gap-2">
+                            <Link
+                                v-for="email in recentEmails"
+                                :key="email.id"
+                                :href="postfach.show.url(email.id)"
+                                class="d-block p-3 border rounded text-decoration-none text-body hover-bg-light"
+                            >
+                                <p class="fw-semibold mb-1 truncate">{{ email.subject }}</p>
+                                <p class="small text-muted mb-0 line-clamp-2">{{ email.snippet || '…' }}</p>
+                                <span v-if="email.sent_at" class="badge bg-warning bg-opacity-10 text-warning mt-1">
+                                    {{ email.sent_at }}
+                                </span>
+                            </Link>
+                        </div>
+                        <p v-else class="text-muted mb-0">Keine E-Mails im Postfach.</p>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+
+            <!-- Rechnungen -->
+            <BCol xs="12" class="mb-4">
+                <BCard>
+                    <BCardHeader class="d-flex align-items-center justify-content-between">
+                        <BCardTitle class="d-flex align-items-center mb-0">
+                            <FileText class="h-5 w-5 text-primary me-2" />
+                            Rechnungen
+                        </BCardTitle>
+                        <Link :href="billing.index.url()" class="small text-primary">
+                            Alle anzeigen
+                        </Link>
+                    </BCardHeader>
+                    <BCardBody>
+                        <ul v-if="recentInvoices.length" class="list-unstyled mb-0">
+                            <li
+                                v-for="inv in recentInvoices"
+                                :key="inv.id"
+                                class="d-flex flex-wrap align-items-center justify-content-between gap-2 py-3 border-bottom"
+                            >
+                                <div>
+                                    <p class="fw-medium mb-0">{{ inv.invoice_date }} – {{ inv.number }}</p>
+                                    <small class="text-muted">{{ inv.status }}</small>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-semibold">{{ inv.amount }}</span>
+                                    <Link :href="inv.show_url" class="btn btn-soft-primary btn-sm">
+                                        Zur Rechnung <ExternalLink class="inline ms-1" size="12" />
+                                    </Link>
+                                </div>
+                            </li>
+                        </ul>
+                        <p v-else class="text-muted mb-0">Keine Rechnungen vorhanden.</p>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
+    </DefaultLayout>
+</template>
+
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import {
     Activity,
     Wallet,
@@ -13,24 +284,24 @@ import {
     ExternalLink,
     Check,
     AlertTriangle,
-    Layout,
     Globe,
     Gamepad2,
     KeyRound,
+    Layout,
 } from 'lucide-vue-next';
-import { computed } from 'vue';
 import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardContent,
-} from '@/components/ui/card';
-import { Heading, Text } from '@/components/ui/typography';
-import AppLayout from '@/layouts/AppLayout.vue';
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BCol,
+    BRow,
+} from 'bootstrap-vue-next';
+import DefaultLayout from '@/layouts/DefaultLayout.vue';
+import PageBreadcrumb from '@/components/PageBreadcrumb.vue';
 import { dashboard } from '@/routes';
 import billing from '@/routes/billing';
 import postfach from '@/routes/postfach';
-import type { BreadcrumbItem } from '@/types';
 
 type Stats = {
     activeServicesCount: number;
@@ -51,7 +322,12 @@ type StatusData = {
 
 type FavoriteItem = { name: string; href: string };
 type ActiveServiceItem = { name: string; url: string; type: string };
-type RecentEmailItem = { id: number; subject: string; snippet: string | null; sent_at: string | null };
+type RecentEmailItem = {
+    id: number;
+    subject: string;
+    snippet: string | null;
+    sent_at: string | null;
+};
 type RecentInvoiceItem = {
     id: number;
     number: string;
@@ -62,7 +338,7 @@ type RecentInvoiceItem = {
     show_url: string;
 };
 
-type Props = {
+const props = defineProps<{
     stats: Stats;
     status: StatusData;
     favorites: FavoriteItem[];
@@ -72,13 +348,7 @@ type Props = {
     brandFeatures: Record<string, unknown>;
     supportPin: string;
     supportPinValidUntil: string;
-};
-
-const props = defineProps<Props>();
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: dashboard().url },
-];
+}>();
 
 function formatCurrency(value: number): string {
     return new Intl.NumberFormat('de-DE', {
@@ -100,7 +370,7 @@ function getServiceTypeLabel(type: string): string {
     return serviceTypeLabel[type] ?? type;
 }
 
-const serviceTypeIcon = {
+const serviceTypeIcon: Record<string, typeof Server> = {
     site: Layout,
     domain: Globe,
     webspace: Server,
@@ -108,327 +378,6 @@ const serviceTypeIcon = {
 };
 
 function getServiceIcon(type: string) {
-    return serviceTypeIcon[type as keyof typeof serviceTypeIcon] ?? Server;
+    return serviceTypeIcon[type] ?? Server;
 }
 </script>
-
-<template>
-    <Head title="Dashboard" />
-
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Dashboard</Heading>
-                <Text class="mt-2" muted>
-                    Willkommen zurück! Hier ist eine Übersicht deiner Aktivitäten.
-                </Text>
-            </div>
-
-            <!-- Stats: Karten füllen eine Zeile, Breite passt sich an -->
-            <div class="grid w-full gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))]">
-                <Card hover>
-                    <CardContent class="flex flex-row items-center gap-4 pt-6">
-                        <div class="rounded-lg bg-primary/10 p-3">
-                            <Activity class="h-6 w-6 text-primary" />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <Text class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Aktive Dienste
-                            </Text>
-                            <p class="text-xl font-semibold truncate">
-                                {{ stats.activeServicesCount }} Dienst{{ stats.activeServicesCount !== 1 ? 'e' : '' }}
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card v-if="showBalanceCard" hover>
-                    <CardContent class="flex flex-row items-center gap-4 pt-6">
-                        <div class="rounded-lg bg-green-100 p-3 dark:bg-green-900/30">
-                            <Wallet class="h-6 w-6 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <Text class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Aktuelles Guthaben
-                            </Text>
-                            <p class="text-xl font-semibold truncate">
-                                {{ formatCurrency(stats.customerBalance ?? 0) }}
-                                <Link
-                                    v-if="stats.balanceTopUpUrl"
-                                    :href="stats.balanceTopUpUrl"
-                                    class="ml-1 text-sm text-primary underline-offset-2 hover:underline"
-                                >
-                                    (aufladen)
-                                </Link>
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card hover>
-                    <CardContent class="flex flex-row items-center gap-4 pt-6">
-                        <div class="rounded-lg bg-blue-100 p-3 dark:bg-blue-900/30">
-                            <Coins class="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <Text class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Fällig in nächste 30 Tage
-                            </Text>
-                            <p class="text-xl font-semibold truncate">
-                                {{ formatCurrency(stats.dueIn30Days) }}
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card hover>
-                    <CardContent class="flex flex-row items-center gap-4 pt-6">
-                        <div class="rounded-lg bg-amber-100 p-3 dark:bg-amber-900/30">
-                            <CalendarCheck class="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <Text class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Registrierung
-                            </Text>
-                            <p class="text-xl font-semibold truncate">
-                                {{ stats.registeredAt || '–' }}
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card hover>
-                    <CardContent class="flex flex-row items-center gap-4 pt-6">
-                        <div class="rounded-lg bg-slate-100 p-3 dark:bg-slate-800/50">
-                            <KeyRound class="h-6 w-6 text-slate-600 dark:text-slate-400" />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <Text class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Support-PIN
-                            </Text>
-                            <p class="font-mono text-xl font-semibold tracking-wider truncate">
-                                {{ supportPin }}
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <!-- Widgets -->
-            <div class="grid gap-6 lg:grid-cols-2">
-                <!-- Favoriten -->
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="flex items-center gap-2">
-                            <Trophy class="h-5 w-5 text-primary" />
-                            Favoriten
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div class="flex flex-wrap gap-2">
-                            <Link
-                                v-for="(fav, idx) in favorites"
-                                :key="idx"
-                                :href="fav.href"
-                                class="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-modern hover:bg-gray-100 hover:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:border-primary"
-                            >
-                                {{ fav.name }}
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <!-- Dein Status -->
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="flex items-center gap-2">
-                            <HeartPulse class="h-5 w-5 text-primary" />
-                            Dein Status
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent class="space-y-3">
-                        <p
-                            class="font-semibold"
-                            :class="{
-                                'text-green-600 dark:text-green-400': status.level === 'ok',
-                                'text-amber-600 dark:text-amber-400': status.level === 'warning',
-                                'text-red-600 dark:text-red-400': status.level === 'danger',
-                            }"
-                        >
-                            <Check v-if="status.level === 'ok'" class="mr-1 inline h-4 w-4" />
-                            <AlertTriangle v-else class="mr-1 inline h-4 w-4" />
-                            {{ status.label }}
-                        </p>
-                        <ul class="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                            <li v-if="status.balanceOk" class="flex items-center gap-2">
-                                <Check class="h-4 w-4 shrink-0 text-green-500" />
-                                Keine ungedeckten Zahlungen in den nächsten 7 Tagen
-                            </li>
-                            <li v-else class="flex items-start gap-2">
-                                <AlertTriangle class="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                                <span>{{ status.balanceMessage }}</span>
-                            </li>
-                            <li v-if="status.ticketsOk" class="flex items-center gap-2">
-                                <Check class="h-4 w-4 shrink-0 text-green-500" />
-                                Keine offenen, vom Support beantworteten Support-Tickets
-                            </li>
-                            <li v-else class="flex flex-col gap-1">
-                                <span class="flex items-center gap-2">
-                                    <AlertTriangle class="h-4 w-4 shrink-0 text-amber-500" />
-                                    Es gibt offene, vom Support beantwortete Tickets:
-                                </span>
-                                <Link
-                                    v-for="t in status.ticketItems"
-                                    :key="t.id"
-                                    :href="t.url"
-                                    class="ml-6 text-primary underline-offset-2 hover:underline"
-                                >
-                                    {{ t.subject }}
-                                </Link>
-                            </li>
-                        </ul>
-                    </CardContent>
-                </Card>
-
-                <!-- Aktive Dienste (gleiche Listen-Optik wie Postfach: klare Abgrenzung pro Dienst) -->
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="flex items-center gap-2">
-                            <Server class="h-5 w-5 text-primary" />
-                            Aktive Dienste
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div v-if="activeServices.length" class="space-y-2">
-                            <Link
-                                v-for="(svc, idx) in activeServices"
-                                :key="idx"
-                                :href="svc.url"
-                                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 p-3 transition-modern hover:bg-gray-50 hover:border-gray-300 dark:border-gray-700 dark:hover:bg-gray-800/50 dark:hover:border-gray-600"
-                            >
-                                <div class="flex min-w-0 flex-1 items-center gap-3">
-                                    <div
-                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20"
-                                    >
-                                        <component
-                                            :is="getServiceIcon(svc.type)"
-                                            class="h-5 w-5"
-                                        />
-                                    </div>
-                                    <div class="min-w-0 flex-1">
-                                        <span
-                                            class="mb-0.5 inline-block rounded px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20"
-                                        >
-                                            {{ getServiceTypeLabel(svc.type) }}
-                                        </span>
-                                        <p class="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                            {{ svc.name }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <span class="shrink-0 text-sm font-medium text-primary">
-                                    Öffnen
-                                    <ExternalLink class="ml-0.5 inline h-3.5 w-3.5" />
-                                </span>
-                            </Link>
-                        </div>
-                        <Text v-else muted class="block py-2">
-                            Keine aktiven Dienste.
-                        </Text>
-                    </CardContent>
-                </Card>
-
-                <!-- Postfach (gleiche Listen-Optik wie Postfach-Seite: klare Abgrenzung pro E-Mail) -->
-                <Card>
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0">
-                        <CardTitle class="flex items-center gap-2">
-                            <Inbox class="h-5 w-5 text-primary" />
-                            Postfach
-                        </CardTitle>
-                        <Link
-                            :href="postfach.index.url()"
-                            class="text-sm font-medium text-primary underline-offset-2 hover:underline"
-                        >
-                            Alle anzeigen
-                        </Link>
-                    </CardHeader>
-                    <CardContent>
-                        <div v-if="recentEmails.length" class="space-y-2">
-                            <Link
-                                v-for="email in recentEmails"
-                                :key="email.id"
-                                :href="postfach.show.url(email.id)"
-                                class="block rounded-lg border border-gray-200 p-3 transition-modern hover:bg-gray-50 hover:border-gray-300 dark:border-gray-700 dark:hover:bg-gray-800/50 dark:hover:border-gray-600"
-                            >
-                                <div class="flex flex-wrap items-start justify-between gap-2">
-                                    <div class="min-w-0 flex-1">
-                                        <p class="mb-0.5 font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                            {{ email.subject }}
-                                        </p>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                                            {{ email.snippet || '…' }}
-                                        </p>
-                                    </div>
-                                    <span
-                                        v-if="email.sent_at"
-                                        class="shrink-0 rounded px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200"
-                                    >
-                                        {{ email.sent_at }}
-                                    </span>
-                                </div>
-                            </Link>
-                        </div>
-                        <Text v-else muted class="block py-2">
-                            Keine E-Mails im Postfach.
-                        </Text>
-                    </CardContent>
-                </Card>
-
-                <!-- Rechnungen (span full width on large so it sits below the 2-col grid or we keep 2-col) -->
-                <Card class="lg:col-span-2">
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0">
-                        <CardTitle class="flex items-center gap-2">
-                            <FileText class="h-5 w-5 text-primary" />
-                            Rechnungen
-                        </CardTitle>
-                        <Link
-                            :href="billing.index.url()"
-                            class="text-sm font-medium text-primary underline-offset-2 hover:underline"
-                        >
-                            Alle anzeigen
-                        </Link>
-                    </CardHeader>
-                    <CardContent>
-                        <ul v-if="recentInvoices.length" class="space-y-3">
-                            <li
-                                v-for="inv in recentInvoices"
-                                :key="inv.id"
-                                class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-100 p-3 dark:border-gray-800"
-                            >
-                                <div>
-                                    <p class="font-medium">{{ inv.invoice_date }} – {{ inv.number }}</p>
-                                    <Text variant="small" muted>
-                                        {{ inv.status }}
-                                    </Text>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="font-semibold">{{ inv.amount }}</span>
-                                    <Link
-                                        :href="inv.show_url"
-                                        class="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-1 text-sm font-medium text-primary hover:bg-primary/20"
-                                    >
-                                        Zur Rechnung
-                                        <ExternalLink class="h-3 w-3" />
-                                    </Link>
-                                </div>
-                            </li>
-                        </ul>
-                        <Text v-else muted class="block py-2">
-                            Keine Rechnungen vorhanden.
-                        </Text>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-    </AppLayout>
-</template>

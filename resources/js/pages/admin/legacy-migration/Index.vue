@@ -1,16 +1,23 @@
+<!-- Admin: Legacy-Migration -->
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
 type Site = {
     id: number;
+    uuid?: string;
     name: string;
     slug: string;
     template?: { name: string };
@@ -29,66 +36,84 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Legacy-Migration', href: '#' },
 ];
 
-const handlePagination = (url: string) => {
-    if (url) window.location.href = url;
-};
+const tableFields = [
+    { key: 'name', label: 'Site', sortable: false },
+    { key: 'owner', label: 'Besitzer', sortable: false },
+    { key: 'template', label: 'Template', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Legacy-Migration" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">Legacy-Migration</Heading>
-                <Text class="mt-2" muted>
-                    Sites ohne Abo (Legacy). Kunden können über „Neue Site erstellen“ ein Abo abschließen.
-                </Text>
-            </div>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">Legacy-Migration</h4>
+                    <p class="text-muted small mb-0">
+                        Sites ohne Abo (Legacy). Kunden können über „Neue Site erstellen“ ein Abo abschließen.
+                    </p>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Legacy-Sites ohne Abo</CardTitle>
-                    <CardDescription>
-                        Diese Sites wurden vor dem Abo-System angelegt. Der Kunde kann im Panel „Neue Site erstellen“ nutzen und wird zum Checkout geführt. Alternativ können Sie den Kunden per E-Mail zur Abo-Buchung auffordern.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Site</TableHead>
-                                <TableHead>Besitzer</TableHead>
-                                <TableHead>Template</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="site in legacySites.data" :key="site.uuid">
-                                <TableCell class="font-medium">{{ site.name }}</TableCell>
-                                <TableCell>
-                                    <span v-if="site.user">{{ site.user.name }} ({{ site.user.email }})</span>
-                                    <span v-else>–</span>
-                                </TableCell>
-                                <TableCell>{{ site.template?.name ?? '–' }}</TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="`/sites/${site.uuid}`">
-                                        <Button variant="ghost" size="sm">Site ansehen</Button>
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="legacySites.data.length === 0">
-                                <TableCell colspan="4" class="text-center text-muted">Keine Legacy-Sites ohne Abo.</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Pagination
-                        v-if="legacySites.links.length > 3"
-                        :links="legacySites.links"
-                        @page-click="handlePagination"
-                    />
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Legacy-Sites ohne Abo</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Diese Sites wurden vor dem Abo-System angelegt. Der Kunde kann im Panel „Neue Site
+                            erstellen“ nutzen und wird zum Checkout geführt.
+                        </p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="legacySites.data"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Legacy-Sites ohne Abo"
+                        >
+                            <template #cell(name)="row">
+                                <span class="fw-medium">{{ row.item.name }}</span>
+                            </template>
+                            <template #cell(owner)="row">
+                                <span v-if="row.item.user">
+                                    {{ row.item.user.name }} ({{ row.item.user.email }})
+                                </span>
+                                <span v-else class="text-muted">–</span>
+                            </template>
+                            <template #cell(template)="row">
+                                {{ row.item.template?.name ?? '–' }}
+                            </template>
+                            <template #cell(actions)="row">
+                                <Link
+                                    :href="`/sites/${row.item.uuid ?? row.item.slug ?? row.item.id}`"
+                                >
+                                    <BButton variant="outline-primary" size="sm">Site ansehen</BButton>
+                                </Link>
+                            </template>
+                        </BTable>
+                        <nav
+                            v-if="legacySites.links && legacySites.links.length > 3"
+                            class="d-flex justify-content-center p-3"
+                        >
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in legacySites.links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a v-if="link.url" class="page-link" :href="link.url" v-html="link.label" />
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

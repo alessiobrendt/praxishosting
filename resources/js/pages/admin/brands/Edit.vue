@@ -1,15 +1,24 @@
+<!-- Admin: Marke bearbeiten -->
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormTextarea,
+    BFormSelect,
+    BFormCheckbox,
+    BButton,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import InputError from '@/components/InputError.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -135,290 +144,355 @@ const submit = () => {
         mail_footer: data.mail_footer,
     })).put(`/admin/brands/${props.brand.id}`);
 };
+
+const seoRobotsOptions = [
+    { value: 'index, follow', text: 'index, follow' },
+    { value: 'noindex, nofollow', text: 'noindex, nofollow' },
+];
+
+const salutationOptions = [
+    { value: 'formal', text: 'Formell (Sie)' },
+    { value: 'informal', text: 'Informell (Du)' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Marke: ${props.brand.name}`" />
 
-        <form @submit.prevent="submit" class="space-y-6">
-            <div>
-                <Heading level="h1">Marke bearbeiten</Heading>
-                <Text class="mt-2" muted>
-                    {{ props.brand.key }} – Name, Domains, Features und E-Mail-Inhalte
-                </Text>
-            </div>
+        <BForm @submit.prevent="submit">
+            <BRow>
+                <BCol cols="12">
+                    <div class="mb-3">
+                        <h4 class="mb-1">Marke bearbeiten</h4>
+                        <p class="text-muted small mb-0">
+                            {{ props.brand.key }} – Name, Domains, Features und E-Mail-Inhalte
+                        </p>
+                    </div>
+                </BCol>
+            </BRow>
 
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Allgemein</CardTitle>
-                        <CardDescription>Name und Domains (eine pro Zeile)</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div class="space-y-2">
-                            <Label for="name">Name</Label>
-                            <Input id="name" v-model="form.name" :aria-invalid="!!form.errors.name" />
-                            <InputError :message="form.errors.name" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="domains">Domains</Label>
-                            <Textarea
-                                id="domains"
-                                v-model="form.domains"
-                                rows="3"
-                                placeholder="b2b.praxishosting.de&#10;localhost"
-                                :aria-invalid="!!form.errors.domains"
-                            />
-                            <InputError :message="form.errors.domains" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="admin_domains">Admin-Domains</Label>
-                            <Textarea
-                                id="admin_domains"
-                                v-model="form.admin_domains"
-                                rows="2"
-                                placeholder="admin.praxishosting.de"
-                                :aria-invalid="!!form.errors.admin_domains"
-                            />
-                            <InputError :message="form.errors.admin_domains" />
-                            <p class="text-muted-foreground text-sm">Eine pro Zeile (nur Hostname, z. B. admin.neroserv.test). Beim Aufruf dieser URL gelangt man nach Login ins Admin-Panel. Die Domain muss auf dieses Projekt zeigen (z. B. in Laravel Herd unter dem Projekt als „Additional Domain“ eintragen).</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="is_default" v-model="form.is_default" />
-                            <Label for="is_default">Als Standard-Marke (z. B. für localhost)</Label>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Logos</CardTitle>
-                        <CardDescription>Logo-URLs für Header und eingeklappte Sidebar</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div class="space-y-2">
-                            <Label for="logo_url">Logo-URL</Label>
-                            <Input id="logo_url" v-model="form.logo_url" placeholder="https://…" />
-                            <InputError :message="form.errors.logo_url" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="logo_collapsed_url">Logo (eingeklappte Sidebar)</Label>
-                            <Input
-                                id="logo_collapsed_url"
-                                v-model="form.logo_collapsed_url"
-                                placeholder="URL für kleines Logo (z. B. Icon), sonst wird das normale Logo verkleinert"
-                            />
-                            <InputError :message="form.errors.logo_collapsed_url" />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Theme-Farben</CardTitle>
-                        <CardDescription>Farben fürs Kunden-Panel (CSS-Variablen wie --primary)</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div
-                            v-for="item in THEME_COLOR_KEYS"
-                            :key="item.key"
-                            class="flex flex-wrap items-center gap-3 gap-y-2"
-                        >
-                            <Label :for="`theme-${item.key}`" class="w-36 shrink-0">{{ item.label }}</Label>
-                            <input
-                                :id="`theme-${item.key}`"
-                                v-model="form.theme_colors[item.key]"
-                                type="color"
-                                class="h-10 w-14 cursor-pointer rounded border border-gray-300 bg-white p-1 dark:border-gray-600 dark:bg-gray-800"
-                                :aria-invalid="!!form.errors['theme_colors.' + item.key]"
-                            />
-                            <Input
-                                v-model="form.theme_colors[item.key]"
-                                class="w-28 font-mono text-sm"
-                                placeholder="#000000"
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Features</CardTitle>
-                        <CardDescription>Welche Produkte in diesem Portal sichtbar sind – aktivieren oder deaktivieren</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-3">
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="feat_sites" v-model="form.feature_sites_editor" />
-                            <Label for="feat_sites">Webseiten-Editor (Meine Sites)</Label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="feat_webspace" v-model="form.feature_webspace" />
-                            <Label for="feat_webspace">Webspace</Label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="feat_domains" v-model="form.feature_domains_shop" />
-                            <Label for="feat_domains">Domains-Shop</Label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="feat_ai" v-model="form.feature_ai_tokens" />
-                            <Label for="feat_ai">AI-Tokens</Label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="feat_gaming" v-model="form.feature_gaming" />
-                            <Label for="feat_gaming">Gaming (Game-Server / Pterodactyl)</Label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="feat_gameserver_cloud" v-model="form.feature_gameserver_cloud" />
-                            <Label for="feat_gameserver_cloud">Gameserver Cloud</Label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="feat_teamspeak" v-model="form.feature_teamspeak" />
-                            <Label for="feat_teamspeak">TeamSpeak (TeamSpeak-Server mieten)</Label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="feat_discord_notifications" v-model="form.feature_discord_notifications" />
-                            <Label for="feat_discord_notifications">Discord-Benachrichtigungen (E-Mail-Vorlagen optional per Discord-DM)</Label>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Prepaid / Guthaben</CardTitle>
-                        <CardDescription>
-                            Guthaben anzeigen, Selbstaufladung und Zahlung mit Guthaben im Checkout. Vertragslaufzeit bei Guthaben-Zahlung (Webspace/Game-Server).
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-3">
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="feat_prepaid_balance" v-model="form.feature_prepaid_balance" />
-                            <Label for="feat_prepaid_balance">Prepaid: Guthaben anzeigen & mit Guthaben bezahlen</Label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="feat_balance_topup" v-model="form.feature_balance_topup" />
-                            <Label for="feat_balance_topup">Selbstaufladung (Guthaben per Mollie aufladen)</Label>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <Label for="balance_period_months" class="shrink-0">Vertragslaufzeit bei Guthaben-Zahlung (Monate)</Label>
-                            <Input
-                                id="balance_period_months"
-                                v-model.number="form.feature_balance_period_months"
-                                type="number"
-                                min="1"
-                                max="24"
-                                class="w-20"
-                            />
-                            <span class="text-muted-foreground text-sm">(1–24 Monate, z. B. 1 für monatlich)</span>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>SEO & Vorschau</CardTitle>
-                        <CardDescription>
-                            Meta-Tags und Open Graph für Suchmaschinen und Social-Sharing. Canonical und og:url werden dynamisch aus der aktuellen URL gesetzt.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-4">
-                        <div class="space-y-2">
-                            <Label for="seo_favicon_url">Favicon-URL</Label>
-                            <Input id="seo_favicon_url" v-model="form.seo.favicon_url" placeholder="https://…/favicon.ico" />
-                            <InputError :message="form.errors['seo.favicon_url']" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="seo_meta_description">Meta-Beschreibung</Label>
-                            <Textarea
-                                id="seo_meta_description"
-                                v-model="form.seo.meta_description"
-                                rows="2"
-                                placeholder="Kurzbeschreibung für Suchmaschinen"
-                            />
-                            <InputError :message="form.errors['seo.meta_description']" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="seo_meta_robots">Robots</Label>
-                            <Select id="seo_meta_robots" v-model="form.seo.meta_robots">
-                                <option value="index, follow">index, follow</option>
-                                <option value="noindex, nofollow">noindex, nofollow</option>
-                            </Select>
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="seo_theme_color">Theme-Color (Browser-UI)</Label>
-                            <div class="flex flex-wrap items-center gap-2">
-                                <input
-                                    id="seo_theme_color"
-                                    v-model="form.seo.theme_color"
-                                    type="color"
-                                    class="h-10 w-14 cursor-pointer rounded border border-gray-300 bg-white p-1 dark:border-gray-600 dark:bg-gray-800"
+            <BRow>
+                <BCol lg="6" class="mb-4">
+                    <BCard no-body>
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Allgemein</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">Name und Domains (eine pro Zeile)</p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BFormGroup label="Name" label-for="name">
+                                <BFormInput id="name" v-model="form.name" :aria-invalid="!!form.errors.name" />
+                                <InputError :message="form.errors.name" />
+                            </BFormGroup>
+                            <BFormGroup label="Domains" label-for="domains">
+                                <BFormTextarea
+                                    id="domains"
+                                    v-model="form.domains"
+                                    rows="3"
+                                    placeholder="b2b.praxishosting.de&#10;localhost"
+                                    :aria-invalid="!!form.errors.domains"
                                 />
-                                <Input
-                                    v-model="form.seo.theme_color"
-                                    class="w-28 font-mono text-sm"
-                                    placeholder="#1E1E1E"
+                                <InputError :message="form.errors.domains" />
+                            </BFormGroup>
+                            <BFormGroup label="Admin-Domains" label-for="admin_domains">
+                                <BFormTextarea
+                                    id="admin_domains"
+                                    v-model="form.admin_domains"
+                                    rows="2"
+                                    placeholder="admin.praxishosting.de"
+                                    :aria-invalid="!!form.errors.admin_domains"
+                                />
+                                <InputError :message="form.errors.admin_domains" />
+                                <p class="text-muted small mb-0 mt-1">
+                                    Eine pro Zeile (nur Hostname, z. B. admin.neroserv.test). Beim Aufruf dieser URL
+                                    gelangt man nach Login ins Admin-Panel. Die Domain muss auf dieses Projekt zeigen.
+                                </p>
+                            </BFormGroup>
+                            <BFormGroup>
+                                <BFormCheckbox id="is_default" v-model="form.is_default">
+                                    Als Standard-Marke (z. B. für localhost)
+                                </BFormCheckbox>
+                            </BFormGroup>
+                        </BCardBody>
+                    </BCard>
+                </BCol>
+
+                <BCol lg="6" class="mb-4">
+                    <BCard no-body>
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Logos</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">Logo-URLs für Header und eingeklappte Sidebar</p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BFormGroup label="Logo-URL" label-for="logo_url">
+                                <BFormInput id="logo_url" v-model="form.logo_url" placeholder="https://…" />
+                                <InputError :message="form.errors.logo_url" />
+                            </BFormGroup>
+                            <BFormGroup label="Logo (eingeklappte Sidebar)" label-for="logo_collapsed_url">
+                                <BFormInput
+                                    id="logo_collapsed_url"
+                                    v-model="form.logo_collapsed_url"
+                                    placeholder="URL für kleines Logo (z. B. Icon), sonst wird das normale Logo verkleinert"
+                                />
+                                <InputError :message="form.errors.logo_collapsed_url" />
+                            </BFormGroup>
+                        </BCardBody>
+                    </BCard>
+                </BCol>
+
+                <BCol lg="6" class="mb-4">
+                    <BCard no-body>
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Theme-Farben</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">
+                                Farben fürs Kunden-Panel (CSS-Variablen wie --primary)
+                            </p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <div
+                                v-for="item in THEME_COLOR_KEYS"
+                                :key="item.key"
+                                class="d-flex flex-wrap align-items-center gap-2 mb-3"
+                            >
+                                <label :for="`theme-${item.key}`" class="form-label mb-0 text-nowrap" style="min-width: 8rem">
+                                    {{ item.label }}
+                                </label>
+                                <input
+                                    :id="`theme-${item.key}`"
+                                    v-model="form.theme_colors[item.key]"
+                                    type="color"
+                                    class="form-control form-control-color p-1"
+                                    style="width: 3rem; height: 2.25rem"
+                                    :aria-invalid="!!form.errors['theme_colors.' + item.key]"
+                                />
+                                <BFormInput
+                                    v-model="form.theme_colors[item.key]"
+                                    class="font-monospace small"
+                                    style="max-width: 8rem"
+                                    placeholder="#000000"
                                 />
                             </div>
-                            <InputError :message="form.errors['seo.theme_color']" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="seo_og_site_name">Og:Site-Name</Label>
-                            <Input id="seo_og_site_name" v-model="form.seo.og_site_name" placeholder="z. B. neroserv CDN" />
-                            <InputError :message="form.errors['seo.og_site_name']" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="seo_og_title">Og:Title</Label>
-                            <Input id="seo_og_title" v-model="form.seo.og_title" placeholder="Titel für Social-Sharing" />
-                            <InputError :message="form.errors['seo.og_title']" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="seo_og_description">Og:Description</Label>
-                            <Textarea id="seo_og_description" v-model="form.seo.og_description" rows="2" placeholder="Beschreibung für Social-Sharing" />
-                            <InputError :message="form.errors['seo.og_description']" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="seo_og_image">Og:Image-URL</Label>
-                            <Input id="seo_og_image" v-model="form.seo.og_image" placeholder="https://…/og.png" />
-                            <InputError :message="form.errors['seo.og_image']" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="seo_og_locale">Og:Locale</Label>
-                            <Input id="seo_og_locale" v-model="form.seo.og_locale" placeholder="de_DE" />
-                            <InputError :message="form.errors['seo.og_locale']" />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                        </BCardBody>
+                    </BCard>
+                </BCol>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Anrede & E-Mail</CardTitle>
-                    <CardDescription>Für E-Mails an Kunden dieser Marke</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <div class="space-y-2">
-                        <Label for="salutation">Anrede</Label>
-                        <Select id="salutation" v-model="form.salutation">
-                            <option value="formal">Formell (Sie)</option>
-                            <option value="informal">Informell (Du)</option>
-                        </Select>
-                    </div>
-                    <div class="space-y-2">
-                        <Label for="mail_header">E-Mail-Header (HTML)</Label>
-                        <Textarea id="mail_header" v-model="form.mail_header" rows="2" />
-                    </div>
-                    <div class="space-y-2">
-                        <Label for="mail_footer">E-Mail-Footer (HTML oder Text)</Label>
-                        <Textarea id="mail_footer" v-model="form.mail_footer" rows="2" />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button type="submit" :disabled="form.processing">Speichern</Button>
-                    <Link href="/admin/settings?tab=marken">
-                        <Button type="button" variant="outline" class="ml-2">Abbrechen</Button>
-                    </Link>
-                </CardFooter>
-            </Card>
-        </form>
+                <BCol lg="6" class="mb-4">
+                    <BCard no-body>
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Features</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">
+                                Welche Produkte in diesem Portal sichtbar sind – aktivieren oder deaktivieren
+                            </p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BFormGroup class="mb-2">
+                                <BFormCheckbox id="feat_sites" v-model="form.feature_sites_editor">
+                                    Webseiten-Editor (Meine Sites)
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BFormGroup class="mb-2">
+                                <BFormCheckbox id="feat_webspace" v-model="form.feature_webspace">
+                                    Webspace
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BFormGroup class="mb-2">
+                                <BFormCheckbox id="feat_domains" v-model="form.feature_domains_shop">
+                                    Domains-Shop
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BFormGroup class="mb-2">
+                                <BFormCheckbox id="feat_ai" v-model="form.feature_ai_tokens">
+                                    AI-Tokens
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BFormGroup class="mb-2">
+                                <BFormCheckbox id="feat_gaming" v-model="form.feature_gaming">
+                                    Gaming (Game-Server / Pterodactyl)
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BFormGroup class="mb-2">
+                                <BFormCheckbox id="feat_gameserver_cloud" v-model="form.feature_gameserver_cloud">
+                                    Gameserver Cloud
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BFormGroup class="mb-2">
+                                <BFormCheckbox id="feat_teamspeak" v-model="form.feature_teamspeak">
+                                    TeamSpeak (TeamSpeak-Server mieten)
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BFormGroup class="mb-2">
+                                <BFormCheckbox id="feat_discord_notifications" v-model="form.feature_discord_notifications">
+                                    Discord-Benachrichtigungen (E-Mail-Vorlagen optional per Discord-DM)
+                                </BFormCheckbox>
+                            </BFormGroup>
+                        </BCardBody>
+                    </BCard>
+                </BCol>
+
+                <BCol lg="6" class="mb-4">
+                    <BCard no-body>
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Prepaid / Guthaben</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">
+                                Guthaben anzeigen, Selbstaufladung und Zahlung mit Guthaben im Checkout. Vertragslaufzeit
+                                bei Guthaben-Zahlung (Webspace/Game-Server).
+                            </p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BFormGroup class="mb-2">
+                                <BFormCheckbox id="feat_prepaid_balance" v-model="form.feature_prepaid_balance">
+                                    Prepaid: Guthaben anzeigen & mit Guthaben bezahlen
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BFormGroup class="mb-2">
+                                <BFormCheckbox id="feat_balance_topup" v-model="form.feature_balance_topup">
+                                    Selbstaufladung (Guthaben per Mollie aufladen)
+                                </BFormCheckbox>
+                            </BFormGroup>
+                            <BFormGroup label="Vertragslaufzeit bei Guthaben-Zahlung (Monate)" label-for="balance_period_months">
+                                <BFormInput
+                                    id="balance_period_months"
+                                    v-model.number="form.feature_balance_period_months"
+                                    type="number"
+                                    min="1"
+                                    max="24"
+                                    class="form-control w-auto"
+                                    style="max-width: 5rem"
+                                />
+                                <p class="text-muted small mb-0 mt-1">1–24 Monate, z. B. 1 für monatlich</p>
+                            </BFormGroup>
+                        </BCardBody>
+                    </BCard>
+                </BCol>
+
+                <BCol lg="6" class="mb-4">
+                    <BCard no-body>
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">SEO & Vorschau</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">
+                                Meta-Tags und Open Graph für Suchmaschinen und Social-Sharing.
+                            </p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BFormGroup label="Favicon-URL" label-for="seo_favicon_url">
+                                <BFormInput
+                                    id="seo_favicon_url"
+                                    v-model="form.seo.favicon_url"
+                                    placeholder="https://…/favicon.ico"
+                                />
+                                <InputError :message="form.errors['seo.favicon_url']" />
+                            </BFormGroup>
+                            <BFormGroup label="Meta-Beschreibung" label-for="seo_meta_description">
+                                <BFormTextarea
+                                    id="seo_meta_description"
+                                    v-model="form.seo.meta_description"
+                                    rows="2"
+                                    placeholder="Kurzbeschreibung für Suchmaschinen"
+                                />
+                                <InputError :message="form.errors['seo.meta_description']" />
+                            </BFormGroup>
+                            <BFormGroup label="Robots" label-for="seo_meta_robots">
+                                <BFormSelect
+                                    id="seo_meta_robots"
+                                    v-model="form.seo.meta_robots"
+                                    :options="seoRobotsOptions"
+                                />
+                            </BFormGroup>
+                            <BFormGroup label="Theme-Color (Browser-UI)" label-for="seo_theme_color">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <input
+                                        id="seo_theme_color"
+                                        v-model="form.seo.theme_color"
+                                        type="color"
+                                        class="form-control form-control-color p-1"
+                                        style="width: 3rem; height: 2.25rem"
+                                    />
+                                    <BFormInput
+                                        v-model="form.seo.theme_color"
+                                        class="font-monospace small"
+                                        style="max-width: 8rem"
+                                        placeholder="#1E1E1E"
+                                    />
+                                </div>
+                                <InputError :message="form.errors['seo.theme_color']" />
+                            </BFormGroup>
+                            <BFormGroup label="Og:Site-Name" label-for="seo_og_site_name">
+                                <BFormInput
+                                    id="seo_og_site_name"
+                                    v-model="form.seo.og_site_name"
+                                    placeholder="z. B. neroserv CDN"
+                                />
+                                <InputError :message="form.errors['seo.og_site_name']" />
+                            </BFormGroup>
+                            <BFormGroup label="Og:Title" label-for="seo_og_title">
+                                <BFormInput
+                                    id="seo_og_title"
+                                    v-model="form.seo.og_title"
+                                    placeholder="Titel für Social-Sharing"
+                                />
+                                <InputError :message="form.errors['seo.og_title']" />
+                            </BFormGroup>
+                            <BFormGroup label="Og:Description" label-for="seo_og_description">
+                                <BFormTextarea
+                                    id="seo_og_description"
+                                    v-model="form.seo.og_description"
+                                    rows="2"
+                                    placeholder="Beschreibung für Social-Sharing"
+                                />
+                                <InputError :message="form.errors['seo.og_description']" />
+                            </BFormGroup>
+                            <BFormGroup label="Og:Image-URL" label-for="seo_og_image">
+                                <BFormInput
+                                    id="seo_og_image"
+                                    v-model="form.seo.og_image"
+                                    placeholder="https://…/og.png"
+                                />
+                                <InputError :message="form.errors['seo.og_image']" />
+                            </BFormGroup>
+                            <BFormGroup label="Og:Locale" label-for="seo_og_locale">
+                                <BFormInput id="seo_og_locale" v-model="form.seo.og_locale" placeholder="de_DE" />
+                                <InputError :message="form.errors['seo.og_locale']" />
+                            </BFormGroup>
+                        </BCardBody>
+                    </BCard>
+                </BCol>
+
+                <BCol cols="12" class="mb-4">
+                    <BCard no-body>
+                        <BCardHeader>
+                            <BCardTitle class="mb-0">Anrede & E-Mail</BCardTitle>
+                            <p class="text-muted small mb-0 mt-1">Für E-Mails an Kunden dieser Marke</p>
+                        </BCardHeader>
+                        <BCardBody>
+                            <BRow>
+                                <BCol md="4">
+                                    <BFormGroup label="Anrede" label-for="salutation">
+                                        <BFormSelect
+                                            id="salutation"
+                                            v-model="form.salutation"
+                                            :options="salutationOptions"
+                                        />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+                            <BFormGroup label="E-Mail-Header (HTML)" label-for="mail_header">
+                                <BFormTextarea id="mail_header" v-model="form.mail_header" rows="2" />
+                            </BFormGroup>
+                            <BFormGroup label="E-Mail-Footer (HTML oder Text)" label-for="mail_footer">
+                                <BFormTextarea id="mail_footer" v-model="form.mail_footer" rows="2" />
+                            </BFormGroup>
+                        </BCardBody>
+                        <BCardFooter class="d-flex gap-2">
+                            <BButton type="submit" variant="primary" :disabled="form.processing">
+                                Speichern
+                            </BButton>
+                            <Link href="/admin/settings?tab=marken">
+                                <BButton type="button" variant="outline-secondary">Abbrechen</BButton>
+                            </Link>
+                        </BCardFooter>
+                    </BCard>
+                </BCol>
+            </BRow>
+        </BForm>
     </AdminLayout>
 </template>

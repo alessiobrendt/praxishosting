@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import PinInputForm from '@/components/PinInputForm.vue';
-import AuthLayout from '@/layouts/auth/AuthCardLayout.vue';
+import AuthLayout from '@/layouts/AuthLayout.vue';
 
 const page = usePage();
 const user = computed(

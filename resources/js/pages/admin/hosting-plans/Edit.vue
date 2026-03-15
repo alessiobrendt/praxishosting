@@ -1,14 +1,22 @@
+<!-- Admin: Webspace-Paket / Hosting-Plan bearbeiten -->
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
 import { ref, computed, watch, onMounted } from 'vue';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BCardFooter,
+    BFormGroup,
+    BFormInput,
+    BFormSelect,
+    BFormCheckbox,
+    BButton,
+} from 'bootstrap-vue-next';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Heading, Text } from '@/components/ui/typography';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -263,6 +271,10 @@ onMounted(() => {
     }
 });
 
+const panelTypeOptions = computed(() =>
+    props.allowedPanelTypes.map((o) => ({ value: o.value, text: o.label })),
+);
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard().url },
     { title: 'Webspace-Pakete', href: '/admin/hosting-plans' },
@@ -274,535 +286,494 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`${hostingPlan.name} bearbeiten`" />
 
-        <div class="space-y-6">
-            <div>
-                <Heading level="h1">{{ hostingPlan.name }} bearbeiten</Heading>
-                <Text v-if="hostingPlan.panel_type === 'plesk'" class="mt-2" muted>
-                    Plesk-Paket: {{ hostingPlan.plesk_package_name }}
-                </Text>
-                <Text v-else class="mt-2" muted>
-                    Pterodactyl Game-Server-Paket
-                </Text>
-            </div>
-
-            <Form
-                :action="`/admin/hosting-plans/${hostingPlan.id}`"
-                method="post"
-                class="block"
-                v-slot="{ errors }"
-            >
-                <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                    <Card class="max-w-2xl xl:max-w-none">
-                        <CardHeader>
-                            <CardTitle>Paket-Details</CardTitle>
-                            <CardDescription>Name, Panel-Typ und Limits (Plesk: Paketname + Webspace-Limits; Pterodactyl: Nest/Egg + Ressourcen)</CardDescription>
-                        </CardHeader>
-                    <CardContent class="space-y-4">
-                        <input type="hidden" name="_method" value="PUT" />
-                        <div class="space-y-2">
-                            <Label for="panel_type">Panel-Typ *</Label>
-                            <Select
-                                id="panel_type"
-                                name="panel_type"
-                                v-model="panelType"
-                                required
-                            >
-                                <option
-                                    v-for="opt in allowedPanelTypes"
-                                    :key="opt.value"
-                                    :value="opt.value"
-                                >
-                                    {{ opt.label }}
-                                </option>
-                            </Select>
-                            <InputError :message="errors.panel_type" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="name">Name *</Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                required
-                                :model-value="hostingPlan.name"
-                                :aria-invalid="!!errors.name"
-                            />
-                            <InputError :message="errors.name" />
-                        </div>
-                        <div v-if="showPleskFields" class="space-y-2">
-                            <Label for="plesk_package_name">Plesk-Paketname (Paket-ID) *</Label>
-                            <Input
-                                id="plesk_package_name"
-                                name="plesk_package_name"
-                                required
-                                :model-value="hostingPlan.plesk_package_name"
-                                :aria-invalid="!!errors.plesk_package_name"
-                            />
-                            <InputError :message="errors.plesk_package_name" />
-                        </div>
-                        <template v-if="showTeamspeakFields">
-                            <input type="hidden" name="plesk_package_name" value="" />
-                            <div class="space-y-2">
-                                <Label for="hosting_server_id_ts" class="mb-0">Panel-Server (TeamSpeak) *</Label>
-                                <Select
-                                    id="hosting_server_id_ts"
-                                    name="hosting_server_id"
-                                    v-model="hostingServerId"
-                                    :aria-invalid="!!errors.hosting_server_id"
-                                >
-                                    <option value="">Bitte wählen</option>
-                                    <option
-                                        v-for="s in teamspeakHostingServers"
-                                        :key="s.id"
-                                        :value="String(s.id)"
-                                    >
-                                        {{ s.name }} ({{ s.hostname }})
-                                    </option>
-                                </Select>
-                                <InputError :message="errors.hosting_server_id" />
-                                <p class="text-sm text-muted-foreground">
-                                    Option „Slots“ als Bereichs-Slider in den Paket-Optionen verwenden.
-                                </p>
-                            </div>
-                        </template>
-                        <template v-if="showPterodactylFields">
-                            <input type="hidden" name="plesk_package_name" value="" />
-                            <div class="space-y-2">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <Label for="hosting_server_id" class="mb-0">Panel-Server (Pterodactyl) *</Label>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        :disabled="!hostingServerId || loadingOptions"
-                                        @click="refreshOptions"
-                                    >
-                                        {{ loadingOptions ? 'Laden…' : 'Optionen aktualisieren' }}
-                                    </Button>
-                                </div>
-                                <Select
-                                    id="hosting_server_id"
-                                    name="hosting_server_id"
-                                    v-model="hostingServerId"
-                                    :aria-invalid="!!errors.hosting_server_id"
-                                    @change="onServerChange"
-                                >
-                                    <option value="">Bitte wählen</option>
-                                    <option
-                                        v-for="s in pterodactylHostingServers"
-                                        :key="s.id"
-                                        :value="String(s.id)"
-                                    >
-                                        {{ s.name }} ({{ s.hostname }})
-                                    </option>
-                                </Select>
-                                <InputError :message="errors.hosting_server_id" />
-                                <p class="text-sm text-muted-foreground">
-                                    Nach Änderung ggf. „Optionen aktualisieren“ klicken.
-                                </p>
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="config_nest_id">Nest *</Label>
-                                <Select
-                                    id="config_nest_id"
-                                    name="config[nest_id]"
-                                    v-model="config.nest_id"
-                                    required
-                                    :aria-invalid="!!errors['config.nest_id']"
-                                    @change="onNestChange"
-                                >
-                                    <option value="">Bitte wählen</option>
-                                    <option
-                                        v-for="n in pterodactylOptions.nests"
-                                        :key="n.id"
-                                        :value="String(n.id)"
-                                    >
-                                        {{ n.name }}
-                                    </option>
-                                </Select>
-                                <InputError :message="errors['config.nest_id']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="config_egg_id">Default Egg *</Label>
-                                <Select
-                                    id="config_egg_id"
-                                    name="config[egg_id]"
-                                    v-model="config.egg_id"
-                                    required
-                                    :aria-invalid="!!errors['config.egg_id']"
-                                >
-                                    <option value="">Bitte Nest wählen</option>
-                                    <option
-                                        v-for="e in pterodactylOptions.eggs"
-                                        :key="e.id"
-                                        :value="String(e.id)"
-                                    >
-                                        {{ e.name }}
-                                    </option>
-                                </Select>
-                                <InputError :message="errors['config.egg_id']" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="config_location_ids">Location(s)</Label>
-                                <select
-                                    id="config_location_ids"
-                                    name="config[location_ids][]"
-                                    multiple
-                                    class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm min-h-[80px]"
-                                    v-model="config.location_ids"
-                                >
-                                    <option
-                                        v-for="loc in pterodactylOptions.locations"
-                                        :key="loc.id"
-                                        :value="loc.id"
-                                    >
-                                        {{ loc.name }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="config_node">Node</Label>
-                                <Select
-                                    id="config_node"
-                                    name="config[node]"
-                                    v-model="config.node"
-                                >
-                                    <option value="">Automatisch</option>
-                                    <option
-                                        v-for="n in pterodactylOptions.nodes"
-                                        :key="n.id"
-                                        :value="String(n.id)"
-                                    >
-                                        {{ n.name }}
-                                    </option>
-                                </Select>
-                            </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                <div class="space-y-2">
-                                    <Label for="config_memory">RAM (MiB) *</Label>
-                                    <Input id="config_memory" name="config[memory]" type="number" min="0" v-model="config.memory" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="config_swap">Swap (MiB)</Label>
-                                    <Input id="config_swap" name="config[swap]" type="number" min="-1" v-model="config.swap" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="config_disk">Disk (MiB) *</Label>
-                                    <Input id="config_disk" name="config[disk]" type="number" min="0" v-model="config.disk" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="config_io">IO Weight</Label>
-                                    <Input id="config_io" name="config[io]" type="number" min="0" v-model="config.io" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="config_cpu">CPU (%) *</Label>
-                                    <Input id="config_cpu" name="config[cpu]" type="number" min="0" v-model="config.cpu" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="config_cpu_pinning">CPU Pinning</Label>
-                                    <Input id="config_cpu_pinning" name="config[cpu_pinning]" v-model="config.cpu_pinning" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="config_databases">Databases</Label>
-                                    <Input id="config_databases" name="config[databases]" type="number" min="0" v-model="config.databases" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="config_backups">Backups</Label>
-                                    <Input id="config_backups" name="config[backups]" type="number" min="0" v-model="config.backups" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="config_additional_allocations">Additional Allocations</Label>
-                                    <Input id="config_additional_allocations" name="config[additional_allocations]" type="number" min="0" v-model="config.additional_allocations" />
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="config_port_array">Port Array (JSON)</Label>
-                                <Input id="config_port_array" name="config[port_array]" v-model="config.port_array" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label>Port ranges</Label>
-                                <div class="flex flex-wrap gap-2 items-center">
-                                    <template v-for="(tag, i) in (config.port_range as string[])" :key="i">
-                                        <input type="hidden" :name="'config[port_range][]'" :value="tag" />
-                                        <span class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-sm">
-                                            {{ tag }}
-                                            <button type="button" class="hover:text-destructive" @click="(config.port_range as string[]).splice(i, 1)">×</button>
-                                        </span>
-                                    </template>
-                                    <Input v-model="portRangeInput" class="w-28" placeholder="25565" @keydown.enter.prevent="addPortRange" />
-                                    <Button type="button" variant="outline" size="sm" @click="addPortRange">Hinzufügen</Button>
-                                </div>
-                            </div>
-                            <div class="flex flex-wrap gap-6">
-                                <div class="flex items-center gap-2">
-                                    <input type="hidden" name="config[allow_egg_selection_override]" value="0" />
-                                    <input type="checkbox" id="config_allow_egg" name="config[allow_egg_selection_override]" value="1" :checked="config.allow_egg_selection_override" @change="config.allow_egg_selection_override = (($event.target as HTMLInputElement).checked)" />
-                                    <Label for="config_allow_egg">Allow Customer Egg Selection</Label>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <input type="hidden" name="config[skip_scripts]" value="0" />
-                                    <input type="checkbox" id="config_skip_scripts" name="config[skip_scripts]" value="1" :checked="config.skip_scripts" @change="config.skip_scripts = (($event.target as HTMLInputElement).checked)" />
-                                    <Label for="config_skip_scripts">Skip Egg Install Script</Label>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <input type="hidden" name="config[dedicated_ip]" value="0" />
-                                    <input type="checkbox" id="config_dedicated_ip" name="config[dedicated_ip]" value="1" :checked="config.dedicated_ip" @change="config.dedicated_ip = (($event.target as HTMLInputElement).checked)" />
-                                    <Label for="config_dedicated_ip">Dedicated IP</Label>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <input type="hidden" name="config[start_on_completion]" value="0" />
-                                    <input type="checkbox" id="config_start_on_completion" name="config[start_on_completion]" value="1" :checked="config.start_on_completion" @change="config.start_on_completion = (($event.target as HTMLInputElement).checked)" />
-                                    <Label for="config_start_on_completion">Start on completion</Label>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <input type="hidden" name="config[oom_killer]" value="0" />
-                                    <input type="checkbox" id="config_oom_killer" name="config[oom_killer]" value="1" :checked="config.oom_killer" @change="config.oom_killer = (($event.target as HTMLInputElement).checked)" />
-                                    <Label for="config_oom_killer">Enable OOM Killer</Label>
-                                </div>
-                            </div>
-                        </template>
-                        <template v-if="showPleskFields">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="space-y-2">
-                                    <Label for="disk_gb">Disk (GB)</Label>
-                                    <Input id="disk_gb" name="disk_gb" type="number" min="0" :model-value="hostingPlan.disk_gb" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="traffic_gb">Traffic (GB/Monat)</Label>
-                                    <Input id="traffic_gb" name="traffic_gb" type="number" min="0" :model-value="hostingPlan.traffic_gb" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="domains">Domains</Label>
-                                    <Input id="domains" name="domains" type="number" min="0" :model-value="hostingPlan.domains" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="subdomains">Subdomains</Label>
-                                    <Input id="subdomains" name="subdomains" type="number" min="0" :model-value="hostingPlan.subdomains" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="mailboxes">Mailpostfächer</Label>
-                                    <Input id="mailboxes" name="mailboxes" type="number" min="0" :model-value="hostingPlan.mailboxes" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="databases">Datenbanken</Label>
-                                    <Input id="databases" name="databases" type="number" min="0" :model-value="hostingPlan.databases" />
-                                </div>
-                            </div>
-                        </template>
-                        <template v-else>
-                            <input type="hidden" name="disk_gb" :value="hostingPlan.disk_gb" />
-                            <input type="hidden" name="traffic_gb" :value="hostingPlan.traffic_gb" />
-                            <input type="hidden" name="domains" :value="hostingPlan.domains" />
-                            <input type="hidden" name="subdomains" :value="hostingPlan.subdomains" />
-                            <input type="hidden" name="mailboxes" :value="hostingPlan.mailboxes" />
-                            <input type="hidden" name="databases" :value="hostingPlan.databases" />
-                        </template>
-
-                        <div class="space-y-2">
-                            <Label for="price">
-                                {{ showTeamspeakFields ? 'Grundpreis (€/Monat) – 0 = nur Preis pro Slot' : 'Preis (€/Monat) *' }}
-                            </Label>
-                            <Input
-                                id="price"
-                                name="price"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                required
-                                :model-value="hostingPlan.price"
-                                :aria-invalid="!!errors.price"
-                            />
-                            <InputError :message="errors.price" />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="stripe_price_id">Stripe Price ID (optional)</Label>
-                            <Input
-                                id="stripe_price_id"
-                                name="stripe_price_id"
-                                :model-value="hostingPlan.stripe_price_id ?? ''"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="sort_order">Sortierung</Label>
-                            <Input id="sort_order" name="sort_order" type="number" min="0" :model-value="hostingPlan.sort_order" />
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <Switch
-                                id="is_active"
-                                :checked="isActive"
-                                @update:checked="isActive = $event"
-                            />
-                            <Label for="is_active">Aktiv</Label>
-                        </div>
-                        <input type="hidden" name="is_active" :value="isActive ? '1' : '0'" />
-                    </CardContent>
-                    <CardFooter class="flex gap-2">
-                        <Button type="submit">Speichern</Button>
-                        <Link :href="`/admin/hosting-plans/${hostingPlan.id}`">
-                            <Button type="button" variant="outline">Abbrechen</Button>
-                        </Link>
-                    </CardFooter>
-                    </Card>
-
-                    <Card class="xl:max-w-none">
-                        <CardHeader>
-                            <div class="flex items-center justify-between gap-2">
-                                <div>
-                                    <CardTitle>Paket-Optionen (Kundenauswahl)</CardTitle>
-                                    <CardDescription>
-                                        Optionen, die Kunden beim Checkout auswählen können. ID = Feld aus dem Paket-Formular. Bei Select: Optionen an Nests/Eggs binden möglich.
-                                    </CardDescription>
-                                </div>
-                                <Button type="button" variant="outline" size="sm" @click="addPlanOption">
-                                    Option hinzufügen
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent class="space-y-4">
-                            <div v-if="planOptions.length === 0" class="text-sm text-muted-foreground rounded-md border border-dashed p-4">
-                                Noch keine Optionen. Klicken Sie auf „Option hinzufügen“.
-                            </div>
-                            <div v-else class="space-y-4">
-                                <div
-                                    v-for="(opt, idx) in planOptions"
-                                    :key="idx"
-                                    class="rounded-lg border p-4 space-y-3 bg-muted/30"
-                                >
-                                    <input type="hidden" :name="`config[plan_options][${idx}][id]`" :value="opt.id" />
-                                    <input type="hidden" :name="`config[plan_options][${idx}][name]`" :value="opt.name" />
-                                    <input type="hidden" :name="`config[plan_options][${idx}][type]`" :value="opt.type" />
-                                    <input type="hidden" :name="`config[plan_options][${idx}][price_per_unit]`" :value="opt.price_per_unit" />
-                                    <input type="hidden" :name="`config[plan_options][${idx}][sort_order]`" :value="idx" />
-                                    <div class="flex flex-wrap items-start gap-2">
-                                        <div class="space-y-1 min-w-[120px]">
-                                            <Label class="text-xs">ID</Label>
-                                            <Select
-                                                :model-value="availableOptionIds.some(o => o.value === opt.id) ? opt.id : '__custom__'"
-                                                class="h-9"
-                                                @update:model-value="(v: string) => { opt.id = v === '__custom__' ? '' : v; }"
-                                            >
-                                                <option value="">Bitte wählen</option>
-                                                <option v-for="o in availableOptionIds" :key="o.value" :value="o.value">{{ o.label }}</option>
-                                                <option value="__custom__">Benutzerdefiniert</option>
-                                            </Select>
-                                            <Input
-                                                v-if="!availableOptionIds.some(o => o.value === opt.id)"
-                                                v-model="opt.id"
-                                                class="mt-1 h-8 text-sm"
-                                                placeholder="z. B. opt_ram"
-                                            />
-                                        </div>
-                                        <div class="space-y-1 flex-1 min-w-[120px]">
-                                            <Label class="text-xs">Name</Label>
-                                            <Input v-model="opt.name" class="h-9" placeholder="z. B. Arbeitsspeicher" />
-                                        </div>
-                                        <div class="space-y-1 min-w-[90px]">
-                                            <Label class="text-xs">Typ</Label>
-                                            <Select v-model="opt.type" class="h-9">
-                                                <option value="free">Kostenlos</option>
-                                                <option value="choice">Auswahl</option>
-                                                <option value="text">Text</option>
-                                                <option value="range_slider">Range</option>
-                                                <option value="select">Select</option>
-                                            </Select>
-                                        </div>
-                                        <div class="space-y-1 w-20">
-                                            <Label class="text-xs">Preis (€)</Label>
-                                            <Input
-                                                v-model.number="opt.price_per_unit"
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                class="h-9"
-                                                :disabled="opt.type === 'free'"
-                                            />
-                                        </div>
-                                        <div class="flex gap-1 items-end">
-                                            <Button type="button" variant="ghost" size="sm" class="h-9" :disabled="idx === 0" @click="movePlanOption(idx, -1)">↑</Button>
-                                            <Button type="button" variant="ghost" size="sm" class="h-9" :disabled="idx === planOptions.length - 1" @click="movePlanOption(idx, 1)">↓</Button>
-                                            <Button type="button" variant="ghost" size="sm" class="h-9 text-destructive" @click="removePlanOption(idx)">Entfernen</Button>
-                                        </div>
-                                    </div>
-                                    <div v-if="opt.type === 'choice' || (opt.type === 'select' && !opt.source)" class="ml-0 space-y-2">
-                                        <Label class="text-xs">Optionen (value, label, Aufpreis €)</Label>
-                                        <div v-for="(ch, cIdx) in (opt.choices ?? [])" :key="cIdx" class="flex gap-2 items-center">
-                                            <Input v-model="ch.value" placeholder="value" class="h-8 flex-1 max-w-[80px]" />
-                                            <Input v-model="ch.label" placeholder="Label" class="h-8 flex-1" />
-                                            <Input v-model.number="ch.price_delta" type="number" step="0.01" min="0" placeholder="0" class="h-8 w-16" />
-                                            <input type="hidden" :name="`config[plan_options][${idx}][choices][${cIdx}][value]`" :value="ch.value" />
-                                            <input type="hidden" :name="`config[plan_options][${idx}][choices][${cIdx}][label]`" :value="ch.label" />
-                                            <input type="hidden" :name="`config[plan_options][${idx}][choices][${cIdx}][price_delta]`" :value="ch.price_delta ?? 0" />
-                                            <Button type="button" variant="ghost" size="sm" class="h-8 shrink-0 text-destructive" @click="removeChoice(opt, cIdx)">×</Button>
-                                        </div>
-                                        <Button type="button" variant="outline" size="sm" class="h-8" @click="addChoice(opt)">+ Option</Button>
-                                    </div>
-                                    <div v-if="opt.type === 'select' && showPterodactylFields" class="ml-0 space-y-2">
-                                        <Label class="text-xs">Optionen binden an</Label>
-                                        <Select v-model="opt.source" class="h-9 w-full">
-                                            <option :value="undefined">Statisch (manuell oben)</option>
-                                            <option value="pterodactyl_nests">Pterodactyl Nests</option>
-                                            <option value="pterodactyl_eggs">Pterodactyl Eggs (vom Nest)</option>
-                                        </Select>
-                                        <input type="hidden" :name="`config[plan_options][${idx}][source]`" :value="opt.source ?? ''" />
-                                        <p v-if="opt.source === 'pterodactyl_nests'" class="text-xs text-muted-foreground">
-                                            Optionen = verfügbare Nests des Panel-Servers.
-                                            <template v-if="pterodactylOptions.nests.length"> Aktuell {{ pterodactylOptions.nests.length }} Nests.</template>
-                                            <template v-else> Bitte „Optionen aktualisieren“ beim Panel-Server klicken.</template>
-                                        </p>
-                                        <p v-else-if="opt.source === 'pterodactyl_eggs'" class="text-xs text-muted-foreground">
-                                            Optionen = Eggs des im Plan gewählten Nests (Checkout).
-                                            <template v-if="pterodactylOptions.eggs.length"> Vorschau: {{ pterodactylOptions.eggs.length }} Eggs.</template>
-                                            <template v-else> Nest im Plan wählen und Optionen aktualisieren.</template>
-                                        </p>
-                                        <ul v-if="opt.source === 'pterodactyl_nests' && pterodactylOptions.nests.length" class="text-xs text-muted-foreground list-disc list-inside max-h-24 overflow-y-auto">
-                                            <li v-for="n in pterodactylOptions.nests" :key="n.id">{{ n.name }} (ID {{ n.id }})</li>
-                                        </ul>
-                                        <ul v-else-if="opt.source === 'pterodactyl_eggs' && pterodactylOptions.eggs.length" class="text-xs text-muted-foreground list-disc list-inside max-h-24 overflow-y-auto">
-                                            <li v-for="e in pterodactylOptions.eggs" :key="e.id">{{ e.name }} (ID {{ e.id }})</li>
-                                        </ul>
-                                    </div>
-                                    <div v-if="opt.type === 'select' && opt.source && (opt.choices?.length ?? 0) > 0" class="ml-0 text-xs text-muted-foreground">
-                                        Statische Optionen werden bei gebundener Quelle ignoriert; Anzeige kommt aus Nests/Eggs.
-                                    </div>
-                                    <div v-if="opt.type === 'range_slider'" class="ml-0 grid grid-cols-2 gap-2">
-                                        <div class="space-y-1">
-                                            <Label class="text-xs">Min</Label>
-                                            <Input v-model.number="opt.min" type="number" class="h-8" />
-                                            <input type="hidden" :name="`config[plan_options][${idx}][min]`" :value="opt.min !== undefined && opt.min !== null ? opt.min : ''" />
-                                        </div>
-                                        <div class="space-y-1">
-                                            <Label class="text-xs">Max</Label>
-                                            <Input v-model.number="opt.max" type="number" class="h-8" />
-                                            <input type="hidden" :name="`config[plan_options][${idx}][max]`" :value="opt.max !== undefined && opt.max !== null ? opt.max : ''" />
-                                        </div>
-                                        <div class="space-y-1">
-                                            <Label class="text-xs">Step</Label>
-                                            <Input v-model.number="opt.step" type="number" min="0" class="h-8" />
-                                            <input type="hidden" :name="`config[plan_options][${idx}][step]`" :value="opt.step !== undefined && opt.step !== null ? opt.step : ''" />
-                                        </div>
-                                        <div class="space-y-1">
-                                            <Label class="text-xs">Einheit</Label>
-                                            <Input v-model="opt.unit" class="h-8" placeholder="MB" />
-                                            <input type="hidden" :name="`config[plan_options][${idx}][unit]`" :value="opt.unit ?? ''" />
-                                        </div>
-                                    </div>
-                                    <div v-if="opt.type === 'text'" class="ml-0 flex gap-2">
-                                        <div class="space-y-1 flex-1">
-                                            <Label class="text-xs">Placeholder</Label>
-                                            <Input v-model="opt.placeholder" class="h-8" />
-                                            <input type="hidden" :name="`config[plan_options][${idx}][placeholder]`" :value="opt.placeholder ?? ''" />
-                                        </div>
-                                        <div class="space-y-1 w-20">
-                                            <Label class="text-xs">Max. Länge</Label>
-                                            <Input v-model.number="opt.max_length" type="number" min="0" class="h-8" />
-                                            <input type="hidden" :name="`config[plan_options][${idx}][max_length]`" :value="opt.max_length ?? ''" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+        <BRow>
+            <BCol>
+                <div class="mb-3">
+                    <h4 class="mb-1">{{ hostingPlan.name }} bearbeiten</h4>
+                    <p class="text-muted small mb-0">
+                        {{ hostingPlan.panel_type === 'plesk' ? `Plesk-Paket: ${hostingPlan.plesk_package_name}` : 'Pterodactyl Game-Server-Paket' }}
+                    </p>
                 </div>
-            </Form>
-        </div>
+
+                <Form
+                    :action="`/admin/hosting-plans/${hostingPlan.id}`"
+                    method="post"
+                    v-slot="{ errors }"
+                >
+                    <input type="hidden" name="_method" value="PUT" />
+                    <BRow>
+                        <BCol xl="6">
+                            <BCard no-body class="mb-3">
+                                <BCardHeader>
+                                    <BCardTitle class="mb-0">Paket-Details</BCardTitle>
+                                    <p class="text-muted small mb-0 mt-1">
+                                        Name, Panel-Typ und Limits (Plesk: Paketname + Webspace-Limits; Pterodactyl: Nest/Egg + Ressourcen)
+                                    </p>
+                                </BCardHeader>
+                                <BCardBody>
+                                    <BFormGroup label="Panel-Typ *" label-for="panel_type">
+                                        <BFormSelect
+                                            id="panel_type"
+                                            name="panel_type"
+                                            v-model="panelType"
+                                            :options="panelTypeOptions"
+                                            required
+                                            :aria-invalid="!!errors.panel_type"
+                                        />
+                                        <InputError :message="errors.panel_type" />
+                                    </BFormGroup>
+                                    <BFormGroup label="Name *" label-for="name">
+                                        <BFormInput
+                                            id="name"
+                                            name="name"
+                                            :model-value="hostingPlan.name"
+                                            required
+                                            :aria-invalid="!!errors.name"
+                                        />
+                                        <InputError :message="errors.name" />
+                                    </BFormGroup>
+                                    <BFormGroup v-if="showPleskFields" label="Plesk-Paketname (Paket-ID) *" label-for="plesk_package_name">
+                                        <BFormInput
+                                            id="plesk_package_name"
+                                            name="plesk_package_name"
+                                            :model-value="hostingPlan.plesk_package_name"
+                                            required
+                                            :aria-invalid="!!errors.plesk_package_name"
+                                        />
+                                        <InputError :message="errors.plesk_package_name" />
+                                    </BFormGroup>
+                                    <template v-if="showTeamspeakFields">
+                                        <input type="hidden" name="plesk_package_name" value="" />
+                                        <BFormGroup label="Panel-Server (TeamSpeak) *" label-for="hosting_server_id_ts">
+                                            <BFormSelect
+                                                id="hosting_server_id_ts"
+                                                name="hosting_server_id"
+                                                v-model="hostingServerId"
+                                                :options="[{ value: '', text: 'Bitte wählen' }, ...teamspeakHostingServers.map(s => ({ value: String(s.id), text: `${s.name} (${s.hostname})` }))]"
+                                                :aria-invalid="!!errors.hosting_server_id"
+                                            />
+                                            <InputError :message="errors.hosting_server_id" />
+                                            <p class="text-muted small mb-0 mt-1">Option „Slots“ als Bereichs-Slider in den Paket-Optionen verwenden.</p>
+                                        </BFormGroup>
+                                    </template>
+                                    <template v-if="showPterodactylFields">
+                                        <input type="hidden" name="plesk_package_name" value="" />
+                                        <BFormGroup label="Panel-Server (Pterodactyl) *" label-for="hosting_server_id">
+                                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                                <BFormSelect
+                                                    id="hosting_server_id"
+                                                    name="hosting_server_id"
+                                                    v-model="hostingServerId"
+                                                    :options="[{ value: '', text: 'Bitte wählen' }, ...pterodactylHostingServers.map(s => ({ value: String(s.id), text: `${s.name} (${s.hostname})` }))]"
+                                                    :aria-invalid="!!errors.hosting_server_id"
+                                                    class="flex-grow-1"
+                                                    @change="onServerChange"
+                                                />
+                                                <BButton
+                                                    type="button"
+                                                    variant="outline-primary"
+                                                    size="sm"
+                                                    :disabled="!hostingServerId || loadingOptions"
+                                                    @click="refreshOptions"
+                                                >
+                                                    {{ loadingOptions ? 'Laden…' : 'Optionen aktualisieren' }}
+                                                </BButton>
+                                            </div>
+                                            <InputError :message="errors.hosting_server_id" />
+                                            <p class="text-muted small mb-0">Nach Änderung ggf. „Optionen aktualisieren“ klicken.</p>
+                                        </BFormGroup>
+                                        <BFormGroup label="Nest *" label-for="config_nest_id">
+                                            <BFormSelect
+                                                id="config_nest_id"
+                                                name="config[nest_id]"
+                                                v-model="config.nest_id"
+                                                :options="[{ value: '', text: 'Bitte wählen' }, ...pterodactylOptions.nests.map(n => ({ value: String(n.id), text: n.name }))]"
+                                                required
+                                                :aria-invalid="!!errors['config.nest_id']"
+                                                @change="onNestChange"
+                                            />
+                                            <InputError :message="errors['config.nest_id']" />
+                                        </BFormGroup>
+                                        <BFormGroup label="Default Egg *" label-for="config_egg_id">
+                                            <BFormSelect
+                                                id="config_egg_id"
+                                                name="config[egg_id]"
+                                                v-model="config.egg_id"
+                                                :options="[{ value: '', text: 'Bitte Nest wählen' }, ...pterodactylOptions.eggs.map(e => ({ value: String(e.id), text: e.name }))]"
+                                                required
+                                                :aria-invalid="!!errors['config.egg_id']"
+                                            />
+                                            <InputError :message="errors['config.egg_id']" />
+                                        </BFormGroup>
+                                        <BFormGroup label="Location(s)" label-for="config_location_ids">
+                                            <select
+                                                id="config_location_ids"
+                                                name="config[location_ids][]"
+                                                multiple
+                                                class="form-select"
+                                                style="min-height: 80px"
+                                                v-model="config.location_ids"
+                                            >
+                                                <option
+                                                    v-for="loc in pterodactylOptions.locations"
+                                                    :key="loc.id"
+                                                    :value="loc.id"
+                                                >
+                                                    {{ loc.name }}
+                                                </option>
+                                            </select>
+                                        </BFormGroup>
+                                        <BFormGroup label="Node" label-for="config_node">
+                                            <BFormSelect
+                                                id="config_node"
+                                                name="config[node]"
+                                                v-model="config.node"
+                                                :options="[{ value: '', text: 'Automatisch' }, ...pterodactylOptions.nodes.map(n => ({ value: String(n.id), text: n.name }))]"
+                                            />
+                                        </BFormGroup>
+                                        <BRow>
+                                            <BCol sm="6" md="4">
+                                                <BFormGroup label="RAM (MiB) *" label-for="config_memory">
+                                                    <BFormInput id="config_memory" name="config[memory]" type="number" min="0" v-model="config.memory" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol sm="6" md="4">
+                                                <BFormGroup label="Swap (MiB)" label-for="config_swap">
+                                                    <BFormInput id="config_swap" name="config[swap]" type="number" min="-1" v-model="config.swap" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol sm="6" md="4">
+                                                <BFormGroup label="Disk (MiB) *" label-for="config_disk">
+                                                    <BFormInput id="config_disk" name="config[disk]" type="number" min="0" v-model="config.disk" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol sm="6" md="4">
+                                                <BFormGroup label="IO Weight" label-for="config_io">
+                                                    <BFormInput id="config_io" name="config[io]" type="number" min="0" v-model="config.io" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol sm="6" md="4">
+                                                <BFormGroup label="CPU (%) *" label-for="config_cpu">
+                                                    <BFormInput id="config_cpu" name="config[cpu]" type="number" min="0" v-model="config.cpu" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol sm="6" md="4">
+                                                <BFormGroup label="CPU Pinning" label-for="config_cpu_pinning">
+                                                    <BFormInput id="config_cpu_pinning" name="config[cpu_pinning]" v-model="config.cpu_pinning" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol sm="6" md="4">
+                                                <BFormGroup label="Databases" label-for="config_databases">
+                                                    <BFormInput id="config_databases" name="config[databases]" type="number" min="0" v-model="config.databases" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol sm="6" md="4">
+                                                <BFormGroup label="Backups" label-for="config_backups">
+                                                    <BFormInput id="config_backups" name="config[backups]" type="number" min="0" v-model="config.backups" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol sm="6" md="4">
+                                                <BFormGroup label="Additional Allocations" label-for="config_additional_allocations">
+                                                    <BFormInput id="config_additional_allocations" name="config[additional_allocations]" type="number" min="0" v-model="config.additional_allocations" />
+                                                </BFormGroup>
+                                            </BCol>
+                                        </BRow>
+                                        <BFormGroup label="Port Array (JSON)" label-for="config_port_array">
+                                            <BFormInput id="config_port_array" name="config[port_array]" v-model="config.port_array" />
+                                        </BFormGroup>
+                                        <BFormGroup label="Port ranges">
+                                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                                <template v-for="(tag, i) in (config.port_range as string[])" :key="i">
+                                                    <input type="hidden" :name="'config[port_range][]'" :value="tag" />
+                                                    <span class="badge bg-secondary d-inline-flex align-items-center gap-1">
+                                                        {{ tag }}
+                                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none" @click="(config.port_range as string[]).splice(i, 1)">×</button>
+                                                    </span>
+                                                </template>
+                                                <BFormInput v-model="portRangeInput" placeholder="25565" class="w-auto" style="max-width: 6rem" @keydown.enter.prevent="addPortRange" />
+                                                <BButton type="button" variant="outline-primary" size="sm" @click="addPortRange">Hinzufügen</BButton>
+                                            </div>
+                                        </BFormGroup>
+                                        <div class="d-flex flex-wrap gap-3 mb-3">
+                                            <BFormGroup class="mb-0">
+                                                <input type="hidden" name="config[allow_egg_selection_override]" value="0" />
+                                                <BFormCheckbox id="config_allow_egg" v-model="config.allow_egg_selection_override" name="config[allow_egg_selection_override]" value="1">
+                                                    Allow Customer Egg Selection
+                                                </BFormCheckbox>
+                                            </BFormGroup>
+                                            <BFormGroup class="mb-0">
+                                                <input type="hidden" name="config[skip_scripts]" value="0" />
+                                                <BFormCheckbox id="config_skip_scripts" v-model="config.skip_scripts" name="config[skip_scripts]" value="1">
+                                                    Skip Egg Install Script
+                                                </BFormCheckbox>
+                                            </BFormGroup>
+                                            <BFormGroup class="mb-0">
+                                                <input type="hidden" name="config[dedicated_ip]" value="0" />
+                                                <BFormCheckbox id="config_dedicated_ip" v-model="config.dedicated_ip" name="config[dedicated_ip]" value="1">
+                                                    Dedicated IP
+                                                </BFormCheckbox>
+                                            </BFormGroup>
+                                            <BFormGroup class="mb-0">
+                                                <input type="hidden" name="config[start_on_completion]" value="0" />
+                                                <BFormCheckbox id="config_start_on_completion" v-model="config.start_on_completion" name="config[start_on_completion]" value="1">
+                                                    Start on completion
+                                                </BFormCheckbox>
+                                            </BFormGroup>
+                                            <BFormGroup class="mb-0">
+                                                <input type="hidden" name="config[oom_killer]" value="0" />
+                                                <BFormCheckbox id="config_oom_killer" v-model="config.oom_killer" name="config[oom_killer]" value="1">
+                                                    Enable OOM Killer
+                                                </BFormCheckbox>
+                                            </BFormGroup>
+                                        </div>
+                                    </template>
+                                    <template v-if="showPleskFields">
+                                        <BRow>
+                                            <BCol md="6">
+                                                <BFormGroup label="Disk (GB)" label-for="disk_gb">
+                                                    <BFormInput id="disk_gb" name="disk_gb" type="number" min="0" :model-value="hostingPlan.disk_gb" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol md="6">
+                                                <BFormGroup label="Traffic (GB/Monat)" label-for="traffic_gb">
+                                                    <BFormInput id="traffic_gb" name="traffic_gb" type="number" min="0" :model-value="hostingPlan.traffic_gb" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol md="6">
+                                                <BFormGroup label="Domains" label-for="domains">
+                                                    <BFormInput id="domains" name="domains" type="number" min="0" :model-value="hostingPlan.domains" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol md="6">
+                                                <BFormGroup label="Subdomains" label-for="subdomains">
+                                                    <BFormInput id="subdomains" name="subdomains" type="number" min="0" :model-value="hostingPlan.subdomains" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol md="6">
+                                                <BFormGroup label="Mailpostfächer" label-for="mailboxes">
+                                                    <BFormInput id="mailboxes" name="mailboxes" type="number" min="0" :model-value="hostingPlan.mailboxes" />
+                                                </BFormGroup>
+                                            </BCol>
+                                            <BCol md="6">
+                                                <BFormGroup label="Datenbanken" label-for="databases">
+                                                    <BFormInput id="databases" name="databases" type="number" min="0" :model-value="hostingPlan.databases" />
+                                                </BFormGroup>
+                                            </BCol>
+                                        </BRow>
+                                    </template>
+                                    <template v-else>
+                                        <input type="hidden" name="disk_gb" :value="hostingPlan.disk_gb" />
+                                        <input type="hidden" name="traffic_gb" :value="hostingPlan.traffic_gb" />
+                                        <input type="hidden" name="domains" :value="hostingPlan.domains" />
+                                        <input type="hidden" name="subdomains" :value="hostingPlan.subdomains" />
+                                        <input type="hidden" name="mailboxes" :value="hostingPlan.mailboxes" />
+                                        <input type="hidden" name="databases" :value="hostingPlan.databases" />
+                                    </template>
+
+                                    <BFormGroup :label="showTeamspeakFields ? 'Grundpreis (€/Monat) – 0 = nur Preis pro Slot' : 'Preis (€/Monat) *'" label-for="price">
+                                        <BFormInput
+                                            id="price"
+                                            name="price"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            required
+                                            :model-value="hostingPlan.price"
+                                            :aria-invalid="!!errors.price"
+                                        />
+                                        <InputError :message="errors.price" />
+                                    </BFormGroup>
+                                    <BFormGroup label="Stripe Price ID (optional)" label-for="stripe_price_id">
+                                        <BFormInput
+                                            id="stripe_price_id"
+                                            name="stripe_price_id"
+                                            :model-value="hostingPlan.stripe_price_id ?? ''"
+                                        />
+                                    </BFormGroup>
+                                    <BFormGroup label="Sortierung" label-for="sort_order">
+                                        <BFormInput id="sort_order" name="sort_order" type="number" min="0" :model-value="hostingPlan.sort_order" />
+                                    </BFormGroup>
+                                    <BFormGroup>
+                                        <input type="hidden" name="is_active" :value="isActive ? '1' : '0'" />
+                                        <BFormCheckbox id="is_active" v-model="isActive" switch>
+                                            Aktiv
+                                        </BFormCheckbox>
+                                    </BFormGroup>
+                                </BCardBody>
+                                <BCardFooter class="d-flex gap-2">
+                                    <BButton type="submit" variant="primary">Speichern</BButton>
+                                    <Link :href="`/admin/hosting-plans/${hostingPlan.id}`">
+                                        <BButton type="button" variant="outline-secondary">Abbrechen</BButton>
+                                    </Link>
+                                </BCardFooter>
+                            </BCard>
+                        </BCol>
+                        <BCol xl="6">
+                            <BCard no-body>
+                                <BCardHeader class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                    <div>
+                                        <BCardTitle class="mb-0">Paket-Optionen (Kundenauswahl)</BCardTitle>
+                                        <p class="text-muted small mb-0 mt-1">
+                                            Optionen, die Kunden beim Checkout auswählen können. ID = Feld aus dem Paket-Formular. Bei Select: Optionen an Nests/Eggs binden möglich.
+                                        </p>
+                                    </div>
+                                    <BButton type="button" variant="outline-primary" size="sm" @click="addPlanOption">
+                                        Option hinzufügen
+                                    </BButton>
+                                </BCardHeader>
+                                <BCardBody>
+                                    <div v-if="planOptions.length === 0" class="text-muted small rounded border border-dashed p-3">
+                                        Noch keine Optionen. Klicken Sie auf „Option hinzufügen“.
+                                    </div>
+                                    <div v-else class="d-flex flex-column gap-3">
+                                        <div
+                                            v-for="(opt, idx) in planOptions"
+                                            :key="idx"
+                                            class="rounded border p-3 bg-light bg-opacity-50"
+                                        >
+                                            <input type="hidden" :name="`config[plan_options][${idx}][id]`" :value="opt.id" />
+                                            <input type="hidden" :name="`config[plan_options][${idx}][name]`" :value="opt.name" />
+                                            <input type="hidden" :name="`config[plan_options][${idx}][type]`" :value="opt.type" />
+                                            <input type="hidden" :name="`config[plan_options][${idx}][price_per_unit]`" :value="opt.price_per_unit" />
+                                            <input type="hidden" :name="`config[plan_options][${idx}][sort_order]`" :value="idx" />
+                                            <div class="d-flex flex-wrap align-items-end gap-2 mb-2">
+                                                <BFormGroup label="ID" class="mb-0" label-class="form-label small">
+                                                    <BFormSelect
+                                                        :model-value="availableOptionIds.some(o => o.value === opt.id) ? opt.id : '__custom__'"
+                                                        :options="[{ value: '', text: 'Bitte wählen' }, ...availableOptionIds.map(o => ({ value: o.value, text: o.label })), { value: '__custom__', text: 'Benutzerdefiniert' }]"
+                                                        size="sm"
+                                                        @update:model-value="(v: string) => { opt.id = v === '__custom__' ? '' : v; }"
+                                                    />
+                                                    <BFormInput
+                                                        v-if="!availableOptionIds.some(o => o.value === opt.id)"
+                                                        v-model="opt.id"
+                                                        size="sm"
+                                                        placeholder="z. B. opt_ram"
+                                                        class="mt-1"
+                                                    />
+                                                </BFormGroup>
+                                                <BFormGroup label="Name" class="mb-0 flex-grow-1" style="min-width: 120px" label-class="form-label small">
+                                                    <BFormInput v-model="opt.name" size="sm" placeholder="z. B. Arbeitsspeicher" />
+                                                </BFormGroup>
+                                                <BFormGroup label="Typ" class="mb-0" label-class="form-label small">
+                                                    <BFormSelect
+                                                        v-model="opt.type"
+                                                        :options="[
+                                                            { value: 'free', text: 'Kostenlos' },
+                                                            { value: 'choice', text: 'Auswahl' },
+                                                            { value: 'text', text: 'Text' },
+                                                            { value: 'range_slider', text: 'Range' },
+                                                            { value: 'select', text: 'Select' },
+                                                        ]"
+                                                        size="sm"
+                                                    />
+                                                </BFormGroup>
+                                                <BFormGroup label="Preis (€)" class="mb-0" label-class="form-label small" style="width: 5rem">
+                                                    <BFormInput
+                                                        v-model.number="opt.price_per_unit"
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        size="sm"
+                                                        :disabled="opt.type === 'free'"
+                                                    />
+                                                </BFormGroup>
+                                                <div class="d-flex gap-1">
+                                                    <BButton type="button" variant="outline-secondary" size="sm" :disabled="idx === 0" @click="movePlanOption(idx, -1)">↑</BButton>
+                                                    <BButton type="button" variant="outline-secondary" size="sm" :disabled="idx === planOptions.length - 1" @click="movePlanOption(idx, 1)">↓</BButton>
+                                                    <BButton type="button" variant="outline-danger" size="sm" @click="removePlanOption(idx)">Entfernen</BButton>
+                                                </div>
+                                            </div>
+                                            <div v-if="opt.type === 'choice' || (opt.type === 'select' && !opt.source)" class="mt-2">
+                                                <label class="form-label small">Optionen (value, label, Aufpreis €)</label>
+                                                <div v-for="(ch, cIdx) in (opt.choices ?? [])" :key="cIdx" class="d-flex gap-2 align-items-center mb-2">
+                                                    <BFormInput v-model="ch.value" placeholder="value" size="sm" class="flex-grow-1" style="max-width: 6rem" />
+                                                    <BFormInput v-model="ch.label" placeholder="Label" size="sm" class="flex-grow-1" />
+                                                    <BFormInput v-model.number="ch.price_delta" type="number" step="0.01" min="0" placeholder="0" size="sm" class="w-25" />
+                                                    <input type="hidden" :name="`config[plan_options][${idx}][choices][${cIdx}][value]`" :value="ch.value" />
+                                                    <input type="hidden" :name="`config[plan_options][${idx}][choices][${cIdx}][label]`" :value="ch.label" />
+                                                    <input type="hidden" :name="`config[plan_options][${idx}][choices][${cIdx}][price_delta]`" :value="ch.price_delta ?? 0" />
+                                                    <BButton type="button" variant="outline-danger" size="sm" @click="removeChoice(opt, cIdx)">×</BButton>
+                                                </div>
+                                                <BButton type="button" variant="outline-primary" size="sm" @click="addChoice(opt)">+ Option</BButton>
+                                            </div>
+                                            <div v-if="opt.type === 'select' && showPterodactylFields" class="mt-2">
+                                                <label class="form-label small">Optionen binden an</label>
+                                                <BFormSelect
+                                                    v-model="opt.source"
+                                                    :options="[
+                                                        { value: '', text: 'Statisch (manuell oben)' },
+                                                        { value: 'pterodactyl_nests', text: 'Pterodactyl Nests' },
+                                                        { value: 'pterodactyl_eggs', text: 'Pterodactyl Eggs (vom Nest)' },
+                                                    ]"
+                                                    size="sm"
+                                                    class="w-100"
+                                                />
+                                                <input type="hidden" :name="`config[plan_options][${idx}][source]`" :value="opt.source ?? ''" />
+                                                <p v-if="opt.source === 'pterodactyl_nests'" class="small text-muted mb-0 mt-1">
+                                                    Optionen = verfügbare Nests des Panel-Servers.
+                                                    <template v-if="pterodactylOptions.nests.length"> Aktuell {{ pterodactylOptions.nests.length }} Nests.</template>
+                                                    <template v-else> Bitte „Optionen aktualisieren“ beim Panel-Server klicken.</template>
+                                                </p>
+                                                <p v-else-if="opt.source === 'pterodactyl_eggs'" class="small text-muted mb-0 mt-1">
+                                                    Optionen = Eggs des im Plan gewählten Nests (Checkout).
+                                                    <template v-if="pterodactylOptions.eggs.length"> Vorschau: {{ pterodactylOptions.eggs.length }} Eggs.</template>
+                                                    <template v-else> Nest im Plan wählen und Optionen aktualisieren.</template>
+                                                </p>
+                                                <ul v-if="opt.source === 'pterodactyl_nests' && pterodactylOptions.nests.length" class="small text-muted list-unstyled mb-0 mt-1 overflow-auto" style="max-height: 6rem">
+                                                    <li v-for="n in pterodactylOptions.nests" :key="n.id">{{ n.name }} (ID {{ n.id }})</li>
+                                                </ul>
+                                                <ul v-else-if="opt.source === 'pterodactyl_eggs' && pterodactylOptions.eggs.length" class="small text-muted list-unstyled mb-0 mt-1 overflow-auto" style="max-height: 6rem">
+                                                    <li v-for="e in pterodactylOptions.eggs" :key="e.id">{{ e.name }} (ID {{ e.id }})</li>
+                                                </ul>
+                                            </div>
+                                            <div v-if="opt.type === 'select' && opt.source && (opt.choices?.length ?? 0) > 0" class="small text-muted mt-1">
+                                                Statische Optionen werden bei gebundener Quelle ignoriert; Anzeige kommt aus Nests/Eggs.
+                                            </div>
+                                            <div v-if="opt.type === 'range_slider'" class="mt-2 row g-2">
+                                                <BCol md="6">
+                                                    <BFormGroup label="Min" class="mb-0" label-class="form-label small">
+                                                        <BFormInput v-model.number="opt.min" type="number" size="sm" />
+                                                        <input type="hidden" :name="`config[plan_options][${idx}][min]`" :value="opt.min !== undefined && opt.min !== null ? opt.min : ''" />
+                                                    </BFormGroup>
+                                                </BCol>
+                                                <BCol md="6">
+                                                    <BFormGroup label="Max" class="mb-0" label-class="form-label small">
+                                                        <BFormInput v-model.number="opt.max" type="number" size="sm" />
+                                                        <input type="hidden" :name="`config[plan_options][${idx}][max]`" :value="opt.max !== undefined && opt.max !== null ? opt.max : ''" />
+                                                    </BFormGroup>
+                                                </BCol>
+                                                <BCol md="6">
+                                                    <BFormGroup label="Step" class="mb-0" label-class="form-label small">
+                                                        <BFormInput v-model.number="opt.step" type="number" min="0" size="sm" />
+                                                        <input type="hidden" :name="`config[plan_options][${idx}][step]`" :value="opt.step !== undefined && opt.step !== null ? opt.step : ''" />
+                                                    </BFormGroup>
+                                                </BCol>
+                                                <BCol md="6">
+                                                    <BFormGroup label="Einheit" class="mb-0" label-class="form-label small">
+                                                        <BFormInput v-model="opt.unit" size="sm" placeholder="MB" />
+                                                        <input type="hidden" :name="`config[plan_options][${idx}][unit]`" :value="opt.unit ?? ''" />
+                                                    </BFormGroup>
+                                                </BCol>
+                                            </div>
+                                            <div v-if="opt.type === 'text'" class="mt-2 d-flex gap-2">
+                                                <BFormGroup label="Placeholder" class="mb-0 flex-grow-1" label-class="form-label small">
+                                                    <BFormInput v-model="opt.placeholder" size="sm" />
+                                                    <input type="hidden" :name="`config[plan_options][${idx}][placeholder]`" :value="opt.placeholder ?? ''" />
+                                                </BFormGroup>
+                                                <BFormGroup label="Max. Länge" class="mb-0" label-class="form-label small" style="width: 5rem">
+                                                    <BFormInput v-model.number="opt.max_length" type="number" min="0" size="sm" />
+                                                    <input type="hidden" :name="`config[plan_options][${idx}][max_length]`" :value="opt.max_length ?? ''" />
+                                                </BFormGroup>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </BCardBody>
+                            </BCard>
+                        </BCol>
+                    </BRow>
+                </Form>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

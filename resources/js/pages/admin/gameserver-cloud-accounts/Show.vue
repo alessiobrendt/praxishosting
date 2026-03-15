@@ -1,39 +1,36 @@
+<!-- Admin: Gameserver-Cloud-Abo (Detail) -->
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Eye, Pencil, Server } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Table,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableHead,
-    TableCell,
-} from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+    BRow,
+    BCol,
+    BCard,
+    BCardHeader,
+    BCardTitle,
+    BCardBody,
+    BTable,
+    BButton,
+    BBadge,
+    BForm,
+    BFormGroup,
+    BFormInput,
+    BFormSelect,
+    BFormCheckbox,
+    BModal,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
+import InputError from '@/components/InputError.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import InputError from '@/components/InputError.vue';
 
 type User = { id: number; name: string; email: string } | null;
 type GameserverCloudPlanSummary = { id: number; name: string; config?: Record<string, number> };
 
 type Subscription = {
     id: number;
+    uuid: string;
     user: User;
     gameserver_cloud_plan: GameserverCloudPlanSummary;
     plan_display_user_defined: boolean;
@@ -58,6 +55,7 @@ type Subscription = {
 
 type GameServerAccountSummary = {
     id: number;
+    uuid: string;
     name: string;
     identifier: string | null;
     status: string;
@@ -173,7 +171,7 @@ function submitPlanChange() {
     } else if (planForm.gameserver_cloud_plan_id !== '') {
         payload.gameserver_cloud_plan_id = Number(planForm.gameserver_cloud_plan_id);
     }
-    planForm.transform(() => payload).put(`/admin/gameserver-cloud-accounts/${props.subscription.id}`, {
+    planForm.transform(() => payload).put(`/admin/gameserver-cloud-accounts/${props.subscription.uuid}`, {
         preserveScroll: true,
         onSuccess: () => planForm.reset(),
     });
@@ -188,7 +186,7 @@ function submitPeriodAndStatus() {
         payload.current_period_ends_at = periodAndStatusForm.current_period_ends_at;
     }
     periodAndStatusForm.transform(() => payload).put(
-        `/admin/gameserver-cloud-accounts/${props.subscription.id}/period-and-status`,
+        `/admin/gameserver-cloud-accounts/${props.subscription.uuid}/period-and-status`,
         { preserveScroll: true, onSuccess: () => periodAndStatusForm.reset() }
     );
 }
@@ -215,7 +213,7 @@ function submitResources() {
     const acc = editingAccount.value;
     if (!acc) return;
     resourcesForm.put(
-        `/admin/gameserver-cloud-accounts/${props.subscription.id}/servers/${acc.id}/resources`,
+        `/admin/gameserver-cloud-accounts/${props.subscription.uuid}/servers/${acc.uuid}/resources`,
         {
             preserveScroll: true,
             onSuccess: () => {
@@ -229,360 +227,375 @@ function submitResources() {
 function planLabel(acc: GameServerAccountSummary): string {
     return acc.allocation_manually_set ? 'Benutzer definiert' : (props.subscription.gameserver_cloud_plan?.name ?? '–');
 }
+
+const planSelectOptions = computed(() => [
+    { value: 'user_defined', text: 'Benutzer definiert' },
+    ...props.gameserverCloudPlans.map((p) => ({ value: String(p.id), text: p.name })),
+]);
+
+const statusOptions = [
+    { value: 'active', text: 'Aktiv' },
+    { value: 'suspended', text: 'Gesperrt' },
+    { value: 'cancelled', text: 'Gekündigt' },
+];
+
+const serversTableFields = [
+    { key: 'name', label: 'Name', sortable: false },
+    { key: 'plan_display', label: 'Plan', sortable: false },
+    { key: 'identifier', label: 'Identifier', sortable: false },
+    { key: 'cpu', label: 'CPU', sortable: false },
+    { key: 'ram', label: 'RAM', sortable: false },
+    { key: 'disk', label: 'Disk', sortable: false },
+    { key: 'status', label: 'Status', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head :title="`Cloud-Abo: ${subscriptionPlanLabel()}`" />
 
-        <div class="space-y-6">
-            <div class="flex items-center gap-4">
-                <Link href="/admin/gameserver-cloud-accounts">
-                    <Button variant="ghost" size="icon">
-                        <ArrowLeft class="h-4 w-4" />
-                    </Button>
-                </Link>
-                <div class="flex items-center gap-2">
-                    <Server class="h-8 w-8" />
+        <BRow>
+            <BCol>
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <Link href="/admin/gameserver-cloud-accounts">
+                        <BButton variant="outline-secondary" size="sm">
+                            <Icon icon="arrow-left" class="me-1" />
+                            Zurück
+                        </BButton>
+                    </Link>
                     <div>
-                        <Heading level="h1">Cloud-Abo: {{ subscriptionPlanLabel() }}</Heading>
-                        <Text class="mt-2" muted>
+                        <h4 class="mb-1">Cloud-Abo: {{ subscriptionPlanLabel() }}</h4>
+                        <p class="text-muted small mb-0">
                             Gemietete Cloud – Kunde: {{ subscription.user?.name ?? '–' }}
-                        </Text>
+                        </p>
                     </div>
                 </div>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Abo-Übersicht</CardTitle>
-                    <CardDescription>Kunde, Plan, Status, Laufzeit, Ressourcen</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <Text variant="small" muted>Kunde</Text>
-                            <div v-if="subscription.user" class="font-medium">{{ subscription.user.name }}</div>
-                            <div v-if="subscription.user" class="text-sm text-muted-foreground">{{ subscription.user.email }}</div>
-                            <span v-else class="text-muted-foreground">–</span>
-                        </div>
-                        <div>
-                            <Text variant="small" muted>Aktueller Plan</Text>
-                            <p class="font-medium">{{ subscriptionPlanLabel() }}</p>
-                        </div>
-                        <div>
-                            <Text variant="small" muted>Status</Text>
-                            <Badge variant="secondary">{{ subscription.status }}</Badge>
-                        </div>
-                        <div>
-                            <Text variant="small" muted>Abo-Ende</Text>
-                            <p>{{ formatDate(subscription.current_period_ends_at) }}</p>
-                        </div>
-                        <div v-if="subscription.display_price !== null && subscription.display_price !== undefined">
-                            <Text variant="small" muted>Preis (monatlich)</Text>
-                            <p class="font-medium">{{ subscription.display_price }} €</p>
-                        </div>
-                    </div>
-                    <div>
-                        <Text variant="small" muted>Ressourcen (genutzt / verfügbar)</Text>
-                        <p class="mt-1 text-sm">
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Abo-Übersicht</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Kunde, Plan, Status, Laufzeit, Ressourcen</p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BRow>
+                            <BCol sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Kunde</p>
+                                <template v-if="subscription.user">
+                                    <div class="fw-medium">{{ subscription.user.name }}</div>
+                                    <div class="small text-muted">{{ subscription.user.email }}</div>
+                                </template>
+                                <span v-else class="text-muted">–</span>
+                            </BCol>
+                            <BCol sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Aktueller Plan</p>
+                                <p class="fw-medium mb-0">{{ subscriptionPlanLabel() }}</p>
+                            </BCol>
+                            <BCol sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Status</p>
+                                <BBadge variant="secondary">{{ subscription.status }}</BBadge>
+                            </BCol>
+                            <BCol sm="6" class="mb-3">
+                                <p class="text-muted small mb-1">Abo-Ende</p>
+                                <p class="mb-0">{{ formatDate(subscription.current_period_ends_at) }}</p>
+                            </BCol>
+                            <BCol
+                                v-if="subscription.display_price !== null && subscription.display_price !== undefined"
+                                sm="6"
+                                class="mb-3"
+                            >
+                                <p class="text-muted small mb-1">Preis (monatlich)</p>
+                                <p class="fw-medium mb-0">{{ subscription.display_price }} €</p>
+                            </BCol>
+                        </BRow>
+                        <p class="text-muted small mb-1">Ressourcen (genutzt / verfügbar)</p>
+                        <p class="small mb-1">
                             {{ subscription.used_cpu }} / {{ subscription.max_cpu }} % CPU
                             ·
-                            {{ (subscription.used_memory_mb / 1024).toFixed(1) }} / {{ (subscription.max_memory_mb / 1024).toFixed(1) }} GB RAM
+                            {{ (subscription.used_memory_mb / 1024).toFixed(1) }} /
+                            {{ (subscription.max_memory_mb / 1024).toFixed(1) }} GB RAM
                             ·
                             {{ (subscription.used_disk_mb / 1024).toFixed(1) }} / {{ subscription.max_disk_gb }} GB Disk
                         </p>
-                        <p class="text-xs text-muted-foreground">
-                            Verbleibend: {{ subscription.remaining_cpu }} % CPU, {{ Math.round(subscription.remaining_memory_mb / 1024) }} GB RAM, {{ Math.round(subscription.remaining_disk_mb / 1024) }} GB Disk
+                        <p class="small text-muted mb-0">
+                            Verbleibend: {{ subscription.remaining_cpu }} % CPU,
+                            {{ Math.round(subscription.remaining_memory_mb / 1024) }} GB RAM,
+                            {{ Math.round(subscription.remaining_disk_mb / 1024) }} GB Disk
                         </p>
-                    </div>
-                </CardContent>
-            </Card>
+                    </BCardBody>
+                </BCard>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Leistung anpassen</CardTitle>
-                    <CardDescription>
-                        Cloud-Plan wechseln oder „Benutzer definiert“ mit eigenen Ressourcen und Preis
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form @submit.prevent="submitPlanChange" class="space-y-4">
-                        <div class="flex flex-wrap items-end gap-4">
-                            <div class="min-w-[220px] space-y-2">
-                                <Label for="plan">Plan / Anzeige</Label>
-                                <select
-                                    id="plan"
-                                    :value="planSelectValue"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    :aria-invalid="!!planForm.errors.gameserver_cloud_plan_id"
-                                    @change="onPlanSelectChange(($event.target as HTMLSelectElement).value)"
-                                >
-                                    <option value="user_defined">Benutzer definiert</option>
-                                    <option
-                                        v-for="p in gameserverCloudPlans"
-                                        :key="p.id"
-                                        :value="p.id"
-                                    >
-                                        {{ p.name }}
-                                    </option>
-                                </select>
-                                <InputError :message="planForm.errors.gameserver_cloud_plan_id" />
-                            </div>
-                            <Button type="submit" :disabled="planForm.processing">
-                                {{ planForm.processing ? 'Wird gespeichert…' : 'Übernehmen' }}
-                            </Button>
-                        </div>
-                        <div
-                            v-if="planForm.plan_display_user_defined"
-                            class="grid gap-4 rounded-lg border border-border bg-muted/30 p-4 sm:grid-cols-2 lg:grid-cols-5"
-                        >
-                            <div class="space-y-2">
-                                <Label for="custom_max_cpu">CPU (%)</Label>
-                                <Input
-                                    id="custom_max_cpu"
-                                    v-model.number="planForm.custom_max_cpu"
-                                    type="number"
-                                    min="0"
-                                    placeholder="z. B. 200"
-                                    :aria-invalid="!!planForm.errors.custom_max_cpu"
-                                />
-                                <InputError :message="planForm.errors.custom_max_cpu" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="custom_max_memory_mb">RAM (MB)</Label>
-                                <Input
-                                    id="custom_max_memory_mb"
-                                    v-model.number="planForm.custom_max_memory_mb"
-                                    type="number"
-                                    min="0"
-                                    placeholder="z. B. 4096"
-                                    :aria-invalid="!!planForm.errors.custom_max_memory_mb"
-                                />
-                                <InputError :message="planForm.errors.custom_max_memory_mb" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="custom_max_disk_gb">Disk (GB)</Label>
-                                <Input
-                                    id="custom_max_disk_gb"
-                                    v-model.number="planForm.custom_max_disk_gb"
-                                    type="number"
-                                    min="0"
-                                    placeholder="z. B. 20"
-                                    :aria-invalid="!!planForm.errors.custom_max_disk_gb"
-                                />
-                                <InputError :message="planForm.errors.custom_max_disk_gb" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="custom_price">Preis (€/Monat)</Label>
-                                <Input
-                                    id="custom_price"
-                                    v-model.number="planForm.custom_price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="z. B. 29.99"
-                                    :aria-invalid="!!planForm.errors.custom_price"
-                                />
-                                <InputError :message="planForm.errors.custom_price" />
-                            </div>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Laufzeit &amp; Status (Admin)</CardTitle>
-                    <CardDescription>
-                        Abo-Ende, Status und Kündigung zum Periodenende anpassen
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form @submit.prevent="submitPeriodAndStatus" class="space-y-4">
-                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <div class="space-y-2">
-                                <Label for="current_period_ends_at">Abo-Ende (Datum)</Label>
-                                <Input
-                                    id="current_period_ends_at"
-                                    v-model="periodAndStatusForm.current_period_ends_at"
-                                    type="date"
-                                    :aria-invalid="!!periodAndStatusForm.errors.current_period_ends_at"
-                                />
-                                <InputError :message="periodAndStatusForm.errors.current_period_ends_at" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="status">Status</Label>
-                                <select
-                                    id="status"
-                                    v-model="periodAndStatusForm.status"
-                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                    :aria-invalid="!!periodAndStatusForm.errors.status"
-                                >
-                                    <option value="active">Aktiv</option>
-                                    <option value="suspended">Gesperrt</option>
-                                    <option value="cancelled">Gekündigt</option>
-                                </select>
-                                <InputError :message="periodAndStatusForm.errors.status" />
-                            </div>
-                            <div class="flex items-end pb-2">
-                                <label class="flex cursor-pointer items-center gap-2">
-                                    <input
-                                        v-model="periodAndStatusForm.cancel_at_period_end"
-                                        type="checkbox"
-                                        class="h-4 w-4 rounded border-input"
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Leistung anpassen</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Cloud-Plan wechseln oder „Benutzer definiert“ mit eigenen Ressourcen und Preis
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BForm @submit.prevent="submitPlanChange">
+                            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                                <BFormGroup label="Plan / Anzeige" label-for="plan" class="mb-0" style="min-width: 220px">
+                                    <BFormSelect
+                                        id="plan"
+                                        :model-value="planSelectValue"
+                                        :options="planSelectOptions"
+                                        :aria-invalid="!!planForm.errors.gameserver_cloud_plan_id"
+                                        @update:model-value="onPlanSelectChange"
                                     />
-                                    <span class="text-sm">Kündigung zum Periodenende</span>
-                                </label>
+                                    <InputError :message="planForm.errors.gameserver_cloud_plan_id" />
+                                </BFormGroup>
+                                <BButton type="submit" variant="primary" :disabled="planForm.processing">
+                                    {{ planForm.processing ? 'Wird gespeichert…' : 'Übernehmen' }}
+                                </BButton>
                             </div>
-                            <div class="flex items-end pb-2">
-                                <Button type="submit" :disabled="periodAndStatusForm.processing">
-                                    {{ periodAndStatusForm.processing ? 'Wird gespeichert…' : 'Speichern' }}
-                                </Button>
-                            </div>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Server auf dieser Cloud</CardTitle>
-                    <CardDescription>Game-Server, die zu diesem Abo gehören</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Plan</TableHead>
-                                <TableHead>Identifier</TableHead>
-                                <TableHead>CPU</TableHead>
-                                <TableHead>RAM</TableHead>
-                                <TableHead>Disk</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow
-                                v-for="acc in gameServerAccounts"
-                                :key="acc.id"
+                            <div
+                                v-if="planForm.plan_display_user_defined"
+                                class="rounded border border-secondary bg-light p-3 mb-0"
                             >
-                                <TableCell class="font-medium">{{ acc.name }}</TableCell>
-                                <TableCell>
-                                    <span :class="acc.allocation_manually_set ? 'font-medium text-primary' : ''">
-                                        {{ planLabel(acc) }}
-                                    </span>
-                                </TableCell>
-                                <TableCell>
-                                    <code
-                                        v-if="acc.identifier"
-                                        class="rounded bg-muted px-2 py-1 text-sm"
-                                    >
-                                        {{ acc.identifier }}
-                                    </code>
-                                    <span v-else class="text-muted-foreground">–</span>
-                                </TableCell>
-                                <TableCell>{{ acc.allocation?.cpu ?? '–' }} %</TableCell>
-                                <TableCell>{{ acc.allocation?.memory_mb ? (acc.allocation.memory_mb / 1024).toFixed(1) + ' GB' : '–' }}</TableCell>
-                                <TableCell>{{ acc.allocation?.disk_mb ? (acc.allocation.disk_mb / 1024).toFixed(1) + ' GB' : '–' }}</TableCell>
-                                <TableCell>
-                                    <Badge variant="secondary">{{ acc.status }}</Badge>
-                                </TableCell>
-                                <TableCell class="text-right">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        title="Ressourcen anpassen"
-                                        @click="openResourcesDialog(acc)"
-                                    >
-                                        <Pencil class="h-4 w-4" />
-                                    </Button>
-                                    <Link :href="`/admin/gaming-accounts/${acc.id}`">
-                                        <Button variant="ghost" size="sm" title="Ansehen">
-                                            <Eye class="h-4 w-4" />
-                                        </Button>
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="gameServerAccounts.length === 0">
-                                <TableCell
-                                    colspan="8"
-                                    class="text-center text-muted-foreground"
+                                <BRow>
+                                    <BCol md="6" lg="2" class="mb-3">
+                                        <BFormGroup label="CPU (%)" label-for="custom_max_cpu" class="mb-0">
+                                            <BFormInput
+                                                id="custom_max_cpu"
+                                                v-model.number="planForm.custom_max_cpu"
+                                                type="number"
+                                                min="0"
+                                                placeholder="z. B. 200"
+                                                :aria-invalid="!!planForm.errors.custom_max_cpu"
+                                            />
+                                            <InputError :message="planForm.errors.custom_max_cpu" />
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="6" lg="2" class="mb-3">
+                                        <BFormGroup label="RAM (MB)" label-for="custom_max_memory_mb" class="mb-0">
+                                            <BFormInput
+                                                id="custom_max_memory_mb"
+                                                v-model.number="planForm.custom_max_memory_mb"
+                                                type="number"
+                                                min="0"
+                                                placeholder="z. B. 4096"
+                                                :aria-invalid="!!planForm.errors.custom_max_memory_mb"
+                                            />
+                                            <InputError :message="planForm.errors.custom_max_memory_mb" />
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="6" lg="2" class="mb-3">
+                                        <BFormGroup label="Disk (GB)" label-for="custom_max_disk_gb" class="mb-0">
+                                            <BFormInput
+                                                id="custom_max_disk_gb"
+                                                v-model.number="planForm.custom_max_disk_gb"
+                                                type="number"
+                                                min="0"
+                                                placeholder="z. B. 20"
+                                                :aria-invalid="!!planForm.errors.custom_max_disk_gb"
+                                            />
+                                            <InputError :message="planForm.errors.custom_max_disk_gb" />
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol md="6" lg="2" class="mb-3">
+                                        <BFormGroup label="Preis (€/Monat)" label-for="custom_price" class="mb-0">
+                                            <BFormInput
+                                                id="custom_price"
+                                                v-model="planForm.custom_price"
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="z. B. 29.99"
+                                                :aria-invalid="!!planForm.errors.custom_price"
+                                            />
+                                            <InputError :message="planForm.errors.custom_price" />
+                                        </BFormGroup>
+                                    </BCol>
+                                </BRow>
+                            </div>
+                        </BForm>
+                    </BCardBody>
+                </BCard>
+
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Laufzeit &amp; Status (Admin)</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">
+                            Abo-Ende, Status und Kündigung zum Periodenende anpassen
+                        </p>
+                    </BCardHeader>
+                    <BCardBody>
+                        <BForm @submit.prevent="submitPeriodAndStatus">
+                            <BRow class="align-items-end">
+                                <BCol md="6" lg="3" class="mb-3">
+                                    <BFormGroup label="Abo-Ende (Datum)" label-for="current_period_ends_at" class="mb-0">
+                                        <BFormInput
+                                            id="current_period_ends_at"
+                                            v-model="periodAndStatusForm.current_period_ends_at"
+                                            type="date"
+                                            :aria-invalid="!!periodAndStatusForm.errors.current_period_ends_at"
+                                        />
+                                        <InputError :message="periodAndStatusForm.errors.current_period_ends_at" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol md="6" lg="3" class="mb-3">
+                                    <BFormGroup label="Status" label-for="status" class="mb-0">
+                                        <BFormSelect
+                                            id="status"
+                                            v-model="periodAndStatusForm.status"
+                                            :options="statusOptions"
+                                            :aria-invalid="!!periodAndStatusForm.errors.status"
+                                        />
+                                        <InputError :message="periodAndStatusForm.errors.status" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol md="6" lg="3" class="mb-3">
+                                    <BFormGroup class="mb-0">
+                                        <BFormCheckbox v-model="periodAndStatusForm.cancel_at_period_end">
+                                            Kündigung zum Periodenende
+                                        </BFormCheckbox>
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol md="6" lg="3" class="mb-3">
+                                    <BButton type="submit" variant="primary" :disabled="periodAndStatusForm.processing">
+                                        {{ periodAndStatusForm.processing ? 'Wird gespeichert…' : 'Speichern' }}
+                                    </BButton>
+                                </BCol>
+                            </BRow>
+                        </BForm>
+                    </BCardBody>
+                </BCard>
+
+                <BCard no-body class="mb-4">
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Server auf dieser Cloud</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Game-Server, die zu diesem Abo gehören</p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="gameServerAccounts"
+                            :fields="serversTableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Server in dieser Cloud"
+                        >
+                            <template #cell(name)="row">
+                                <span class="fw-medium">{{ row.item.name }}</span>
+                            </template>
+                            <template #cell(plan_display)="row">
+                                <span
+                                    :class="row.item.allocation_manually_set ? 'fw-medium text-primary' : ''"
                                 >
-                                    Keine Server in dieser Cloud
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                                    {{ planLabel(row.item) }}
+                                </span>
+                            </template>
+                            <template #cell(identifier)="row">
+                                <code v-if="row.item.identifier" class="small bg-light px-2 py-1 rounded">
+                                    {{ row.item.identifier }}
+                                </code>
+                                <span v-else class="text-muted">–</span>
+                            </template>
+                            <template #cell(cpu)="row">
+                                {{ row.item.allocation?.cpu ?? '–' }} %
+                            </template>
+                            <template #cell(ram)="row">
+                                {{
+                                    row.item.allocation?.memory_mb
+                                        ? (row.item.allocation.memory_mb / 1024).toFixed(1) + ' GB'
+                                        : '–'
+                                }}
+                            </template>
+                            <template #cell(disk)="row">
+                                {{
+                                    row.item.allocation?.disk_mb
+                                        ? (row.item.allocation.disk_mb / 1024).toFixed(1) + ' GB'
+                                        : '–'
+                                }}
+                            </template>
+                            <template #cell(status)="row">
+                                <BBadge variant="secondary">{{ row.item.status }}</BBadge>
+                            </template>
+                            <template #cell(actions)="row">
+                                <BButton
+                                    variant="outline-primary"
+                                    size="sm"
+                                    class="me-1"
+                                    title="Ressourcen anpassen"
+                                    @click="openResourcesDialog(row.item)"
+                                >
+                                    <Icon icon="pencil" />
+                                </BButton>
+                                <Link :href="`/admin/gaming-accounts/${row.item.uuid}`">
+                                    <BButton variant="outline-secondary" size="sm" title="Ansehen">
+                                        <Icon icon="eye" />
+                                    </BButton>
+                                </Link>
+                            </template>
+                        </BTable>
+                    </BCardBody>
+                </BCard>
 
-            <Dialog v-model:open="resourcesDialogOpen">
-                <DialogContent class="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Ressourcen anpassen</DialogTitle>
-                        <DialogDescription>
-                            CPU, RAM und Disk für
-                            {{ editingAccount?.name ?? 'Server' }}
-                            anpassen. Danach wird bei Plan „Benutzer definiert“ angezeigt.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form @submit.prevent="submitResources" class="space-y-4">
-                        <div class="grid gap-4 sm:grid-cols-3">
-                            <div class="space-y-2">
-                                <Label for="resources_cpu">CPU (%)</Label>
-                                <Input
-                                    id="resources_cpu"
-                                    v-model.number="resourcesForm.cpu"
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    :aria-invalid="!!resourcesForm.errors.cpu"
-                                />
-                                <InputError :message="resourcesForm.errors.cpu" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="resources_memory_mb">RAM (MB)</Label>
-                                <Input
-                                    id="resources_memory_mb"
-                                    v-model.number="resourcesForm.memory_mb"
-                                    type="number"
-                                    min="64"
-                                    step="64"
-                                    :aria-invalid="!!resourcesForm.errors.memory_mb"
-                                />
-                                <InputError :message="resourcesForm.errors.memory_mb" />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="resources_disk_mb">Disk (MB)</Label>
-                                <Input
-                                    id="resources_disk_mb"
-                                    v-model.number="resourcesForm.disk_mb"
-                                    type="number"
-                                    min="256"
-                                    step="256"
-                                    :aria-invalid="!!resourcesForm.errors.disk_mb"
-                                />
-                                <InputError :message="resourcesForm.errors.disk_mb" />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                @click="resourcesDialogOpen = false"
-                            >
+                <BModal
+                    v-model="resourcesDialogOpen"
+                    title="Ressourcen anpassen"
+                    hide-footer
+                    @hidden="editingAccount = null"
+                >
+                    <p class="text-muted small mb-3">
+                        CPU, RAM und Disk für {{ editingAccount?.name ?? 'Server' }} anpassen. Danach wird bei Plan
+                        „Benutzer definiert“ angezeigt.
+                    </p>
+                    <BForm @submit.prevent="submitResources">
+                        <BRow>
+                            <BCol md="4" class="mb-3">
+                                <BFormGroup label="CPU (%)" label-for="resources_cpu">
+                                    <BFormInput
+                                        id="resources_cpu"
+                                        v-model.number="resourcesForm.cpu"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        :aria-invalid="!!resourcesForm.errors.cpu"
+                                    />
+                                    <InputError :message="resourcesForm.errors.cpu" />
+                                </BFormGroup>
+                            </BCol>
+                            <BCol md="4" class="mb-3">
+                                <BFormGroup label="RAM (MB)" label-for="resources_memory_mb">
+                                    <BFormInput
+                                        id="resources_memory_mb"
+                                        v-model.number="resourcesForm.memory_mb"
+                                        type="number"
+                                        min="64"
+                                        step="64"
+                                        :aria-invalid="!!resourcesForm.errors.memory_mb"
+                                    />
+                                    <InputError :message="resourcesForm.errors.memory_mb" />
+                                </BFormGroup>
+                            </BCol>
+                            <BCol md="4" class="mb-3">
+                                <BFormGroup label="Disk (MB)" label-for="resources_disk_mb">
+                                    <BFormInput
+                                        id="resources_disk_mb"
+                                        v-model.number="resourcesForm.disk_mb"
+                                        type="number"
+                                        min="256"
+                                        step="256"
+                                        :aria-invalid="!!resourcesForm.errors.disk_mb"
+                                    />
+                                    <InputError :message="resourcesForm.errors.disk_mb" />
+                                </BFormGroup>
+                            </BCol>
+                        </BRow>
+                        <div class="d-flex justify-content-end gap-2">
+                            <BButton type="button" variant="outline-secondary" @click="resourcesDialogOpen = false">
                                 Abbrechen
-                            </Button>
-                            <Button type="submit" :disabled="resourcesForm.processing">
+                            </BButton>
+                            <BButton type="submit" variant="primary" :disabled="resourcesForm.processing">
                                 {{ resourcesForm.processing ? 'Wird gespeichert…' : 'Speichern' }}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-        </div>
+                            </BButton>
+                        </div>
+                    </BForm>
+                </BModal>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>

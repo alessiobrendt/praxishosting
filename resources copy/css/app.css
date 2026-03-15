@@ -1,0 +1,560 @@
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+/* Theme layout: Sidebar, Topbar, Footer (.new design + variables) */
+@import './theme-layout.css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+/* Dark mode: applies when inside .dark but NOT inside .light (e.g. page designer preview) */
+@custom-variant dark (&:is(.dark *):not(.light *));
+
+@theme inline {
+    --font-sans:
+        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    --color-sidebar: var(--sidebar-background);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}
+
+@layer utilities {
+    body,
+    html {
+        --font-sans:
+            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+            'Noto Color Emoji';
+    }
+
+    /* Modern Gradient Utilities (use --primary/--primary-hover from brand theme when set) */
+    .gradient-primary {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover, var(--primary)) 100%);
+    }
+
+    .gradient-primary-subtle {
+        background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, transparent) 0%, color-mix(in srgb, var(--primary-hover, var(--primary)) 10%, transparent) 100%);
+    }
+
+    .gradient-card {
+        background: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%);
+    }
+
+    .dark .gradient-card {
+        background: linear-gradient(135deg, hsl(0 0% 7%) 0%, hsl(0 0% 9%) 100%);
+    }
+
+    /* Modern Shadow Utilities */
+    .shadow-modern {
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    }
+
+    .shadow-modern-md {
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+
+    .shadow-modern-lg {
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    .shadow-modern-xl {
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    }
+
+    .shadow-emerald,
+    .shadow-primary {
+        box-shadow: 0 4px 14px 0 color-mix(in srgb, var(--primary) 15%, transparent);
+    }
+
+    .dark .shadow-modern {
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    }
+
+    .dark .shadow-modern-md {
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    }
+
+    .dark .shadow-modern-lg {
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    }
+
+    .dark .shadow-modern-xl {
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+    }
+
+    /* Smooth Transitions */
+    .transition-modern {
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .transition-modern-slow {
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 300ms;
+    }
+
+    /* Site render: global fonts from Design tab (--font-heading, --font-body set on root) */
+    .site-render {
+        font-family: var(--font-body, var(--font-sans));
+    }
+
+    .site-render h1,
+    .site-render h2,
+    .site-render h3,
+    .site-render h4,
+    .site-render h5,
+    .site-render h6,
+    .site-render .font-heading {
+        font-family: var(--font-heading, var(--font-sans));
+    }
+}
+
+:root {
+    --background: hsl(0 0% 100%);
+    --foreground: hsl(0 0% 3.9%);
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(0 0% 3.9%);
+    --popover: hsl(0 0% 100%);
+    --popover-foreground: hsl(0 0% 3.9%);
+    --primary: hsl(142 76% 36%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary: hsl(0 0% 96.1%);
+    --secondary-foreground: hsl(0 0% 9%);
+    --muted: hsl(0 0% 96.1%);
+    --muted-foreground: hsl(0 0% 45.1%);
+    --accent: hsl(142 76% 36%);
+    --accent-foreground: hsl(0 0% 100%);
+    --destructive: hsl(0 84.2% 60.2%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(0 0% 89.2%);
+    --input: hsl(0 0% 89.2%);
+    --ring: hsl(142 76% 36%);
+    --chart-1: hsl(142 76% 36%);
+    --chart-2: hsl(173 58% 39%);
+    --chart-3: hsl(197 37% 24%);
+    --chart-4: hsl(43 74% 66%);
+    --chart-5: hsl(27 87% 67%);
+    --radius: 0.5rem;
+    --sidebar-background: hsl(0 0% 98%);
+    --sidebar-foreground: hsl(0 0% 9%);
+    --sidebar-primary: hsl(142 76% 36%);
+    --sidebar-primary-foreground: hsl(0 0% 100%);
+    --sidebar-accent: hsl(0 0% 96.1%);
+    --sidebar-accent-foreground: hsl(0 0% 9%);
+    --sidebar-border: hsl(0 0% 89.2%);
+    --sidebar-ring: hsl(142 76% 36%);
+    --sidebar: hsl(0 0% 98%);
+}
+
+/* Page designer preview: always light, unaffected by panel dark mode */
+.light {
+    color-scheme: light;
+    --background: hsl(0 0% 100%);
+    --foreground: hsl(0 0% 3.9%);
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(0 0% 3.9%);
+    --popover: hsl(0 0% 100%);
+    --popover-foreground: hsl(0 0% 3.9%);
+    --primary: hsl(142 76% 36%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary: hsl(0 0% 96.1%);
+    --secondary-foreground: hsl(0 0% 9%);
+    --muted: hsl(0 0% 96.1%);
+    --muted-foreground: hsl(0 0% 45.1%);
+    --accent: hsl(142 76% 36%);
+    --accent-foreground: hsl(0 0% 100%);
+    --border: hsl(0 0% 89.2%);
+    --input: hsl(0 0% 89.2%);
+    --ring: hsl(142 76% 36%);
+}
+
+.dark {
+    --background: hsl(0 0% 3.9%);
+    --foreground: hsl(0 0% 98%);
+    --card: hsl(0 0% 7%);
+    --card-foreground: hsl(0 0% 98%);
+    --popover: hsl(0 0% 7%);
+    --popover-foreground: hsl(0 0% 98%);
+    --primary: hsl(142 76% 36%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary: hsl(0 0% 14.9%);
+    --secondary-foreground: hsl(0 0% 98%);
+    --muted: hsl(0 0% 14.9%);
+    --muted-foreground: hsl(0 0% 63.9%);
+    --accent: hsl(142 76% 36%);
+    --accent-foreground: hsl(0 0% 100%);
+    --destructive: hsl(0 84% 60%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(0 0% 14.9%);
+    --input: hsl(0 0% 14.9%);
+    --ring: hsl(142 76% 36%);
+    --chart-1: hsl(142 76% 36%);
+    --chart-2: hsl(160 60% 45%);
+    --chart-3: hsl(30 80% 55%);
+    --chart-4: hsl(280 65% 60%);
+    --chart-5: hsl(340 75% 55%);
+    --sidebar-background: hsl(0 0% 7%);
+    --sidebar-foreground: hsl(0 0% 95.9%);
+    --sidebar-primary: hsl(142 76% 36%);
+    --sidebar-primary-foreground: hsl(0 0% 100%);
+    --sidebar-accent: hsl(0 0% 14.9%);
+    --sidebar-accent-foreground: hsl(0 0% 95.9%);
+    --sidebar-border: hsl(0 0% 14.9%);
+    --sidebar-ring: hsl(142 76% 36%);
+    --sidebar: hsl(0 0% 7%);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/*
+ * Page blocks inside Grid/Flex/Section: fill the cell (full width), no max-w-6xl centering.
+ */
+.grid-block .max-w-6xl,
+.grid-block-inner .max-w-6xl,
+.flex-container-block .max-w-6xl,
+.flex-container-inner .max-w-6xl,
+.section-flex .max-w-6xl {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+/* Workflow Builder – Panel-konsistentes Theme (light/dark wie Rest der App) */
+.workflow-builder {
+    --workflow-bg: theme(colors.gray.100);
+    --workflow-bg-dark: theme(colors.gray.950);
+    --workflow-panel: theme(colors.white);
+    --workflow-panel-dark: theme(colors.gray.900);
+    --workflow-card: theme(colors.white);
+    --workflow-card-dark: theme(colors.gray.900);
+    --workflow-line: theme(colors.gray.200);
+    --workflow-line-dark: theme(colors.gray.800);
+    --workflow-text: theme(colors.gray.900);
+    --workflow-text-dark: theme(colors.gray.100);
+    --workflow-muted: theme(colors.gray.600);
+    --workflow-muted-dark: theme(colors.gray.400);
+    --workflow-accent: var(--primary);
+    --workflow-accent-dark: var(--primary);
+    --workflow-dot: theme(colors.gray.400);
+    --workflow-dot-dark: theme(colors.gray.500);
+    --workflow-canvas-dot: theme(colors.gray.300);
+    --workflow-canvas-dot-dark: theme(colors.gray.700);
+}
+
+.workflow-builder {
+    background: var(--workflow-panel);
+    color: var(--workflow-text);
+}
+
+.dark .workflow-builder {
+    --workflow-bg: var(--workflow-bg-dark);
+    --workflow-panel: var(--workflow-panel-dark);
+    --workflow-card: var(--workflow-card-dark);
+    --workflow-line: var(--workflow-line-dark);
+    --workflow-text: var(--workflow-text-dark);
+    --workflow-muted: var(--workflow-muted-dark);
+    --workflow-accent: var(--workflow-accent-dark);
+    --workflow-dot: var(--workflow-dot-dark);
+    --workflow-canvas-dot: var(--workflow-canvas-dot-dark);
+    background: var(--workflow-panel);
+    color: var(--workflow-text);
+}
+
+.text-workflow-text { color: var(--workflow-text); }
+.text-workflow-muted { color: var(--workflow-muted); }
+
+.workflow-edge-arrow {
+    fill: var(--workflow-accent);
+}
+
+.workflow-palette-tile {
+    display: block;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--workflow-line);
+    padding: 10px 12px;
+    text-align: left;
+    transition: transform 0.08s ease, border-color 0.12s ease;
+    background: var(--workflow-card);
+    color: var(--workflow-text);
+}
+.workflow-palette-tile:hover {
+    transform: translateY(-1px);
+    border-color: var(--workflow-accent);
+}
+
+.workflow-canvas-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    background:
+        radial-gradient(circle at 10px 10px, var(--workflow-canvas-dot) 0, transparent 3px);
+    background-size: 36px 36px;
+    background-color: var(--workflow-bg);
+}
+
+.workflow-svg-lines {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.workflow-canvas-inner {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    min-width: 1200px;
+    min-height: 800px;
+}
+
+.workflow-edge {
+    fill: none;
+    stroke: var(--workflow-accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    opacity: 0.85;
+}
+
+.workflow-node {
+    position: absolute;
+    width: 260px;
+    border-radius: 14px;
+    overflow: hidden;
+    user-select: none;
+    background: var(--workflow-card);
+    border: 1px solid var(--workflow-line);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    color: var(--workflow-text);
+}
+
+.workflow-node-selected {
+    border-color: var(--workflow-accent);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.workflow-node-header {
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    border-bottom: 1px solid var(--workflow-line);
+    background: var(--workflow-bg);
+    cursor: grab;
+}
+.workflow-node-header:active {
+    cursor: grabbing;
+}
+
+.workflow-node-title {
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.15;
+    color: var(--workflow-text);
+}
+
+.workflow-node-type {
+    font-size: 11px;
+    color: var(--workflow-muted);
+    margin-top: 3px;
+}
+
+.workflow-chip {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    border: 1px solid var(--workflow-line);
+    background: var(--workflow-bg);
+    color: var(--workflow-muted);
+    white-space: nowrap;
+}
+
+.workflow-node-body {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--workflow-muted);
+    line-height: 1.35;
+}
+
+.workflow-node-ports {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 12px 12px;
+    border-top: 1px solid var(--workflow-line);
+}
+
+.workflow-port {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin: -6px -10px;
+    font-size: 11px;
+    color: var(--workflow-muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    border-radius: 6px;
+}
+.workflow-port:hover {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.workflow-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 9999px;
+    border: 2px solid var(--workflow-dot);
+    background: var(--workflow-bg);
+}
+
+.workflow-dot-out,
+.workflow-dot-in {
+    border-color: var(--workflow-accent);
+}
+
+.workflow-dot-active {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+/* Page Designer: drag & drop feedback (canvas / layout blocks) */
+.page-designer-ghost {
+    opacity: 0.45;
+    background: hsl(var(--muted));
+    border-radius: 0.375rem;
+    border: 2px dashed hsl(var(--primary) / 0.6);
+    pointer-events: none;
+}
+.page-designer-chosen {
+    opacity: 0.92;
+    background: hsl(var(--primary) / 0.08);
+    border-radius: 0.375rem;
+    border: 1px solid hsl(var(--primary) / 0.2);
+}
+.page-designer-drag {
+    opacity: 0.98;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+    border-radius: 0.375rem;
+    border: 1px solid hsl(var(--primary) / 0.3);
+    background: hsl(var(--background));
+}
+
+/* vue-grid-layout-v3 (admin dashboard) */
+.vue-grid-layout {
+    position: relative;
+    transition: height 0.2s ease;
+}
+.vue-grid-item {
+    transition: all 0.2s ease;
+    transition-property: left, top, right;
+}
+.vue-grid-item.vue-draggable-dragging {
+    transition: none;
+    z-index: 3;
+}
+.vue-grid-item.resizing {
+    opacity: 0.6;
+    z-index: 3;
+}
+.vue-grid-item.vue-grid-placeholder {
+    background: hsl(var(--primary) / 0.2);
+    opacity: 0.2;
+    transition-duration: 0.1s;
+    z-index: 2;
+    user-select: none;
+}
+.vue-grid-item > .vue-resizable-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    bottom: 0;
+    right: 0;
+    cursor: se-resize;
+    background: linear-gradient(135deg, transparent 50%, hsl(var(--muted-foreground) / 0.3) 50%);
+    background-position: bottom right;
+    padding: 0 3px 3px 0;
+    background-origin: content-box;
+    box-sizing: border-box;
+}

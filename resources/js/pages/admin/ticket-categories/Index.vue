@@ -1,13 +1,19 @@
+<!-- Admin: Ticket-Kategorien -->
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Edit, Plus, Trash2 } from 'lucide-vue-next';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Pagination } from '@/components/ui/pagination';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Heading, Text } from '@/components/ui/typography';
+import {
+    BRow,
+    BCol,
+    BCard,
+    BCardBody,
+    BCardHeader,
+    BCardTitle,
+    BTable,
+    BButton,
+    BBadge,
+} from 'bootstrap-vue-next';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import Icon from '@/components/wrappers/Icon.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
@@ -21,7 +27,10 @@ type TicketCategory = {
 };
 
 type Props = {
-    ticketCategories: { data: TicketCategory[]; links: { url: string | null; label: string; active: boolean }[] };
+    ticketCategories: {
+        data: TicketCategory[];
+        links: { url: string | null; label: string; active: boolean }[];
+    };
 };
 
 defineProps<Props>();
@@ -32,71 +41,90 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Ticket-Kategorien', href: '#' },
 ];
 
-const destroy = (id: number) => {
+function destroy(id: number): void {
     if (confirm('Kategorie wirklich löschen?')) {
         router.delete(`/admin/ticket-categories/${id}`);
     }
-};
+}
 
-const handlePagination = (url: string) => {
-    if (url) window.location.href = url;
-};
+const tableFields = [
+    { key: 'name', label: 'Name', sortable: false },
+    { key: 'slug', label: 'Slug', sortable: false },
+    { key: 'sort_order', label: 'Sortierung', sortable: false },
+    { key: 'is_active', label: 'Aktiv', sortable: false },
+    { key: 'actions', label: 'Aktionen', sortable: false, thClass: 'text-end' },
+];
 </script>
 
 <template>
     <AdminLayout :breadcrumbs="breadcrumbs">
         <Head title="Ticket-Kategorien" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Heading level="h1">Ticket-Kategorien</Heading>
-                    <Text class="mt-2" muted>Kategorien für Support-Tickets verwalten</Text>
+        <BRow>
+            <BCol>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h4 class="mb-1">Ticket-Kategorien</h4>
+                        <p class="text-muted small mb-0">Kategorien für Support-Tickets verwalten</p>
+                    </div>
+                    <Link href="/admin/ticket-categories/create">
+                        <BButton variant="primary">
+                            <Icon icon="plus" class="me-2" />
+                            Neu
+                        </BButton>
+                    </Link>
                 </div>
-                <Link href="/admin/ticket-categories/create">
-                    <Button><Plus class="mr-2 h-4 w-4" />Neu</Button>
-                </Link>
-            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Kategorien</CardTitle>
-                    <CardDescription>Name, Slug, Sortierung, Aktiv</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Slug</TableHead>
-                                <TableHead>Sortierung</TableHead>
-                                <TableHead>Aktiv</TableHead>
-                                <TableHead class="text-right">Aktionen</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="tc in ticketCategories.data" :key="tc.id">
-                                <TableCell>{{ tc.name }}</TableCell>
-                                <TableCell><code class="text-sm">{{ tc.slug }}</code></TableCell>
-                                <TableCell>{{ tc.sort_order }}</TableCell>
-                                <TableCell><Badge :variant="tc.is_active ? 'success' : 'secondary'">{{ tc.is_active ? 'Ja' : 'Nein' }}</Badge></TableCell>
-                                <TableCell class="text-right">
-                                    <Link :href="`/admin/ticket-categories/${tc.id}/edit`">
-                                        <Button variant="ghost" size="sm"><Edit class="h-4 w-4" /></Button>
-                                    </Link>
-                                    <Button variant="ghost" size="sm" class="text-destructive" @click="destroy(tc.id)">
-                                        <Trash2 class="h-4 w-4" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-if="ticketCategories.data.length === 0">
-                                <TableCell colspan="5" class="text-center text-muted">Keine Kategorien.</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    <Pagination v-if="ticketCategories.links.length > 3" :links="ticketCategories.links" @page-click="handlePagination" />
-                </CardContent>
-            </Card>
-        </div>
+                <BCard no-body>
+                    <BCardHeader>
+                        <BCardTitle class="mb-0">Kategorien</BCardTitle>
+                        <p class="text-muted small mb-0 mt-1">Name, Slug, Sortierung, Aktiv</p>
+                    </BCardHeader>
+                    <BCardBody class="p-0">
+                        <BTable
+                            :items="ticketCategories.data"
+                            :fields="tableFields"
+                            striped
+                            responsive
+                            class="mb-0"
+                            show-empty
+                            empty-text="Keine Kategorien"
+                        >
+                            <template #cell(slug)="row">
+                                <code class="small">{{ row.item.slug }}</code>
+                            </template>
+                            <template #cell(is_active)="row">
+                                <BBadge :variant="row.item.is_active ? 'success' : 'secondary'">
+                                    {{ row.item.is_active ? 'Ja' : 'Nein' }}
+                                </BBadge>
+                            </template>
+                            <template #cell(actions)="row">
+                                <Link :href="`/admin/ticket-categories/${row.item.id}/edit`" class="me-1">
+                                    <BButton variant="outline-primary" size="sm">
+                                        <Icon icon="pencil" />
+                                    </BButton>
+                                </Link>
+                                <BButton variant="outline-danger" size="sm" @click="destroy(row.item.id)">
+                                    <Icon icon="trash" />
+                                </BButton>
+                            </template>
+                        </BTable>
+                        <nav v-if="ticketCategories.links.length > 3" class="d-flex justify-content-center p-3">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li
+                                    v-for="(link, idx) in ticketCategories.links"
+                                    :key="idx"
+                                    class="page-item"
+                                    :class="{ active: link.active, disabled: !link.url }"
+                                >
+                                    <a v-if="link.url" class="page-link" href="#" @click.prevent="link.url && (window.location.href = link.url)" v-html="link.label" />
+                                    <span v-else class="page-link" v-html="link.label" />
+                                </li>
+                            </ul>
+                        </nav>
+                    </BCardBody>
+                </BCard>
+            </BCol>
+        </BRow>
     </AdminLayout>
 </template>
